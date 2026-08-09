@@ -315,12 +315,12 @@ td.pago { color: #1a7d3a; font-weight: 600; }
 td.nao-pago { color: #b3261e; font-weight: 600; }
 
 .bloco-mes {
-  margin: 16px 0 6px;
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: #7c8894;
+  margin: 24px 0 10px;
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--azul);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.03em;
 }
 
 .bloco-mes:first-child { margin-top: 0; }
@@ -599,6 +599,7 @@ tr:hover td { background: #f8fafc; }
   select, input[type="text"] { background: #14181d; color: var(--texto); border-color: var(--borda); }
   tr:hover td { background: #20262c; }
   .opcoes-federacao label { background: #14181d; }
+  .bloco-mes { color: #7fd4ff; }
 }
 
 .tabs-carreira {
