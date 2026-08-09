@@ -21,7 +21,6 @@ async function carregarPerfil() {
   try {
     const resp = await fetchAutenticado("/api/carreira/perfil");
     const p = await resp.json();
-    document.getElementById("p_avatar").value = p.avatar || "🥋";
     document.getElementById("p_nome").value = p.nome || "";
     document.getElementById("p_faixa").value = p.faixa || "Branca";
     document.getElementById("p_grau").value = p.grau || "0";
@@ -36,7 +35,6 @@ async function carregarPerfil() {
 document.getElementById("form-perfil").addEventListener("submit", async (ev) => {
   ev.preventDefault();
   const dados = {
-    avatar: document.getElementById("p_avatar").value,
     nome: document.getElementById("p_nome").value,
     faixa: document.getElementById("p_faixa").value,
     grau: document.getElementById("p_grau").value,
