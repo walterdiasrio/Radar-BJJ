@@ -16,6 +16,7 @@ sem gastar envio de verdade).
 import hashlib
 import os
 import sqlite3
+import threading
 import traceback
 from datetime import date
 from pathlib import Path
@@ -126,15 +127,18 @@ def _marcar_vistos(alerta_id, atletas):
 
 def criar_alerta(usuario_id, titulo, federacao, data_nascimento, genero, faixa,
                   peso_kg, peso_sem_kimono, nome_atleta, equipe):
-    """Cria o alerta e já marca quem já está inscrito hoje como "visto" —
-    sem isso, a primeira verificação mandaria e-mail de todo mundo que já
-    estava inscrito antes do alerta existir."""
+    """Cria o alerta (inativo) e devolve na hora — a busca pra descobrir
+    quem já está inscrito hoje (pra marcar como "visto" e não gerar e-mail
+    de gente que já estava lá antes do alerta existir) pode demorar dezenas
+    de segundos quando cobre várias federações, então roda em background;
+    o alerta só fica ativo (entra na verificação periódica) depois que essa
+    captura inicial termina."""
     with _conn() as conn:
         cursor = conn.execute("""
             INSERT INTO alertas
                 (usuario_id, titulo, federacao, data_nascimento, genero, faixa,
-                 peso_kg, peso_sem_kimono, nome_atleta, equipe)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 peso_kg, peso_sem_kimono, nome_atleta, equipe, ativo)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
         """, (usuario_id, titulo, federacao, data_nascimento, genero, faixa,
               peso_kg, peso_sem_kimono, nome_atleta, equipe))
         alerta_id = cursor.lastrowid
@@ -144,10 +148,17 @@ def criar_alerta(usuario_id, titulo, federacao, data_nascimento, genero, faixa,
         "genero": genero, "faixa": faixa, "peso_kg": peso_kg,
         "peso_sem_kimono": peso_sem_kimono, "nome_atleta": nome_atleta, "equipe": equipe,
     }
-    try:
-        _marcar_vistos(alerta_id, _rodar_busca(alerta))
-    except Exception:
-        traceback.print_exc()
+
+    def _preparar():
+        try:
+            _marcar_vistos(alerta_id, _rodar_busca(alerta))
+        except Exception:
+            traceback.print_exc()
+        finally:
+            with _conn() as conn:
+                conn.execute("UPDATE alertas SET ativo = 1 WHERE id = ?", (alerta_id,))
+
+    threading.Thread(target=_preparar, daemon=True).start()
     return alerta_id
 
 

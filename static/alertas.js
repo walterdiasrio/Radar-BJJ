@@ -42,13 +42,17 @@ async function carregar() {
     elLista.innerHTML = alertasList.map(a => `
       <div class="cartao-alerta">
         <div class="cartao-alerta-topo">
-          <h3>${a.titulo}</h3>
+          <h3>${a.titulo} ${!a.ativo ? '<span class="badge-inscricao badge-desconhecida">Preparando...</span>' : ""}</h3>
           <button class="btn-remover" data-id="${a.id}">Remover</button>
         </div>
         <div class="cartao-alerta-federacao">${federacaoLabel(a.federacao)}</div>
         <div class="cartao-alerta-filtros">${resumoFiltros(a)}</div>
       </div>
     `).join("");
+
+    if (alertasList.some(a => !a.ativo)) {
+      setTimeout(carregar, 5000);
+    }
 
     elLista.querySelectorAll(".btn-remover").forEach(btn => {
       btn.addEventListener("click", () => remover(btn.dataset.id));
