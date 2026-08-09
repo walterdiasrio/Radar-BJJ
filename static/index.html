@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Radar BJJ — Buscador de Atletas</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <img src="img/banner.png" alt="Radar BJJ — Busque atletas, encontre resultados. CBJJ, FJJRio, CBJJD, CBJJO, CBJJE, FPJJ" class="banner">
+  <nav class="menu-principal">
+    <a href="/" class="ativo">Buscador de Atletas</a>
+    <a href="/competicoes">Competições</a>
+    <a href="/importar-adcc" id="nav-importar-adcc" style="display:none">Importar ADCC</a>
+    <span id="nav-usuario" class="nav-usuario"></span>
+  </nav>
+</header>
+
+<main>
+  <form id="form-busca">
+    <div class="campo">
+      <label>Federação</label>
+      <div id="federacao-opcoes" class="opcoes-federacao"></div>
+    </div>
+
+    <div class="campo">
+      <label for="evento">Competição</label>
+      <select id="evento" required disabled>
+        <option value="">Selecione a federação primeiro</option>
+      </select>
+    </div>
+
+    <div class="grade-filtros">
+      <div class="campo">
+        <label for="genero">Gênero</label>
+        <select id="genero">
+          <option value="">Todos</option>
+          <option value="masculino">Masculino</option>
+          <option value="feminino">Feminino</option>
+        </select>
+      </div>
+      <div class="campo">
+        <label for="data_nascimento">Data de nascimento</label>
+        <input type="date" id="data_nascimento" min="1930-01-01" max="2026-12-31">
+        <small id="categoria-calculada"></small>
+      </div>
+      <div class="campo">
+        <label for="faixa">Graduação</label>
+        <select id="faixa">
+          <option value="">Todas</option>
+          <option value="branca">Branca</option>
+          <option value="cinza">Cinza</option>
+          <option value="amarela">Amarela</option>
+          <option value="laranja">Laranja</option>
+          <option value="verde">Verde</option>
+          <option value="azul">Azul</option>
+          <option value="roxa">Roxa</option>
+          <option value="marrom">Marrom</option>
+          <option value="preta">Preta</option>
+        </select>
+      </div>
+      <div class="campo">
+        <label for="peso_kg">Peso do Atleta com Kimono (kg)</label>
+        <input type="number" id="peso_kg" placeholder="ex: 64.5" min="10" max="200" step="0.1">
+        <small id="peso-calculado"></small>
+      </div>
+      <div class="campo">
+        <label for="peso_sem_kimono">Peso do Atleta sem Kimono (kg)</label>
+        <input type="number" id="peso_sem_kimono" placeholder="ex: 63.5" min="10" max="200" step="0.1">
+        <small>Usado em competições NO-GI e no ADCC. Se preencher só um dos dois pesos, o outro é calculado automaticamente (diferença de 1 kg do kimono).</small>
+      </div>
+      <div class="campo">
+        <label for="nome">Nome do atleta</label>
+        <input type="text" id="nome" placeholder="buscar por nome">
+      </div>
+      <div class="campo">
+        <label for="equipe">Equipe</label>
+        <input type="text" id="equipe" placeholder="buscar por equipe">
+      </div>
+    </div>
+
+    <button type="submit" id="btn-buscar">Buscar</button>
+  </form>
+
+  <div id="status"></div>
+
+  <div id="resultados"></div>
+</main>
+
+<script src="auth-nav.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Radar BJJ — Competições</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <img src="img/banner.png" alt="Radar BJJ — Busque atletas, encontre resultados. CBJJ, FJJRio, CBJJD, CBJJO, CBJJE, FPJJ" class="banner">
+  <nav class="menu-principal">
+    <a href="/">Buscador de Atletas</a>
+    <a href="/competicoes" class="ativo">Competições</a>
+    <a href="/importar-adcc" id="nav-importar-adcc" style="display:none">Importar ADCC</a>
+    <span id="nav-usuario" class="nav-usuario"></span>
+  </nav>
+</header>
+
+<main>
+  <form id="form-filtro">
+    <div class="campo">
+      <label>Federação</label>
+      <div id="federacao-opcoes" class="opcoes-federacao"></div>
+    </div>
+    <div class="campo">
+      <label>Público</label>
+      <div id="publico-opcoes" class="opcoes-federacao">
+        <label><input type="checkbox" id="publico-adulto" checked> Adulto</label>
+        <label><input type="checkbox" id="publico-kids" checked> Kids (até Infanto-Juvenil 3)</label>
+      </div>
+    </div>
+    <button type="submit" id="btn-carregar">Atualizar</button>
+  </form>
+
+  <div id="status"></div>
+
+  <div id="resultados"></div>
+</main>
+
+<script src="auth-nav.js"></script>
+<script src="competicoes.js"></script>
+</body>
+</html>
