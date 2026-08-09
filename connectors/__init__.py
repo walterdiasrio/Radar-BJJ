@@ -3,7 +3,7 @@ import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date
 
-from . import cbjj, fjjrio, cbjjd, cbjjo, cbjje, fpjj, adcc, idade as idade_mod, peso as peso_mod, datas as datas_mod
+from . import cbjj, fjjrio, cbjjd, cbjjo, cbjje, fpjj, adcc, ajp, idade as idade_mod, peso as peso_mod, datas as datas_mod
 
 # Quantas buscas em paralelo por vez. O Render Starter só tem 512MB de RAM
 # — muitas threads simultâneas fazendo scraping (cada resposta pode ser
@@ -20,8 +20,14 @@ FEDERACOES = {
     "cbjje": {"label": "CBJJE", "module": cbjje},
     "fpjj": {"label": "FPJJ", "module": fpjj},
     "adcc": {"label": "ADCC", "module": adcc},
+    "ajp": {"label": "AJP", "module": ajp},
 }
 _ORDEM_FEDERACAO = {fid: i for i, fid in enumerate(FEDERACOES)}
+
+# Federações na plataforma Smoothcomp — não fazem scraping ao vivo (importação
+# manual de HTML) e categorizam pela idade EXATA no dia da competição, em vez
+# da tabela por ano de nascimento que as federações brasileiras usam.
+FEDERACOES_SMOOTHCOMP = {"adcc", "ajp"}
 
 TODAS = "todas"
 
@@ -58,9 +64,10 @@ def _combina_exata(texto, termo):
 
 
 def _atleta_combina(atleta, filtros_fed):
+    modulo_smoothcomp = FEDERACOES.get(atleta.get("federacao", "").lower(), {}).get("module")
     combina_faixa = (
-        adcc.faixa_combina(atleta, filtros_fed.get("faixa"))
-        if atleta.get("federacao") == "ADCC"
+        modulo_smoothcomp.faixa_combina(atleta, filtros_fed.get("faixa"))
+        if modulo_smoothcomp is not None and atleta.get("federacao", "").lower() in FEDERACOES_SMOOTHCOMP
         else _combina(atleta.get("faixa"), filtros_fed.get("faixa"))
     )
     return (
@@ -128,7 +135,8 @@ def _filtros_para_federacao(fed, filtros, evento_id=None):
     filtros_fed = dict(filtros)
     avisos = []
 
-    if fed == "adcc":
+    if fed in FEDERACOES_SMOOTHCOMP:
+        modulo = FEDERACOES[fed]["module"]
         data_nascimento_iso = filtros.get("data_nascimento")
         if not data_nascimento_iso:
             return filtros_fed, avisos
@@ -144,9 +152,9 @@ def _filtros_para_federacao(fed, filtros, evento_id=None):
             )
             return filtros_fed, avisos
 
-        data_referencia = adcc.data_referencia_evento(evento_id)
-        idade_exata = adcc.idade_exata(data_nascimento, data_referencia)
-        categoria = adcc.categoria_exata_para_idade(evento_id, idade_exata)
+        data_referencia = modulo.data_referencia_evento(evento_id)
+        idade_exata = modulo.idade_exata(data_nascimento, data_referencia)
+        categoria = modulo.categoria_exata_para_idade(evento_id, idade_exata)
         if not categoria:
             avisos.append(f"{FEDERACOES[fed]['label']}: não há categoria dessa idade nessa competição")
             return filtros_fed, avisos
@@ -162,7 +170,7 @@ def _filtros_para_federacao(fed, filtros, evento_id=None):
             if not filtros.get("genero"):
                 avisos.append(f"{FEDERACOES[fed]['label']}: selecione o gênero para calcular a categoria de peso")
             else:
-                categoria_peso = adcc.categoria_peso_exata(evento_id, categoria, filtros.get("genero"), peso_sem_kimono)
+                categoria_peso = modulo.categoria_peso_exata(evento_id, categoria, filtros.get("genero"), peso_sem_kimono)
                 if categoria_peso:
                     filtros_fed["peso_categoria"] = categoria_peso
                 else:
@@ -241,11 +249,11 @@ def buscar_atletas_agregado(federacao, evento_id, filtros):
         if evento_id != TODAS and federacao_unica:
             eventos = [e for e in eventos if e["id"] == evento_id]
 
-        if fed == "adcc":
-            # A categoria do ADCC depende da data de CADA competição (idade
-            # exata no dia do evento), então precisa calcular por evento —
-            # diferente das outras federações, onde a categoria não muda
-            # conforme a competição escolhida.
+        if fed in FEDERACOES_SMOOTHCOMP:
+            # A categoria dessas federações depende da data de CADA
+            # competição (idade exata no dia do evento), então precisa
+            # calcular por evento — diferente das outras federações, onde a
+            # categoria não muda conforme a competição escolhida.
             for evento in eventos:
                 filtros_fed, avisos = _filtros_para_federacao(fed, filtros, evento["id"])
                 for aviso in avisos:

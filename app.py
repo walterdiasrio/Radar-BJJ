@@ -17,6 +17,8 @@ import noticias
 import pagamentos
 from connectors import FEDERACOES, TODAS, listar_eventos, buscar_atletas_agregado, listar_competicoes
 from connectors import adcc
+from connectors import ajp
+from connectors import FEDERACOES_SMOOTHCOMP
 from connectors import idade as idade_mod
 from connectors import peso as peso_mod
 
@@ -411,6 +413,51 @@ def api_adcc_importar_atletas():
     return jsonify({"ok": True, "total": len(atletas)})
 
 
+@app.get("/importar-ajp")
+@admin_necessario
+def pagina_importar_ajp():
+    return send_from_directory("static", "importar-ajp.html")
+
+
+@app.post("/api/ajp/importar-evento")
+@api_admin_necessario
+def api_ajp_importar_evento():
+    dados = request.get_json(silent=True) or {}
+    html = dados.get("html", "")
+    if not html.strip():
+        return jsonify({"erro": "nenhum HTML recebido"}), 400
+    try:
+        evento = ajp.parse_evento_html(html)
+    except ValueError as exc:
+        return jsonify({"erro": str(exc)}), 400
+    except Exception as exc:
+        traceback.print_exc()
+        return jsonify({"erro": f"não consegui interpretar essa página: {exc}"}), 400
+    ajp.salvar_evento(evento)
+    return jsonify({"ok": True, "evento": evento})
+
+
+@app.post("/api/ajp/importar-atletas")
+@api_admin_necessario
+def api_ajp_importar_atletas():
+    dados = request.get_json(silent=True) or {}
+    evento_id = dados.get("evento_id", "")
+    html = dados.get("html", "")
+    if not evento_id:
+        return jsonify({"erro": "evento_id é obrigatório — importe a página do evento primeiro"}), 400
+    if not html.strip():
+        return jsonify({"erro": "nenhum HTML recebido"}), 400
+    try:
+        atletas = ajp.parse_atletas_html(html)
+    except Exception as exc:
+        traceback.print_exc()
+        return jsonify({"erro": f"não consegui interpretar essa página: {exc}"}), 400
+    if not atletas:
+        return jsonify({"erro": "não encontrei nenhum atleta nessa página — confirma que rolou a tela até o final antes de salvar?"}), 400
+    ajp.salvar_atletas(evento_id, atletas)
+    return jsonify({"ok": True, "total": len(atletas)})
+
+
 @app.get("/api/sessao")
 def api_sessao():
     usuario_id = session.get("usuario_id")
@@ -497,16 +544,17 @@ def _normalizar_pesos(peso_kg, peso_sem_kimono):
 
 
 def _categoria_completa(federacao, ano_nascimento, peso_kg, genero, data_nascimento=None, evento_id=None, peso_sem_kimono=None):
-    if federacao == "adcc":
+    if federacao in FEDERACOES_SMOOTHCOMP:
+        modulo = FEDERACOES[federacao]["module"]
         resultado = {"categoria_idade": None}
         if not data_nascimento:
             return resultado
         if not evento_id or evento_id == TODAS:
             resultado["aviso_categoria"] = "selecione uma competição específica"
             return resultado
-        data_referencia = adcc.data_referencia_evento(evento_id)
-        idade_exata = adcc.idade_exata(data_nascimento, data_referencia)
-        categoria = adcc.categoria_exata_para_idade(evento_id, idade_exata)
+        data_referencia = modulo.data_referencia_evento(evento_id)
+        idade_exata = modulo.idade_exata(data_nascimento, data_referencia)
+        categoria = modulo.categoria_exata_para_idade(evento_id, idade_exata)
         resultado["categoria_idade"] = categoria
         resultado["idade_exata"] = idade_exata
         resultado["data_referencia"] = data_referencia.strftime("%d/%m/%Y")
@@ -515,7 +563,7 @@ def _categoria_completa(federacao, ano_nascimento, peso_kg, genero, data_nascime
             if not genero:
                 resultado["aviso_peso"] = "selecione o gênero"
             else:
-                resultado["peso_categoria"] = adcc.categoria_peso_exata(evento_id, categoria, genero, peso_sem_kimono)
+                resultado["peso_categoria"] = modulo.categoria_peso_exata(evento_id, categoria, genero, peso_sem_kimono)
         return resultado
 
     idade_categoria = idade_mod.categoria_para(federacao, ano_nascimento)

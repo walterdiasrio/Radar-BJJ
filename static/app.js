@@ -15,7 +15,12 @@ const elBtnBuscar = document.getElementById("btn-buscar");
 const elBtnCriarAlerta = document.getElementById("btn-criar-alerta");
 const elStatusAlerta = document.getElementById("status-alerta");
 
-const LABEL_FEDERACAO = { cbjj: "CBJJ", fjjrio: "FJJRio", cbjjd: "CBJJD", cbjjo: "CBJJO", cbjje: "CBJJE", fpjj: "FPJJ", adcc: "ADCC" };
+const LABEL_FEDERACAO = { cbjj: "CBJJ", fjjrio: "FJJRio", cbjjd: "CBJJD", cbjjo: "CBJJO", cbjje: "CBJJE", fpjj: "FPJJ", adcc: "ADCC", ajp: "AJP" };
+
+// Federações Smoothcomp: categorizam pela idade exata no dia da competição
+// (não por ano de nascimento), então a categoria/peso calculados têm um
+// formato de exibição diferente — ver _linhaCategoriaSmoothcomp abaixo.
+const FEDERACOES_SMOOTHCOMP = ["adcc", "ajp"];
 
 async function carregarFederacoes() {
   const resp = await fetchAutenticado("/api/federacoes");
@@ -93,11 +98,12 @@ async function carregarEventos(federacao) {
   }
 }
 
-function _linhaCategoriaAdcc(info) {
+function _linhaCategoriaSmoothcomp(fid, info) {
+  const label = LABEL_FEDERACAO[fid] || fid;
   if (!info.categoria_idade) {
-    return `ADCC: ${info.aviso_categoria || "sem categoria"}`;
+    return `${label}: ${info.aviso_categoria || "sem categoria"}`;
   }
-  let linha = `ADCC: ${info.categoria_idade} (${info.idade_exata} anos em ${info.data_referencia})`;
+  let linha = `${label}: ${info.categoria_idade} (${info.idade_exata} anos em ${info.data_referencia})`;
   if (info.peso_categoria) linha += `, peso: ${info.peso_categoria}`;
   else if (info.aviso_peso) linha += ", selecione o gênero para calcular o peso";
   return linha;
@@ -135,19 +141,19 @@ async function atualizarCategoriaCalculada() {
 
     if (typeof federacao !== "string") {
       const linhasIdade = Object.entries(dados.categorias || {})
-        .map(([fid, info]) => fid === "adcc" ? _linhaCategoriaAdcc(info) : `${LABEL_FEDERACAO[fid] || fid}: ${info.categoria_idade || "sem categoria"}`);
+        .map(([fid, info]) => FEDERACOES_SMOOTHCOMP.includes(fid) ? _linhaCategoriaSmoothcomp(fid, info) : `${LABEL_FEDERACAO[fid] || fid}: ${info.categoria_idade || "sem categoria"}`);
       elCategoriaCalculada.textContent = linhasIdade.join(" · ");
 
       if (pesoPreenchido) {
         const linhasPeso = Object.entries(dados.categorias || {})
-          .filter(([fid]) => fid !== "adcc")
+          .filter(([fid]) => !FEDERACOES_SMOOTHCOMP.includes(fid))
           .map(([fid, info]) => `${LABEL_FEDERACAO[fid] || fid}: ${info.peso_categoria || (info.aviso_peso ? "selecione o gênero" : "—")}`);
         elPesoCalculado.textContent = linhasPeso.join(" · ");
       } else {
         elPesoCalculado.textContent = "";
       }
-    } else if (federacao === "adcc") {
-      elCategoriaCalculada.textContent = _linhaCategoriaAdcc(dados);
+    } else if (FEDERACOES_SMOOTHCOMP.includes(federacao)) {
+      elCategoriaCalculada.textContent = _linhaCategoriaSmoothcomp(federacao, dados);
       elPesoCalculado.textContent = "";
     } else {
       elCategoriaCalculada.textContent = dados.categoria_idade
