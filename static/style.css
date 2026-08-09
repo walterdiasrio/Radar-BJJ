@@ -600,3 +600,135 @@ tr:hover td { background: #f8fafc; }
   tr:hover td { background: #20262c; }
   .opcoes-federacao label { background: #14181d; }
 }
+
+.tabs-carreira {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--borda);
+  padding-bottom: 10px;
+}
+
+.tab-carreira-btn {
+  background: transparent;
+  color: var(--azul-claro);
+  border: 1px solid var(--borda);
+  margin-top: 0;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.tab-carreira-btn:hover { background: #eef6fb; }
+.tab-carreira-btn.ativo { background: var(--azul-claro); border-color: var(--azul-claro); color: white; }
+
+.tab-carreira-content { display: none; }
+.tab-carreira-content.ativo { display: block; }
+
+.card-carreira {
+  background: white;
+  border: 1px solid var(--borda);
+  border-radius: 10px;
+  padding: 20px;
+  max-width: 480px;
+}
+
+.luta-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.luta-row input, .luta-row select {
+  width: 100%;
+}
+
+.btn-remove-luta {
+  background: transparent;
+  color: #b3261e;
+  border: 1px solid #b3261e;
+  padding: 8px 10px;
+  border-radius: 6px;
+  margin-top: 0;
+  cursor: pointer;
+}
+
+.btn-remove-luta:hover { background: #fdeceb; }
+
+.hidden { display: none !important; }
+
+.tag-carreira {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  margin-right: 6px;
+}
+
+.tag-carreira.vitoria { background: #e3f6e8; color: #1a7d3a; }
+.tag-carreira.derrota { background: #fdeceb; color: #b3261e; }
+.tag-carreira.empate { background: #fff6e0; color: #9a6b00; }
+.tag-carreira.medalha-ouro { background: #fff3cd; color: #8a6d00; }
+.tag-carreira.medalha-prata { background: #eef2f6; color: #55606b; }
+.tag-carreira.medalha-bronze { background: #f7e3d3; color: #9a5b1f; }
+.tag-carreira.pais { background: #e6f0fa; color: var(--azul-claro); }
+
+.lutas-list {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.luta-item {
+  font-size: 0.85rem;
+  color: #55606b;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.stat-box {
+  background: white;
+  border: 1px solid var(--borda);
+  border-radius: 10px;
+  padding: 14px;
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--azul);
+}
+
+.stat-label {
+  font-size: 0.78rem;
+  color: #7c8894;
+  margin-top: 2px;
+}
+
+#grafico-evolucao {
+  width: 100%;
+  height: auto;
+  margin-top: 10px;
+}
+
+@media (max-width: 700px) {
+  .luta-row { grid-template-columns: 1fr; }
+}
+
+@media (prefers-color-scheme: dark) {
+  .card-carreira { background: #1b2127; }
+  .stat-box { background: #1b2127; }
+  .tab-carreira-btn { background: #14181d; }
+}

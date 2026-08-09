@@ -1,0 +1,304 @@
+"""Minha Carreira — cada atleta assinante registra o próprio histórico de
+competições (perfil, competições com as lutas de cada uma, e estatísticas
+calculadas em cima disso). Inspirado no app pessoal que o admin já usa pra
+acompanhar a carreira do Vini Bulbasauro, mas multiusuário e com banco de
+verdade em vez de localStorage + Google Sheets.
+"""
+import os
+import sqlite3
+from pathlib import Path
+
+DATA_DIR = Path(os.environ.get("DATA_DIR", Path(__file__).parent))
+DB_PATH = DATA_DIR / "carreira.db"
+
+RESULTADOS = ("vitoria", "derrota", "empate")
+METODOS = ("pontos", "finalizacao", "wo", "desclassificacao", "medica")
+MEDALHAS = ("ouro", "prata", "bronze")
+
+PERFIL_PADRAO = {
+    "avatar": "🥋", "nome": "", "faixa": "Branca", "grau": "0",
+    "categoria": "", "academia": "", "inicio": "",
+}
+
+
+def _conn():
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON")
+    return conn
+
+
+def init_db():
+    with _conn() as conn:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS perfis_atleta (
+                usuario_id INTEGER PRIMARY KEY,
+                avatar TEXT NOT NULL DEFAULT '🥋',
+                nome TEXT NOT NULL DEFAULT '',
+                faixa TEXT NOT NULL DEFAULT 'Branca',
+                grau TEXT NOT NULL DEFAULT '0',
+                categoria TEXT NOT NULL DEFAULT '',
+                academia TEXT NOT NULL DEFAULT '',
+                inicio TEXT
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS competicoes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                usuario_id INTEGER NOT NULL,
+                campeonato TEXT NOT NULL DEFAULT '',
+                data TEXT NOT NULL,
+                categoria TEXT NOT NULL DEFAULT '',
+                pais TEXT NOT NULL DEFAULT 'Brasil',
+                medalha TEXT,
+                criado_em TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS lutas (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                competicao_id INTEGER NOT NULL REFERENCES competicoes(id) ON DELETE CASCADE,
+                adversario TEXT NOT NULL DEFAULT '',
+                resultado TEXT NOT NULL,
+                metodo TEXT NOT NULL
+            )
+        """)
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_competicoes_usuario ON competicoes(usuario_id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_lutas_competicao ON lutas(competicao_id)")
+
+
+def obter_perfil(usuario_id):
+    with _conn() as conn:
+        linha = conn.execute(
+            "SELECT * FROM perfis_atleta WHERE usuario_id = ?", (usuario_id,)
+        ).fetchone()
+    if not linha:
+        return {**PERFIL_PADRAO, "usuario_id": usuario_id}
+    return dict(linha)
+
+
+def salvar_perfil(usuario_id, dados):
+    perfil = {
+        "avatar": (dados.get("avatar") or "🥋").strip() or "🥋",
+        "nome": (dados.get("nome") or "").strip(),
+        "faixa": (dados.get("faixa") or "Branca").strip() or "Branca",
+        "grau": str(dados.get("grau") or "0"),
+        "categoria": (dados.get("categoria") or "").strip(),
+        "academia": (dados.get("academia") or "").strip(),
+        "inicio": (dados.get("inicio") or "").strip() or None,
+    }
+    with _conn() as conn:
+        existe = conn.execute(
+            "SELECT usuario_id FROM perfis_atleta WHERE usuario_id = ?", (usuario_id,)
+        ).fetchone()
+        if existe:
+            conn.execute(
+                """UPDATE perfis_atleta SET avatar=?, nome=?, faixa=?, grau=?,
+                   categoria=?, academia=?, inicio=? WHERE usuario_id=?""",
+                (*perfil.values(), usuario_id),
+            )
+        else:
+            conn.execute(
+                """INSERT INTO perfis_atleta
+                   (usuario_id, avatar, nome, faixa, grau, categoria, academia, inicio)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                (usuario_id, *perfil.values()),
+            )
+    return {**perfil, "usuario_id": usuario_id}
+
+
+def _validar_lutas(lutas_brutas):
+    lutas = []
+    for l in lutas_brutas or []:
+        resultado = l.get("resultado")
+        metodo = l.get("metodo")
+        if resultado not in RESULTADOS or metodo not in METODOS:
+            return None, "resultado ou método de luta inválido"
+        lutas.append({
+            "adversario": (l.get("adversario") or "").strip(),
+            "resultado": resultado,
+            "metodo": metodo,
+        })
+    return lutas, None
+
+
+def criar_competicao(usuario_id, dados):
+    """Retorna (competicao_id, erro)."""
+    data = (dados.get("data") or "").strip()
+    if not data:
+        return None, "informe a data"
+
+    medalha = dados.get("medalha") or None
+    if medalha and medalha not in MEDALHAS:
+        return None, "medalha inválida"
+
+    lutas, erro = _validar_lutas(dados.get("lutas"))
+    if erro:
+        return None, erro
+
+    with _conn() as conn:
+        cursor = conn.execute(
+            """INSERT INTO competicoes (usuario_id, campeonato, data, categoria, pais, medalha)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            (
+                usuario_id,
+                (dados.get("campeonato") or "").strip(),
+                data,
+                (dados.get("categoria") or "").strip(),
+                (dados.get("pais") or "Brasil").strip() or "Brasil",
+                medalha,
+            ),
+        )
+        competicao_id = cursor.lastrowid
+        for l in lutas:
+            conn.execute(
+                "INSERT INTO lutas (competicao_id, adversario, resultado, metodo) VALUES (?, ?, ?, ?)",
+                (competicao_id, l["adversario"], l["resultado"], l["metodo"]),
+            )
+    return competicao_id, None
+
+
+def atualizar_competicao(usuario_id, competicao_id, dados):
+    """Retorna (ok, erro)."""
+    data = (dados.get("data") or "").strip()
+    if not data:
+        return False, "informe a data"
+
+    medalha = dados.get("medalha") or None
+    if medalha and medalha not in MEDALHAS:
+        return False, "medalha inválida"
+
+    lutas, erro = _validar_lutas(dados.get("lutas"))
+    if erro:
+        return False, erro
+
+    with _conn() as conn:
+        dona = conn.execute(
+            "SELECT id FROM competicoes WHERE id = ? AND usuario_id = ?", (competicao_id, usuario_id)
+        ).fetchone()
+        if not dona:
+            return False, "competição não encontrada"
+
+        conn.execute(
+            """UPDATE competicoes SET campeonato=?, data=?, categoria=?, pais=?, medalha=?
+               WHERE id = ?""",
+            (
+                (dados.get("campeonato") or "").strip(),
+                data,
+                (dados.get("categoria") or "").strip(),
+                (dados.get("pais") or "Brasil").strip() or "Brasil",
+                medalha,
+                competicao_id,
+            ),
+        )
+        conn.execute("DELETE FROM lutas WHERE competicao_id = ?", (competicao_id,))
+        for l in lutas:
+            conn.execute(
+                "INSERT INTO lutas (competicao_id, adversario, resultado, metodo) VALUES (?, ?, ?, ?)",
+                (competicao_id, l["adversario"], l["resultado"], l["metodo"]),
+            )
+    return True, None
+
+
+def remover_competicao(usuario_id, competicao_id):
+    with _conn() as conn:
+        dona = conn.execute(
+            "SELECT id FROM competicoes WHERE id = ? AND usuario_id = ?", (competicao_id, usuario_id)
+        ).fetchone()
+        if not dona:
+            return False
+        conn.execute("DELETE FROM competicoes WHERE id = ?", (competicao_id,))
+    return True
+
+
+def _competicoes_com_lutas(conn, usuario_id, filtros=None):
+    filtros = filtros or {}
+    query = "SELECT * FROM competicoes WHERE usuario_id = ?"
+    params = [usuario_id]
+
+    if filtros.get("campeonato"):
+        query += " AND campeonato LIKE ?"
+        params.append(f"%{filtros['campeonato']}%")
+    if filtros.get("de"):
+        query += " AND data >= ?"
+        params.append(filtros["de"])
+    if filtros.get("ate"):
+        query += " AND data <= ?"
+        params.append(filtros["ate"])
+
+    query += " ORDER BY data DESC, id DESC"
+    competicoes = [dict(linha) for linha in conn.execute(query, params).fetchall()]
+
+    adversario_filtro = (filtros.get("adversario") or "").lower()
+    resultado = []
+    for c in competicoes:
+        lutas = [
+            dict(linha) for linha in conn.execute(
+                "SELECT * FROM lutas WHERE competicao_id = ? ORDER BY id", (c["id"],)
+            ).fetchall()
+        ]
+        if adversario_filtro and not any(adversario_filtro in (l["adversario"] or "").lower() for l in lutas):
+            continue
+        c["lutas"] = lutas
+        resultado.append(c)
+    return resultado
+
+
+def listar_competicoes(usuario_id, filtros=None):
+    with _conn() as conn:
+        return _competicoes_com_lutas(conn, usuario_id, filtros)
+
+
+def calcular_estatisticas(usuario_id):
+    with _conn() as conn:
+        competicoes = _competicoes_com_lutas(conn, usuario_id)
+
+    lutas = []
+    for c in competicoes:
+        for l in c["lutas"]:
+            lutas.append({**l, "data": c["data"]})
+    lutas.sort(key=lambda l: l["data"] or "")
+
+    vitorias = [l for l in lutas if l["resultado"] == "vitoria"]
+    derrotas = [l for l in lutas if l["resultado"] == "derrota"]
+    empates = [l for l in lutas if l["resultado"] == "empate"]
+    total_lutas = len(lutas)
+    taxa_vitoria = round(len(vitorias) / total_lutas * 100) if total_lutas else 0
+
+    melhor_sequencia = 0
+    sequencia_atual = 0
+    corrente = 0
+    for l in lutas:
+        if l["resultado"] == "vitoria":
+            corrente += 1
+            melhor_sequencia = max(melhor_sequencia, corrente)
+        else:
+            corrente = 0
+    sequencia_atual = corrente
+
+    ouros = sum(1 for c in competicoes if c["medalha"] == "ouro")
+    pratas = sum(1 for c in competicoes if c["medalha"] == "prata")
+    bronzes = sum(1 for c in competicoes if c["medalha"] == "bronze")
+
+    cumulativo = 0
+    grafico = []
+    for l in lutas:
+        if l["resultado"] == "vitoria":
+            cumulativo += 1
+        grafico.append({"data": l["data"], "resultado": l["resultado"], "vitorias_acumuladas": cumulativo})
+
+    return {
+        "competicoes": len(competicoes),
+        "lutas": total_lutas,
+        "vitorias": len(vitorias),
+        "derrotas": len(derrotas),
+        "empates": len(empates),
+        "taxa_vitoria": taxa_vitoria,
+        "sequencia_atual": sequencia_atual,
+        "melhor_sequencia": melhor_sequencia,
+        "ouros": ouros,
+        "pratas": pratas,
+        "bronzes": bronzes,
+        "grafico": grafico,
+    }

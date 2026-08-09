@@ -11,6 +11,7 @@ from flask import Flask, jsonify, redirect, request, send_from_directory, sessio
 
 import alertas
 import auth
+import carreira
 import noticias
 import pagamentos
 from connectors import FEDERACOES, TODAS, listar_eventos, buscar_atletas_agregado, listar_competicoes
@@ -39,6 +40,7 @@ auth.init_db()
 alertas.init_db()
 noticias.init_db()
 pagamentos.init_db()
+carreira.init_db()
 noticias.remover_noticias_expiradas()  # limpa logo na subida, não só no próximo ciclo
 
 
@@ -663,6 +665,74 @@ def api_remover_alerta(alerta_id):
     if not removido:
         return jsonify({"erro": "alerta não encontrado"}), 404
     return jsonify({"ok": True})
+
+
+@app.get("/carreira")
+@assinatura_necessaria
+def pagina_carreira():
+    return send_from_directory("static", "carreira.html")
+
+
+@app.get("/api/carreira/perfil")
+@api_assinatura_necessaria
+def api_carreira_obter_perfil():
+    return jsonify(carreira.obter_perfil(session["usuario_id"]))
+
+
+@app.post("/api/carreira/perfil")
+@api_assinatura_necessaria
+def api_carreira_salvar_perfil():
+    dados = request.get_json(silent=True) or {}
+    perfil = carreira.salvar_perfil(session["usuario_id"], dados)
+    return jsonify(perfil)
+
+
+@app.get("/api/carreira/competicoes")
+@api_assinatura_necessaria
+def api_carreira_listar_competicoes():
+    filtros = {
+        "campeonato": request.args.get("campeonato", ""),
+        "adversario": request.args.get("adversario", ""),
+        "de": request.args.get("de", ""),
+        "ate": request.args.get("ate", ""),
+    }
+    return jsonify(carreira.listar_competicoes(session["usuario_id"], filtros))
+
+
+@app.post("/api/carreira/competicoes")
+@api_assinatura_necessaria
+def api_carreira_criar_competicao():
+    dados = request.get_json(silent=True) or {}
+    competicao_id, erro = carreira.criar_competicao(session["usuario_id"], dados)
+    if erro:
+        return jsonify({"erro": erro}), 400
+    return jsonify({"ok": True, "id": competicao_id})
+
+
+@app.put("/api/carreira/competicoes/<int:competicao_id>")
+@api_assinatura_necessaria
+def api_carreira_atualizar_competicao(competicao_id):
+    dados = request.get_json(silent=True) or {}
+    ok, erro = carreira.atualizar_competicao(session["usuario_id"], competicao_id, dados)
+    if not ok:
+        status = 404 if erro == "competição não encontrada" else 400
+        return jsonify({"erro": erro}), status
+    return jsonify({"ok": True})
+
+
+@app.delete("/api/carreira/competicoes/<int:competicao_id>")
+@api_assinatura_necessaria
+def api_carreira_remover_competicao(competicao_id):
+    removida = carreira.remover_competicao(session["usuario_id"], competicao_id)
+    if not removida:
+        return jsonify({"erro": "competição não encontrada"}), 404
+    return jsonify({"ok": True})
+
+
+@app.get("/api/carreira/estatisticas")
+@api_assinatura_necessaria
+def api_carreira_estatisticas():
+    return jsonify(carreira.calcular_estatisticas(session["usuario_id"]))
 
 
 @app.get("/assinatura")
