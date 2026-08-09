@@ -19,7 +19,10 @@ async function carregarLista() {
     elLista.innerHTML = lista.map(n => `
       <div class="noticia-item">
         <img src="${n.imagem_url}" alt="${n.manchete}">
-        <div class="noticia-manchete">${n.manchete}</div>
+        <div class="noticia-manchete">
+          ${n.manchete}
+          ${n.data_limite ? `<div style="font-weight:400; font-size:0.8rem; color:#7c8894;">expira em ${n.data_limite.split("-").reverse().join("/")}</div>` : ""}
+        </div>
         <button class="btn-remover" data-id="${n.id}">Remover</button>
       </div>
     `).join("");
@@ -48,12 +51,14 @@ elForm.addEventListener("submit", async (ev) => {
   ev.preventDefault();
   const manchete = document.getElementById("manchete").value;
   const texto = document.getElementById("texto").value;
+  const dataLimite = document.getElementById("data_limite").value;
   const arquivo = document.getElementById("imagem").files[0];
   if (!arquivo) return;
 
   const formData = new FormData();
   formData.append("manchete", manchete);
   formData.append("texto", texto);
+  formData.append("data_limite", dataLimite);
   formData.append("imagem", arquivo);
 
   mostrarStatus("Publicando...");

@@ -13,7 +13,8 @@
 
 <div class="layout">
   <nav class="menu-lateral">
-    <a href="/">Buscador de Atletas</a>
+    <a href="/">Home</a>
+    <a href="/buscador">Buscador de Atletas</a>
     <a href="/competicoes">Competições</a>
     <a href="/noticias">BJJ News</a>
     <a href="/alertas">Meus Alertas</a>
@@ -37,6 +38,11 @@
       <div class="campo">
         <label for="imagem">Foto</label>
         <input type="file" id="imagem" accept="image/*" required>
+      </div>
+      <div class="campo">
+        <label for="data_limite">Data limite (opcional)</label>
+        <input type="date" id="data_limite">
+        <small>Se preencher, a notícia é apagada automaticamente assim que essa data passar.</small>
       </div>
       <button type="submit">Publicar</button>
     </form>

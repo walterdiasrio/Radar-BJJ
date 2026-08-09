@@ -37,6 +37,7 @@ app.secret_key = os.environ.get("SECRET_KEY") or _SECRET_KEY_PATH.read_text().st
 auth.init_db()
 alertas.init_db()
 noticias.init_db()
+noticias.remover_noticias_expiradas()  # limpa logo na subida, não só no próximo ciclo
 
 
 def _iniciar_verificacao_periodica_de_alertas():
@@ -45,6 +46,10 @@ def _iniciar_verificacao_periodica_de_alertas():
             time.sleep(INTERVALO_ALERTAS_SEGUNDOS)
             try:
                 alertas.verificar_todos()
+            except Exception:
+                traceback.print_exc()
+            try:
+                noticias.remover_noticias_expiradas()
             except Exception:
                 traceback.print_exc()
 
@@ -144,9 +149,14 @@ def api_admin_necessario(view):
 
 
 @app.get("/")
+def home():
+    # Pública — página inicial, com o BJJ News em destaque.
+    return send_from_directory("static", "home.html")
+
+
+@app.get("/buscador")
+@login_necessario
 def index():
-    # Pública: qualquer um vê as notícias em destaque. O Buscador em si
-    # (dentro da página) fica escondido pelo próprio JS até logar.
     return send_from_directory("static", "index.html")
 
 
@@ -220,6 +230,7 @@ def api_listar_noticias():
             "id": n["id"],
             "manchete": n["manchete"],
             "texto": n["texto"],
+            "data_limite": n["data_limite"],
             "imagem_url": f"/noticias-imagens/{n['imagem_arquivo']}",
             "criado_em": n["criado_em"],
         }
@@ -237,10 +248,11 @@ def servir_imagem_noticia(nome_arquivo):
 def api_criar_noticia():
     manchete = request.form.get("manchete", "")
     texto = request.form.get("texto", "")
+    data_limite = request.form.get("data_limite", "")
     arquivo = request.files.get("imagem")
     if not arquivo or not arquivo.filename:
         return jsonify({"erro": "selecione uma imagem"}), 400
-    noticia_id, erro = noticias.criar_noticia(manchete, texto, arquivo, arquivo.filename)
+    noticia_id, erro = noticias.criar_noticia(manchete, texto, data_limite, arquivo, arquivo.filename)
     if erro:
         return jsonify({"erro": erro}), 400
     return jsonify({"ok": True, "id": noticia_id})

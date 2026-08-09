@@ -22,7 +22,7 @@ elForm.addEventListener("submit", async (ev) => {
     const dados = await resp.json();
     if (!resp.ok) throw new Error(dados.erro || "erro ao entrar");
 
-    window.location.href = "/";
+    window.location.href = "/buscador";
   } catch (err) {
     mostrarStatus(err.message, true);
   }

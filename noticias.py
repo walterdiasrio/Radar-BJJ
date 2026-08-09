@@ -6,6 +6,7 @@ código versionado."""
 import os
 import sqlite3
 import uuid
+from datetime import date
 from pathlib import Path
 
 DATA_DIR = Path(os.environ.get("DATA_DIR", Path(__file__).parent))
@@ -31,25 +32,37 @@ def init_db():
                 manchete TEXT NOT NULL,
                 texto TEXT NOT NULL DEFAULT '',
                 imagem_arquivo TEXT NOT NULL,
+                data_limite TEXT,
                 criado_em TEXT NOT NULL DEFAULT (datetime('now'))
             )
         """)
-        # Migração pra bancos criados antes do texto completo existir.
+        # Migrações pra bancos criados antes desses campos existirem.
         colunas = {linha["name"] for linha in conn.execute("PRAGMA table_info(noticias)")}
         if "texto" not in colunas:
             conn.execute("ALTER TABLE noticias ADD COLUMN texto TEXT NOT NULL DEFAULT ''")
+        if "data_limite" not in colunas:
+            conn.execute("ALTER TABLE noticias ADD COLUMN data_limite TEXT")
 
 
 def _extensao(nome_arquivo):
     return (nome_arquivo or "").rsplit(".", 1)[-1].lower() if "." in (nome_arquivo or "") else ""
 
 
-def criar_noticia(manchete, texto, arquivo_imagem, nome_original):
+def criar_noticia(manchete, texto, data_limite, arquivo_imagem, nome_original):
     """arquivo_imagem é o FileStorage do Flask (request.files[...]).
+    data_limite (opcional) é uma data ISO "AAAA-MM-DD" — a notícia é
+    apagada automaticamente assim que essa data passa.
     Retorna (noticia_id, erro)."""
     manchete = (manchete or "").strip()
     if not manchete:
         return None, "informe a manchete"
+
+    data_limite = (data_limite or "").strip() or None
+    if data_limite:
+        try:
+            date.fromisoformat(data_limite)
+        except ValueError:
+            return None, "data limite inválida"
 
     ext = _extensao(nome_original)
     if ext not in EXTENSOES_PERMITIDAS:
@@ -61,8 +74,8 @@ def criar_noticia(manchete, texto, arquivo_imagem, nome_original):
 
     with _conn() as conn:
         cursor = conn.execute(
-            "INSERT INTO noticias (manchete, texto, imagem_arquivo) VALUES (?, ?, ?)",
-            (manchete, (texto or "").strip(), nome_arquivo),
+            "INSERT INTO noticias (manchete, texto, imagem_arquivo, data_limite) VALUES (?, ?, ?, ?)",
+            (manchete, (texto or "").strip(), nome_arquivo, data_limite),
         )
         return cursor.lastrowid, None
 
@@ -70,7 +83,10 @@ def criar_noticia(manchete, texto, arquivo_imagem, nome_original):
 def listar_noticias(limite=20):
     with _conn() as conn:
         linhas = conn.execute(
-            "SELECT * FROM noticias ORDER BY criado_em DESC LIMIT ?", (limite,)
+            """SELECT * FROM noticias
+               WHERE data_limite IS NULL OR data_limite >= date('now')
+               ORDER BY criado_em DESC LIMIT ?""",
+            (limite,),
         ).fetchall()
     return [dict(linha) for linha in linhas]
 
@@ -88,3 +104,21 @@ def remover_noticia(noticia_id):
     if arquivo.exists():
         arquivo.unlink()
     return True
+
+
+def remover_noticias_expiradas():
+    """Apaga (registro + arquivo de imagem) toda notícia cuja data_limite
+    já passou. Chamada periodicamente em background (ver app.py)."""
+    with _conn() as conn:
+        expiradas = conn.execute(
+            "SELECT id, imagem_arquivo FROM noticias WHERE data_limite IS NOT NULL AND data_limite < date('now')"
+        ).fetchall()
+        if not expiradas:
+            return 0
+        conn.executemany("DELETE FROM noticias WHERE id = ?", [(linha["id"],) for linha in expiradas])
+
+    for linha in expiradas:
+        arquivo = DIR_IMAGENS / linha["imagem_arquivo"]
+        if arquivo.exists():
+            arquivo.unlink()
+    return len(expiradas)

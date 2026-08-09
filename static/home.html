@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Radar BJJ — Competições</title>
+<title>Radar BJJ — Home</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -13,9 +13,9 @@
 
 <div class="layout">
   <nav class="menu-lateral">
-    <a href="/">Home</a>
+    <a href="/" class="ativo">Home</a>
     <a href="/buscador">Buscador de Atletas</a>
-    <a href="/competicoes" class="ativo">Competições</a>
+    <a href="/competicoes">Competições</a>
     <a href="/noticias">BJJ News</a>
     <a href="/alertas">Meus Alertas</a>
     <a href="/importar-adcc" id="nav-importar-adcc" style="display:none">Importar ADCC</a>
@@ -24,28 +24,23 @@
   </nav>
 
 <main>
-  <form id="form-filtro">
-    <div class="campo">
-      <label>Federação</label>
-      <div id="federacao-opcoes" class="opcoes-federacao"></div>
-    </div>
-    <div class="campo">
-      <label>Público</label>
-      <div id="publico-opcoes" class="opcoes-federacao">
-        <label><input type="checkbox" id="publico-adulto" checked> Adulto</label>
-        <label><input type="checkbox" id="publico-kids" checked> Kids (até Infanto-Juvenil 3)</label>
-      </div>
-    </div>
-    <button type="submit" id="btn-carregar">Atualizar</button>
-  </form>
+  <div id="destaques" class="destaques"></div>
 
-  <div id="status"></div>
-
-  <div id="resultados"></div>
+  <div class="form-auth" style="text-align: center;">
+    <h2>Bem-vindo ao Radar BJJ</h2>
+    <p style="color: #7c8894; font-size: 0.9rem;">
+      Busque atletas inscritos em competições de CBJJ, FJJRio, CBJJD, CBJJO, CBJJE, FPJJ e ADCC.
+    </p>
+    <p>
+      <a href="/buscador"><button type="button">Ir pro Buscador de Atletas</button></a>
+      <a href="/competicoes"><button type="button" class="btn-secundario">Ver Competições</button></a>
+    </p>
+  </div>
   </main>
 </div>
 
 <script src="auth-nav.js"></script>
-<script src="competicoes.js"></script>
+<script src="noticias-modal.js"></script>
+<script src="home.js"></script>
 </body>
 </html>

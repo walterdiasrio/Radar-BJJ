@@ -13,7 +13,8 @@
 
 <div class="layout">
   <nav class="menu-lateral">
-    <a href="/" class="ativo">Buscador de Atletas</a>
+    <a href="/">Home</a>
+    <a href="/buscador" class="ativo">Buscador de Atletas</a>
     <a href="/competicoes">Competições</a>
     <a href="/noticias">BJJ News</a>
     <a href="/alertas">Meus Alertas</a>
@@ -23,18 +24,7 @@
   </nav>
 
 <main>
-  <div id="destaques" class="destaques"></div>
-
-  <div id="prompt-login" class="form-auth" style="display:none; text-align: center;">
-    <h2>Faça login pra buscar atletas</h2>
-    <p style="color: #7c8894; font-size: 0.9rem;">Crie sua conta ou entre pra acessar o Buscador.</p>
-    <p>
-      <a href="/login"><button type="button">Entrar</button></a>
-      <a href="/cadastro"><button type="button" class="btn-secundario">Cadastrar</button></a>
-    </p>
-  </div>
-
-  <form id="form-busca" style="display:none">
+  <form id="form-busca">
     <div class="campo">
       <label>Federação</label>
       <div id="federacao-opcoes" class="opcoes-federacao"></div>
@@ -108,7 +98,6 @@
 </div>
 
 <script src="auth-nav.js"></script>
-<script src="noticias-modal.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
