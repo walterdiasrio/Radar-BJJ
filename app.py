@@ -163,6 +163,52 @@ def pagina_login():
     return send_from_directory("static", "login.html")
 
 
+@app.get("/esqueci-senha")
+def pagina_esqueci_senha():
+    return send_from_directory("static", "esqueci-senha.html")
+
+
+@app.get("/redefinir-senha")
+def pagina_redefinir_senha():
+    return send_from_directory("static", "redefinir-senha.html")
+
+
+@app.post("/api/esqueci-senha")
+def api_esqueci_senha():
+    dados = request.get_json(silent=True) or {}
+    email = (dados.get("email") or "").strip().lower()
+
+    usuario = auth.buscar_por_email(email) if email else None
+    if usuario:
+        token = auth.criar_token_reset(usuario["id"])
+        link = f"{alertas.URL_SITE}/redefinir-senha?token={token}"
+        corpo = (
+            "<p>Recebemos um pedido pra redefinir sua senha no Radar BJJ.</p>"
+            f'<p><a href="{link}">Clique aqui pra criar uma senha nova</a></p>'
+            "<p>Esse link vale por 1 hora. Se você não pediu isso, pode ignorar este e-mail.</p>"
+        )
+        alertas.enviar_email(usuario["email"], "Radar BJJ — redefinir senha", corpo)
+
+    # Sempre a mesma resposta, exista ou não o e-mail — evita confirmar
+    # pra quem está tentando descobrir e-mails cadastrados no sistema.
+    return jsonify({"ok": True})
+
+
+@app.post("/api/redefinir-senha")
+def api_redefinir_senha():
+    dados = request.get_json(silent=True) or {}
+    token = dados.get("token") or ""
+    nova_senha = dados.get("senha") or ""
+
+    if not token:
+        return jsonify({"erro": "link inválido"}), 400
+
+    ok, erro = auth.redefinir_senha(token, nova_senha)
+    if not ok:
+        return jsonify({"erro": erro}), 400
+    return jsonify({"ok": True})
+
+
 @app.get("/importar-adcc")
 @admin_necessario
 def pagina_importar_adcc():
