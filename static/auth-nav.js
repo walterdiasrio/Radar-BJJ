@@ -5,6 +5,17 @@ async function carregarSessaoNoMenu() {
 
   const elImportarAdcc = document.getElementById("nav-importar-adcc");
 
+  const aplicarVisibilidadeMestre = (ehMestre) => {
+    window.sessaoAtual = window.sessaoAtual || {};
+    window.sessaoAtual.mestre = ehMestre;
+    const elEquipe = document.getElementById("equipe");
+    if (elEquipe) {
+      const campo = elEquipe.closest(".campo");
+      if (campo) campo.style.display = ehMestre ? "" : "none";
+    }
+    document.dispatchEvent(new CustomEvent("sessao-carregada", { detail: { mestre: ehMestre } }));
+  };
+
   try {
     const resp = await fetch("/api/sessao");
     const dados = await resp.json();
@@ -16,13 +27,16 @@ async function carregarSessaoNoMenu() {
         window.location.reload();
       });
       if (elImportarAdcc) elImportarAdcc.style.display = dados.admin ? "" : "none";
+      aplicarVisibilidadeMestre(!!dados.mestre);
     } else {
       el.innerHTML = `<a href="/login">Entrar</a><a href="/cadastro">Cadastrar</a>`;
       if (elImportarAdcc) elImportarAdcc.style.display = "none";
+      aplicarVisibilidadeMestre(false);
     }
   } catch (err) {
     el.innerHTML = `<a href="/login">Entrar</a><a href="/cadastro">Cadastrar</a>`;
     if (elImportarAdcc) elImportarAdcc.style.display = "none";
+    aplicarVisibilidadeMestre(false);
   }
 }
 

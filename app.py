@@ -104,6 +104,18 @@ def _usuario_atual_eh_admin():
     return bool(usuario) and usuario["email"] == ADMIN_EMAIL
 
 
+def _usuario_atual_eh_mestre():
+    """Admin conta como Mestre também (não perde acesso por causa do
+    perfil escolhido no cadastro)."""
+    usuario_id = session.get("usuario_id")
+    if not usuario_id:
+        return False
+    usuario = auth.buscar_por_id(usuario_id)
+    if not usuario:
+        return False
+    return usuario["email"] == ADMIN_EMAIL or usuario["tipo_perfil"] == "mestre"
+
+
 def admin_necessario(view):
     """Protege páginas restritas ao admin: sem sessão válida manda pro
     login; logado mas não-admin recebe 404 (não revela que a página existe)."""
@@ -205,13 +217,20 @@ def api_sessao():
     if not usuario:
         session.clear()
         return jsonify({"logado": False})
-    return jsonify({"logado": True, "email": usuario["email"], "admin": usuario["email"] == ADMIN_EMAIL})
+    eh_admin = usuario["email"] == ADMIN_EMAIL
+    return jsonify({
+        "logado": True,
+        "email": usuario["email"],
+        "admin": eh_admin,
+        "tipo_perfil": usuario["tipo_perfil"],
+        "mestre": eh_admin or usuario["tipo_perfil"] == "mestre",
+    })
 
 
 @app.post("/api/cadastro")
 def api_cadastro():
     dados = request.get_json(silent=True) or {}
-    usuario_id, erro = auth.cadastrar(dados.get("email"), dados.get("senha"))
+    usuario_id, erro = auth.cadastrar(dados.get("email"), dados.get("senha"), dados.get("tipo_perfil"))
     if erro:
         return jsonify({"erro": erro}), 400
     session["usuario_id"] = usuario_id
@@ -371,9 +390,13 @@ def api_atletas():
         return jsonify({"erro": "peso inválido"}), 400
     peso_kg, peso_sem_kimono = _normalizar_pesos(peso_kg, peso_sem_kimono)
 
+    equipe = request.args.get("equipe", "")
+    if equipe and not _usuario_atual_eh_mestre():
+        return jsonify({"erro": "busca por equipe é exclusiva do perfil Mestre"}), 403
+
     filtros = {
         "nome": request.args.get("nome", ""),
-        "equipe": request.args.get("equipe", ""),
+        "equipe": equipe,
         "ano_nascimento": ano_nascimento,
         "data_nascimento": data_nascimento_str,
         "genero": request.args.get("genero", ""),
@@ -439,6 +462,9 @@ def api_criar_alerta():
     titulo = (dados.get("titulo") or "").strip()
     if not titulo:
         return jsonify({"erro": "dê um nome pro alerta"}), 400
+
+    if (dados.get("equipe") or "").strip() and not _usuario_atual_eh_mestre():
+        return jsonify({"erro": "alerta por equipe é exclusivo do perfil Mestre"}), 403
 
     federacao_bruta = dados.get("federacao", "")
     if _parse_federacao(federacao_bruta) is None and federacao_bruta != TODAS:

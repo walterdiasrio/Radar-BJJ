@@ -17,6 +17,8 @@ DB_PATH = DATA_DIR / "usuarios.db"
 
 _EMAIL_REGEX = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
+TIPOS_PERFIL = ("mestre", "aluno")
+
 
 def _conn():
     conn = sqlite3.connect(DB_PATH)
@@ -33,29 +35,36 @@ def init_db():
                 email TEXT UNIQUE NOT NULL,
                 senha_hash TEXT NOT NULL,
                 email_verificado INTEGER NOT NULL DEFAULT 0,
+                tipo_perfil TEXT NOT NULL DEFAULT 'aluno',
                 criado_em TEXT NOT NULL DEFAULT (datetime('now'))
             )
         """)
+        # Migração pra bancos criados antes do perfil Mestre/Aluno existir.
+        colunas = {linha["name"] for linha in conn.execute("PRAGMA table_info(usuarios)")}
+        if "tipo_perfil" not in colunas:
+            conn.execute("ALTER TABLE usuarios ADD COLUMN tipo_perfil TEXT NOT NULL DEFAULT 'aluno'")
 
 
 def email_valido(email):
     return bool(email) and bool(_EMAIL_REGEX.match(email.strip()))
 
 
-def cadastrar(email, senha):
+def cadastrar(email, senha, tipo_perfil):
     """Retorna (usuario_id, erro). Em caso de sucesso, erro é None."""
     email = (email or "").strip().lower()
     if not email_valido(email):
         return None, "E-mail inválido."
     if not senha or len(senha) < 8:
         return None, "A senha precisa ter pelo menos 8 caracteres."
+    if tipo_perfil not in TIPOS_PERFIL:
+        return None, "Selecione um tipo de perfil (Mestre ou Aluno)."
 
     senha_hash = generate_password_hash(senha)
     try:
         with _conn() as conn:
             cursor = conn.execute(
-                "INSERT INTO usuarios (email, senha_hash) VALUES (?, ?)",
-                (email, senha_hash),
+                "INSERT INTO usuarios (email, senha_hash, tipo_perfil) VALUES (?, ?, ?)",
+                (email, senha_hash, tipo_perfil),
             )
             return cursor.lastrowid, None
     except sqlite3.IntegrityError:
@@ -63,21 +72,21 @@ def cadastrar(email, senha):
 
 
 def autenticar(email, senha):
-    """Retorna (usuario, erro). usuario é um dict {id, email} se sucesso."""
+    """Retorna (usuario, erro). usuario é um dict se sucesso."""
     email = (email or "").strip().lower()
     with _conn() as conn:
         linha = conn.execute(
-            "SELECT id, email, senha_hash FROM usuarios WHERE email = ?", (email,)
+            "SELECT id, email, senha_hash, tipo_perfil FROM usuarios WHERE email = ?", (email,)
         ).fetchone()
 
     if not linha or not check_password_hash(linha["senha_hash"], senha or ""):
         return None, "E-mail ou senha incorretos."
-    return {"id": linha["id"], "email": linha["email"]}, None
+    return {"id": linha["id"], "email": linha["email"], "tipo_perfil": linha["tipo_perfil"]}, None
 
 
 def buscar_por_id(usuario_id):
     with _conn() as conn:
         linha = conn.execute(
-            "SELECT id, email FROM usuarios WHERE id = ?", (usuario_id,)
+            "SELECT id, email, tipo_perfil FROM usuarios WHERE id = ?", (usuario_id,)
         ).fetchone()
-    return {"id": linha["id"], "email": linha["email"]} if linha else None
+    return {"id": linha["id"], "email": linha["email"], "tipo_perfil": linha["tipo_perfil"]} if linha else None

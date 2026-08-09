@@ -27,6 +27,14 @@
       <label for="senha">Senha</label>
       <input type="password" id="senha" required minlength="8" autocomplete="new-password">
     </div>
+    <div class="campo">
+      <label>Perfil</label>
+      <div class="opcoes-federacao">
+        <label><input type="radio" name="tipo_perfil" value="aluno" checked> Aluno</label>
+        <label><input type="radio" name="tipo_perfil" value="mestre"> Mestre</label>
+      </div>
+      <small>Mestre tem acesso a busca por academia e alertas pra toda a equipe.</small>
+    </div>
     <button type="submit">Cadastrar</button>
     <p>Já tem conta? <a href="/login">Entrar</a></p>
   </form>
