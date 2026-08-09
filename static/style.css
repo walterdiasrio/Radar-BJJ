@@ -149,8 +149,25 @@ header {
 
 .status-importacao.erro { color: #b3261e; }
 
+.aviso-lembrete {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  background: #fff6e0;
+  border: 1px solid #f0d789;
+  color: #7a5c00;
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 18px;
+  font-size: 0.9rem;
+}
+
+.aviso-lembrete button { margin-top: 0; }
+
 @media (prefers-color-scheme: dark) {
   .form-auth { background: #1b2127; }
+  .aviso-lembrete { background: #3a2f0b; border-color: #6b5716; color: #f0d789; }
 }
 
 main {

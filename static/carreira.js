@@ -28,10 +28,35 @@ async function carregarPerfil() {
     document.getElementById("p_categoria").value = p.categoria || "";
     document.getElementById("p_academia").value = p.academia || "";
     document.getElementById("p_inicio").value = p.inicio || "";
+    atualizarLembretePerfil(p);
   } catch (err) {
     // segue com os campos vazios
   }
 }
+
+// Aviso fixo (visível em qualquer aba) enquanto faltar nome, faixa ou
+// academia — sem esses três preenchidos, o vínculo com Mestre/Alunos e o
+// resumo pro Stories saem incompletos. Nome de usuário do Mestre fica de
+// fora de propósito: o aluno pode não ter o Mestre cadastrado ainda.
+function atualizarLembretePerfil(perfil) {
+  const elAviso = document.getElementById("lembrete-perfil");
+  const faltando = [];
+  if (!(perfil.nome || "").trim()) faltando.push("nome completo");
+  if (!(perfil.faixa || "").trim()) faltando.push("faixa");
+  if (!(perfil.academia || "").trim()) faltando.push("academia");
+
+  if (!faltando.length) {
+    elAviso.style.display = "none";
+    return;
+  }
+  document.getElementById("lembrete-perfil-texto").textContent =
+    `Falta preencher: ${faltando.join(", ")}. Isso é essencial pro vínculo com Mestre/Alunos funcionar direito.`;
+  elAviso.style.display = "flex";
+}
+
+document.querySelector('[data-tab-link="perfil"]').addEventListener("click", () => {
+  document.querySelector('.tab-carreira-btn[data-tab="perfil"]').click();
+});
 
 document.getElementById("form-perfil").addEventListener("submit", async (ev) => {
   ev.preventDefault();
@@ -51,6 +76,7 @@ document.getElementById("form-perfil").addEventListener("submit", async (ev) => 
     });
     if (!resp.ok) throw new Error("não consegui salvar o perfil");
     mostrarStatus("status-perfil", "Perfil salvo! 🥋");
+    atualizarLembretePerfil(dados);
   } catch (err) {
     mostrarStatus("status-perfil", `Erro: ${err.message}`, true);
   }
