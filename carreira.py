@@ -67,6 +67,18 @@ def init_db():
         conn.execute("CREATE INDEX IF NOT EXISTS idx_competicoes_usuario ON competicoes(usuario_id)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_lutas_competicao ON lutas(competicao_id)")
 
+        # Vínculo Mestre-Atleta pra "Meus Alunos": criado quando qualquer um
+        # dos dois lados adiciona o nome de usuário do outro (ver app.py) —
+        # não exige confirmação da outra parte, é informal por design.
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS vinculos (
+                mestre_id INTEGER NOT NULL,
+                aluno_id INTEGER NOT NULL,
+                criado_em TEXT NOT NULL DEFAULT (datetime('now')),
+                PRIMARY KEY (mestre_id, aluno_id)
+            )
+        """)
+
 
 def obter_perfil(usuario_id):
     with _conn() as conn:
@@ -78,35 +90,50 @@ def obter_perfil(usuario_id):
     return dict(linha)
 
 
-def _normalizar_academia(academia):
-    return (academia or "").strip().lower()
+def criar_vinculo(mestre_id, aluno_id):
+    if mestre_id == aluno_id:
+        return False, "não dá pra se adicionar como próprio aluno"
+    with _conn() as conn:
+        conn.execute(
+            "INSERT OR IGNORE INTO vinculos (mestre_id, aluno_id) VALUES (?, ?)",
+            (mestre_id, aluno_id),
+        )
+    return True, None
 
 
-def mesma_academia(academia_a, academia_b):
-    """Compara duas academias (perfil Mestre x perfil Aluno) — nunca
-    considera "mesma academia" quando uma delas está em branco, senão dois
-    perfis sem academia preenchida ficariam visíveis um pro outro."""
-    a = _normalizar_academia(academia_a)
-    b = _normalizar_academia(academia_b)
-    return bool(a) and a == b
+def remover_vinculo(mestre_id, aluno_id):
+    with _conn() as conn:
+        cursor = conn.execute(
+            "DELETE FROM vinculos WHERE mestre_id = ? AND aluno_id = ?", (mestre_id, aluno_id)
+        )
+        return cursor.rowcount > 0
 
 
-def listar_alunos_da_academia(academia_mestre, excluir_usuario_id):
-    """Todo perfil (exceto o do próprio Mestre) cuja academia bate,
-    ignorando maiúsculas/minúsculas e espaços nas pontas. Academia em
-    branco no perfil do Mestre não lista ninguém (ver mesma_academia)."""
-    alvo = _normalizar_academia(academia_mestre)
-    if not alvo:
-        return []
+def vinculo_existe(mestre_id, aluno_id):
+    with _conn() as conn:
+        linha = conn.execute(
+            "SELECT 1 FROM vinculos WHERE mestre_id = ? AND aluno_id = ?", (mestre_id, aluno_id)
+        ).fetchone()
+    return linha is not None
+
+
+def listar_ids_alunos_do_mestre(mestre_id):
+    """Só os IDs — não exige que o aluno já tenha preenchido Minha Carreira,
+    senão um vínculo recém-criado "sumiria" até a outra parte preencher algo.
+    Quem chama enriquece com nome/e-mail (perfil pode nem existir ainda)."""
     with _conn() as conn:
         linhas = conn.execute(
-            "SELECT usuario_id, nome, faixa, grau, academia FROM perfis_atleta WHERE usuario_id != ?",
-            (excluir_usuario_id,),
+            "SELECT aluno_id FROM vinculos WHERE mestre_id = ? ORDER BY criado_em", (mestre_id,)
         ).fetchall()
-    return [
-        dict(linha) for linha in linhas
-        if _normalizar_academia(linha["academia"]) == alvo
-    ]
+    return [linha["aluno_id"] for linha in linhas]
+
+
+def listar_ids_mestres_do_aluno(aluno_id):
+    with _conn() as conn:
+        linhas = conn.execute(
+            "SELECT mestre_id FROM vinculos WHERE aluno_id = ? ORDER BY criado_em", (aluno_id,)
+        ).fetchall()
+    return [linha["mestre_id"] for linha in linhas]
 
 
 def salvar_perfil(usuario_id, dados):

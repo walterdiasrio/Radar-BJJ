@@ -18,6 +18,7 @@ DATA_DIR = Path(os.environ.get("DATA_DIR", Path(__file__).parent))
 DB_PATH = DATA_DIR / "usuarios.db"
 
 _EMAIL_REGEX = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+_NOME_USUARIO_REGEX = re.compile(r"^[a-z0-9_]{3,20}$")
 
 TIPOS_PERFIL = ("mestre", "atleta")
 
@@ -40,6 +41,7 @@ def init_db():
                 senha_hash TEXT NOT NULL,
                 email_verificado INTEGER NOT NULL DEFAULT 0,
                 tipo_perfil TEXT NOT NULL DEFAULT 'atleta',
+                nome_usuario TEXT UNIQUE,
                 criado_em TEXT NOT NULL DEFAULT (datetime('now'))
             )
         """)
@@ -49,6 +51,11 @@ def init_db():
             conn.execute("ALTER TABLE usuarios ADD COLUMN tipo_perfil TEXT NOT NULL DEFAULT 'atleta'")
         # Migração pra bancos onde o perfil ainda se chamava "aluno".
         conn.execute("UPDATE usuarios SET tipo_perfil = 'atleta' WHERE tipo_perfil = 'aluno'")
+        # Migração pra bancos criados antes do nome de usuário existir —
+        # usado pra vincular Mestre e Atleta (ver carreira.py/vínculos).
+        if "nome_usuario" not in colunas:
+            conn.execute("ALTER TABLE usuarios ADD COLUMN nome_usuario TEXT")
+            conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_usuarios_nome_usuario ON usuarios(nome_usuario)")
 
         conn.execute("""
             CREATE TABLE IF NOT EXISTS reset_senha (
@@ -92,29 +99,59 @@ def autenticar(email, senha):
     email = (email or "").strip().lower()
     with _conn() as conn:
         linha = conn.execute(
-            "SELECT id, email, senha_hash, tipo_perfil FROM usuarios WHERE email = ?", (email,)
+            "SELECT id, email, senha_hash, tipo_perfil, nome_usuario FROM usuarios WHERE email = ?", (email,)
         ).fetchone()
 
     if not linha or not check_password_hash(linha["senha_hash"], senha or ""):
         return None, "E-mail ou senha incorretos."
-    return {"id": linha["id"], "email": linha["email"], "tipo_perfil": linha["tipo_perfil"]}, None
+    return {
+        "id": linha["id"], "email": linha["email"],
+        "tipo_perfil": linha["tipo_perfil"], "nome_usuario": linha["nome_usuario"],
+    }, None
 
 
 def buscar_por_id(usuario_id):
     with _conn() as conn:
         linha = conn.execute(
-            "SELECT id, email, tipo_perfil FROM usuarios WHERE id = ?", (usuario_id,)
+            "SELECT id, email, tipo_perfil, nome_usuario FROM usuarios WHERE id = ?", (usuario_id,)
         ).fetchone()
-    return {"id": linha["id"], "email": linha["email"], "tipo_perfil": linha["tipo_perfil"]} if linha else None
+    return dict(linha) if linha else None
 
 
 def buscar_por_email(email):
     email = (email or "").strip().lower()
     with _conn() as conn:
         linha = conn.execute(
-            "SELECT id, email, tipo_perfil FROM usuarios WHERE email = ?", (email,)
+            "SELECT id, email, tipo_perfil, nome_usuario FROM usuarios WHERE email = ?", (email,)
         ).fetchone()
-    return {"id": linha["id"], "email": linha["email"], "tipo_perfil": linha["tipo_perfil"]} if linha else None
+    return dict(linha) if linha else None
+
+
+def nome_usuario_valido(nome_usuario):
+    return bool(nome_usuario) and bool(_NOME_USUARIO_REGEX.match(nome_usuario))
+
+
+def buscar_por_nome_usuario(nome_usuario):
+    nome_usuario = (nome_usuario or "").strip().lower()
+    with _conn() as conn:
+        linha = conn.execute(
+            "SELECT id, email, tipo_perfil, nome_usuario FROM usuarios WHERE nome_usuario = ?", (nome_usuario,)
+        ).fetchone()
+    return dict(linha) if linha else None
+
+
+def definir_nome_usuario(usuario_id, nome_usuario):
+    """Retorna (ok, erro). Formato: letras minúsculas, números e
+    underscore, 3 a 20 caracteres — igual a um @ de rede social."""
+    nome_usuario = (nome_usuario or "").strip().lower()
+    if not nome_usuario_valido(nome_usuario):
+        return False, "nome de usuário deve ter 3 a 20 caracteres: letras minúsculas, números ou _"
+    try:
+        with _conn() as conn:
+            conn.execute("UPDATE usuarios SET nome_usuario = ? WHERE id = ?", (nome_usuario, usuario_id))
+    except sqlite3.IntegrityError:
+        return False, "esse nome de usuário já está em uso"
+    return True, None
 
 
 def criar_token_reset(usuario_id):

@@ -56,6 +56,92 @@ document.getElementById("form-perfil").addEventListener("submit", async (ev) => 
   }
 });
 
+// ---------- Nome de usuário ----------
+async function carregarNomeUsuario() {
+  try {
+    const resp = await fetchAutenticado("/api/conta/nome-usuario");
+    const dados = await resp.json();
+    document.getElementById("nome_usuario").value = dados.nome_usuario || "";
+  } catch (err) {
+    // segue com o campo vazio
+  }
+}
+
+document.getElementById("form-nome-usuario").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const nomeUsuario = document.getElementById("nome_usuario").value;
+  try {
+    const resp = await fetchAutenticado("/api/conta/nome-usuario", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nome_usuario: nomeUsuario }),
+    });
+    const dados = await resp.json();
+    if (!resp.ok) throw new Error(dados.erro || "não consegui salvar");
+    mostrarStatus("status-nome-usuario", "Nome de usuário salvo!");
+  } catch (err) {
+    mostrarStatus("status-nome-usuario", `Erro: ${err.message}`, true);
+  }
+});
+
+// ---------- Meu(s) Mestre(s) ----------
+async function carregarMestres() {
+  const el = document.getElementById("lista-mestres");
+  try {
+    const resp = await fetchAutenticado("/api/carreira/meu-mestre");
+    const mestres = await resp.json();
+    if (!mestres.length) {
+      el.innerHTML = "";
+      return;
+    }
+    el.innerHTML = mestres.map(m => `
+      <div class="cartao-alerta" style="margin-bottom: 8px;">
+        <div class="cartao-alerta-topo">
+          <div>
+            <h3 style="font-size: 0.95rem;">${m.nome || "(sem nome)"}</h3>
+            ${m.academia ? `<div class="cartao-alerta-federacao">${m.academia}</div>` : ""}
+          </div>
+          <button type="button" class="btn-remover" data-id="${m.usuario_id}">Remover</button>
+        </div>
+      </div>
+    `).join("");
+    el.querySelectorAll(".btn-remover").forEach(btn => {
+      btn.addEventListener("click", () => removerMestre(Number(btn.dataset.id)));
+    });
+  } catch (err) {
+    mostrarStatus("status-mestre", `Erro: ${err.message}`, true);
+  }
+}
+
+document.getElementById("form-add-mestre").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const elInput = document.getElementById("mestre_nome_usuario");
+  try {
+    const resp = await fetchAutenticado("/api/carreira/meu-mestre", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nome_usuario: elInput.value }),
+    });
+    const dados = await resp.json();
+    if (!resp.ok) throw new Error(dados.erro || "não consegui adicionar");
+    mostrarStatus("status-mestre", "Mestre adicionado!");
+    elInput.value = "";
+    carregarMestres();
+  } catch (err) {
+    mostrarStatus("status-mestre", `Erro: ${err.message}`, true);
+  }
+});
+
+async function removerMestre(mestreId) {
+  try {
+    const resp = await fetchAutenticado(`/api/carreira/meu-mestre/${mestreId}`, { method: "DELETE" });
+    if (!resp.ok) throw new Error("não consegui remover");
+    carregarMestres();
+  } catch (err) {
+    mostrarStatus("status-mestre", `Erro: ${err.message}`, true);
+  }
+}
+
 // ---------- Registrar ----------
 const lutasContainer = document.getElementById("lutas-container");
 const templateLutaRow = document.getElementById("template-luta-row");
@@ -526,3 +612,5 @@ document.getElementById("btn-compartilhar-story").addEventListener("click", asyn
 addLutaRow();
 document.getElementById("e_data").valueAsDate = new Date();
 carregarPerfil();
+carregarNomeUsuario();
+carregarMestres();

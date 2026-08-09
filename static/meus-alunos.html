@@ -31,10 +31,20 @@
 <main>
   <h2 style="color: var(--azul); margin-bottom: 4px;">Meus Alunos</h2>
   <p style="color: #7c8894; font-size: 0.9rem; margin-top: 0;">
-    Atletas cadastrados em Minha Carreira com a mesma academia que a sua. Clique no nome pra ver a carreira completa.
+    Adicione um aluno pelo nome de usuário dele (peça pra ele criar um em Minha Carreira → Perfil).
+    Clique no nome pra ver a carreira completa.
   </p>
+
+  <form id="form-add-aluno" class="card-carreira" style="max-width: 420px; display: flex; gap: 8px; align-items: flex-end;">
+    <div class="campo" style="flex: 1; margin-bottom: 0;">
+      <label for="aluno_nome_usuario">Nome de usuário do aluno</label>
+      <input type="text" id="aluno_nome_usuario" placeholder="ex: joao_silva" maxlength="20">
+    </div>
+    <button type="submit">Adicionar</button>
+  </form>
+
   <div id="status" class="status-importacao"></div>
-  <div id="lista-alunos"></div>
+  <div id="lista-alunos" style="margin-top: 12px;"></div>
 </main>
 </div>
 

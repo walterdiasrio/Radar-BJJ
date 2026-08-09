@@ -789,6 +789,23 @@ def api_carreira_estatisticas():
     return jsonify(carreira.calcular_estatisticas(session["usuario_id"]))
 
 
+@app.get("/api/conta/nome-usuario")
+@api_login_necessario
+def api_obter_nome_usuario():
+    usuario = auth.buscar_por_id(session["usuario_id"])
+    return jsonify({"nome_usuario": usuario["nome_usuario"] if usuario else None})
+
+
+@app.post("/api/conta/nome-usuario")
+@api_login_necessario
+def api_definir_nome_usuario():
+    dados = request.get_json(silent=True) or {}
+    ok, erro = auth.definir_nome_usuario(session["usuario_id"], dados.get("nome_usuario"))
+    if not ok:
+        return jsonify({"erro": erro}), 400
+    return jsonify({"ok": True})
+
+
 @app.get("/meus-alunos")
 @assinatura_necessaria
 def pagina_meus_alunos():
@@ -797,14 +814,48 @@ def pagina_meus_alunos():
     return send_from_directory("static", "meus-alunos.html")
 
 
+def _perfil_publico_vinculo(usuario_id):
+    """Nome/faixa/academia pra exibir em Meus Alunos / Meu Mestre — usa o
+    perfil de Minha Carreira quando existe, senão cai pro nome de usuário
+    (o vínculo pode ter sido criado antes da outra parte preencher algo)."""
+    perfil = carreira.obter_perfil(usuario_id)
+    if not perfil.get("nome"):
+        usuario = auth.buscar_por_id(usuario_id)
+        perfil["nome"] = (usuario and (usuario.get("nome_usuario") or usuario.get("email"))) or "(perfil incompleto)"
+    return perfil
+
+
 @app.get("/api/meus-alunos")
 @api_assinatura_necessaria
 def api_listar_meus_alunos():
     if not _usuario_atual_eh_mestre():
         return jsonify({"erro": "exclusivo do perfil Mestre"}), 403
-    perfil_mestre = carreira.obter_perfil(session["usuario_id"])
-    alunos = carreira.listar_alunos_da_academia(perfil_mestre.get("academia"), session["usuario_id"])
-    return jsonify(alunos)
+    ids = carreira.listar_ids_alunos_do_mestre(session["usuario_id"])
+    return jsonify([_perfil_publico_vinculo(aluno_id) for aluno_id in ids])
+
+
+@app.post("/api/meus-alunos")
+@api_assinatura_necessaria
+def api_adicionar_aluno():
+    if not _usuario_atual_eh_mestre():
+        return jsonify({"erro": "exclusivo do perfil Mestre"}), 403
+    dados = request.get_json(silent=True) or {}
+    aluno = auth.buscar_por_nome_usuario(dados.get("nome_usuario"))
+    if not aluno:
+        return jsonify({"erro": "nenhum usuário encontrado com esse nome de usuário"}), 404
+    ok, erro = carreira.criar_vinculo(mestre_id=session["usuario_id"], aluno_id=aluno["id"])
+    if not ok:
+        return jsonify({"erro": erro}), 400
+    return jsonify({"ok": True})
+
+
+@app.delete("/api/meus-alunos/<int:aluno_id>")
+@api_assinatura_necessaria
+def api_remover_aluno(aluno_id):
+    if not _usuario_atual_eh_mestre():
+        return jsonify({"erro": "exclusivo do perfil Mestre"}), 403
+    carreira.remover_vinculo(mestre_id=session["usuario_id"], aluno_id=aluno_id)
+    return jsonify({"ok": True})
 
 
 @app.get("/meus-alunos/<int:aluno_id>")
@@ -820,19 +871,45 @@ def pagina_aluno_detalhe(aluno_id):
 def api_aluno_detalhe(aluno_id):
     if not _usuario_atual_eh_mestre():
         return jsonify({"erro": "exclusivo do perfil Mestre"}), 403
-
-    perfil_mestre = carreira.obter_perfil(session["usuario_id"])
-    perfil_aluno = carreira.obter_perfil(aluno_id)
-    if not carreira.mesma_academia(perfil_mestre.get("academia"), perfil_aluno.get("academia")):
+    if not carreira.vinculo_existe(mestre_id=session["usuario_id"], aluno_id=aluno_id):
         return jsonify({"erro": "aluno não encontrado"}), 404
 
     usuario_aluno = auth.buscar_por_id(aluno_id)
     return jsonify({
-        "perfil": perfil_aluno,
+        "perfil": carreira.obter_perfil(aluno_id),
         "email": usuario_aluno["email"] if usuario_aluno else None,
         "competicoes": carreira.listar_competicoes(aluno_id),
         "estatisticas": carreira.calcular_estatisticas(aluno_id),
     })
+
+
+@app.get("/api/carreira/meu-mestre")
+@api_assinatura_necessaria
+def api_listar_meus_mestres():
+    ids = carreira.listar_ids_mestres_do_aluno(session["usuario_id"])
+    return jsonify([_perfil_publico_vinculo(mestre_id) for mestre_id in ids])
+
+
+@app.post("/api/carreira/meu-mestre")
+@api_assinatura_necessaria
+def api_adicionar_meu_mestre():
+    dados = request.get_json(silent=True) or {}
+    mestre = auth.buscar_por_nome_usuario(dados.get("nome_usuario"))
+    if not mestre:
+        return jsonify({"erro": "nenhum usuário encontrado com esse nome de usuário"}), 404
+    if mestre["tipo_perfil"] != "mestre" and mestre["email"] != ADMIN_EMAIL:
+        return jsonify({"erro": "esse usuário não é um perfil Mestre"}), 400
+    ok, erro = carreira.criar_vinculo(mestre_id=mestre["id"], aluno_id=session["usuario_id"])
+    if not ok:
+        return jsonify({"erro": erro}), 400
+    return jsonify({"ok": True})
+
+
+@app.delete("/api/carreira/meu-mestre/<int:mestre_id>")
+@api_assinatura_necessaria
+def api_remover_meu_mestre(mestre_id):
+    carreira.remover_vinculo(mestre_id=mestre_id, aluno_id=session["usuario_id"])
+    return jsonify({"ok": True})
 
 
 @app.get("/assinatura")

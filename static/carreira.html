@@ -45,6 +45,34 @@
 
   <!-- PERFIL -->
   <section id="tab-perfil" class="tab-carreira-content ativo">
+    <div class="card-carreira" style="margin-bottom: 16px;">
+      <h3 style="margin-top: 0; color: var(--azul);">Nome de usuário</h3>
+      <p style="color: #7c8894; font-size: 0.85rem; margin-top: 0;">
+        Compartilhe com seu Mestre (ou peça o dele) pra vincular as contas em "Meus Alunos".
+      </p>
+      <form id="form-nome-usuario" style="display: flex; gap: 8px; align-items: flex-end;">
+        <div class="campo" style="flex: 1; margin-bottom: 0;">
+          <label for="nome_usuario">Seu nome de usuário</label>
+          <input type="text" id="nome_usuario" placeholder="ex: joao_silva" maxlength="20">
+        </div>
+        <button type="submit">Salvar</button>
+      </form>
+      <div id="status-nome-usuario" class="status-importacao"></div>
+    </div>
+
+    <div class="card-carreira" style="margin-bottom: 16px;">
+      <h3 style="margin-top: 0; color: var(--azul);">Meu(s) Mestre(s)</h3>
+      <form id="form-add-mestre" style="display: flex; gap: 8px; align-items: flex-end;">
+        <div class="campo" style="flex: 1; margin-bottom: 0;">
+          <label for="mestre_nome_usuario">Nome de usuário do Mestre</label>
+          <input type="text" id="mestre_nome_usuario" placeholder="ex: professor_fulano" maxlength="20">
+        </div>
+        <button type="submit">Adicionar</button>
+      </form>
+      <div id="status-mestre" class="status-importacao"></div>
+      <div id="lista-mestres" style="margin-top: 10px;"></div>
+    </div>
+
     <form id="form-perfil" class="card-carreira">
       <div class="campo">
         <label for="p_nome">Nome</label>
