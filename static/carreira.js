@@ -348,14 +348,19 @@ async function gerarImagemStory() {
 
   mostrarStatus("status-story", "Gerando imagem...");
 
-  let perfil = {};
+  // Usa o que já está no formulário de Perfil (carregado no início da
+  // página) em vez de buscar de novo — evita mostrar o nome de fallback
+  // quando o campo já está preenchido na tela mas ainda não foi salvo.
+  const perfil = {
+    nome: document.getElementById("p_nome").value,
+    faixa: document.getElementById("p_faixa").value,
+    grau: document.getElementById("p_grau").value,
+    academia: document.getElementById("p_academia").value,
+  };
+
   let stats = {};
   try {
-    const [respPerfil, respStats] = await Promise.all([
-      fetchAutenticado("/api/carreira/perfil"),
-      fetchAutenticado("/api/carreira/estatisticas"),
-    ]);
-    perfil = await respPerfil.json();
+    const respStats = await fetchAutenticado("/api/carreira/estatisticas");
     stats = await respStats.json();
   } catch (err) {
     mostrarStatus("status-story", `Erro ao carregar dados: ${err.message}`, true);
@@ -462,10 +467,16 @@ async function gerarImagemStory() {
     xMedalha += 340;
   });
 
-  // Rodapé
-  ctx.font = "28px -apple-system, Arial, sans-serif";
+  // Rodapé — link em destaque, com fundo pra chamar atenção no Stories
+  const urlSite = "www.radarbjj.com";
+  ctx.font = "bold 44px -apple-system, Arial, sans-serif";
+  const larguraUrl = ctx.measureText(urlSite).width + 60;
+  const yUrl = H - 90;
+  ctx.fillStyle = "rgba(127, 212, 255, 0.15)";
+  roundRect(ctx, W / 2 - larguraUrl / 2, yUrl - 46, larguraUrl, 66, 33);
+  ctx.fill();
   ctx.fillStyle = "#7fd4ff";
-  ctx.fillText("radarbjj.com.br", W / 2, H - 60);
+  ctx.fillText(urlSite, W / 2, yUrl);
 
   canvas.toBlob(blob => {
     ultimoBlobStory = blob;
