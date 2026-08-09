@@ -326,4 +326,42 @@ elBtnCriarAlerta.addEventListener("click", async () => {
   }
 });
 
-carregarFederacoes().then(() => carregarEventos(TODAS));
+async function carregarDestaques() {
+  const elDestaques = document.getElementById("destaques");
+  if (!elDestaques) return;
+  try {
+    const resp = await fetch("/api/noticias");
+    const lista = await resp.json();
+    if (!lista.length) {
+      elDestaques.innerHTML = "";
+      return;
+    }
+    elDestaques.innerHTML = `
+      <h2 class="destaques-titulo">Destaques</h2>
+      <div class="destaques-grade">
+        ${lista.map(n => `
+          <div class="destaque-card">
+            <img src="${n.imagem_url}" alt="${n.manchete}">
+            <div class="destaque-manchete">${n.manchete}</div>
+          </div>
+        `).join("")}
+      </div>
+    `;
+  } catch (err) {
+    elDestaques.innerHTML = "";
+  }
+}
+
+document.addEventListener("sessao-carregada", (ev) => {
+  const elPromptLogin = document.getElementById("prompt-login");
+  if (ev.detail.logado) {
+    elForm.style.display = "";
+    if (elPromptLogin) elPromptLogin.style.display = "none";
+    carregarFederacoes().then(() => carregarEventos(TODAS));
+  } else {
+    elForm.style.display = "none";
+    if (elPromptLogin) elPromptLogin.style.display = "";
+  }
+});
+
+carregarDestaques();

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Radar BJJ — Gerenciar Notícias</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <img src="img/banner.png" alt="Radar BJJ" class="banner">
+</header>
+
+<div class="layout">
+  <nav class="menu-lateral">
+    <a href="/">Buscador de Atletas</a>
+    <a href="/competicoes">Competições</a>
+    <a href="/alertas">Meus Alertas</a>
+    <a href="/importar-adcc" id="nav-importar-adcc" style="display:none">Importar ADCC</a>
+    <a href="/gerenciar-noticias" id="nav-gerenciar-noticias" class="ativo" style="display:none">Gerenciar Notícias</a>
+    <div id="nav-usuario" class="nav-usuario"></div>
+  </nav>
+
+<main>
+  <div class="form-auth" style="max-width: 480px;">
+    <h2>Nova notícia</h2>
+    <form id="form-noticia">
+      <div class="campo">
+        <label for="manchete">Manchete</label>
+        <input type="text" id="manchete" required placeholder="ex: Fulano é campeão mundial">
+      </div>
+      <div class="campo">
+        <label for="imagem">Foto</label>
+        <input type="file" id="imagem" accept="image/*" required>
+      </div>
+      <button type="submit">Publicar</button>
+    </form>
+    <div id="status" class="status-importacao"></div>
+  </div>
+
+  <div id="lista-noticias" style="max-width: 480px; margin-top: 24px;"></div>
+</main>
+</div>
+
+<script src="auth-nav.js"></script>
+<script src="gerenciar-noticias.js"></script>
+</body>
+</html>

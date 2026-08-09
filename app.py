@@ -11,6 +11,7 @@ from flask import Flask, jsonify, redirect, request, send_from_directory, sessio
 
 import alertas
 import auth
+import noticias
 from connectors import FEDERACOES, TODAS, listar_eventos, buscar_atletas_agregado, listar_competicoes
 from connectors import adcc
 from connectors import idade as idade_mod
@@ -35,6 +36,7 @@ app.secret_key = os.environ.get("SECRET_KEY") or _SECRET_KEY_PATH.read_text().st
 
 auth.init_db()
 alertas.init_db()
+noticias.init_db()
 
 
 def _iniciar_verificacao_periodica_de_alertas():
@@ -142,8 +144,9 @@ def api_admin_necessario(view):
 
 
 @app.get("/")
-@login_necessario
 def index():
+    # Pública: qualquer um vê as notícias em destaque. O Buscador em si
+    # (dentro da página) fica escondido pelo próprio JS até logar.
     return send_from_directory("static", "index.html")
 
 
@@ -207,6 +210,52 @@ def api_redefinir_senha():
     if not ok:
         return jsonify({"erro": erro}), 400
     return jsonify({"ok": True})
+
+
+@app.get("/api/noticias")
+def api_listar_noticias():
+    return jsonify([
+        {
+            "id": n["id"],
+            "manchete": n["manchete"],
+            "imagem_url": f"/noticias-imagens/{n['imagem_arquivo']}",
+            "criado_em": n["criado_em"],
+        }
+        for n in noticias.listar_noticias()
+    ])
+
+
+@app.get("/noticias-imagens/<path:nome_arquivo>")
+def servir_imagem_noticia(nome_arquivo):
+    return send_from_directory(noticias.DIR_IMAGENS, nome_arquivo)
+
+
+@app.post("/api/noticias")
+@api_admin_necessario
+def api_criar_noticia():
+    manchete = request.form.get("manchete", "")
+    arquivo = request.files.get("imagem")
+    if not arquivo or not arquivo.filename:
+        return jsonify({"erro": "selecione uma imagem"}), 400
+    noticia_id, erro = noticias.criar_noticia(manchete, arquivo, arquivo.filename)
+    if erro:
+        return jsonify({"erro": erro}), 400
+    return jsonify({"ok": True, "id": noticia_id})
+
+
+@app.delete("/api/noticias/<int:noticia_id>")
+@api_admin_necessario
+def api_remover_noticia(noticia_id):
+    removida = noticias.remover_noticia(noticia_id)
+    if not removida:
+        return jsonify({"erro": "notícia não encontrada"}), 404
+    return jsonify({"ok": True})
+
+
+@app.get("/gerenciar-noticias")
+@admin_necessario
+def pagina_gerenciar_noticias():
+    return send_from_directory("static", "gerenciar-noticias.html")
 
 
 @app.get("/importar-adcc")

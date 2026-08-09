@@ -17,11 +17,23 @@
     <a href="/competicoes">Competições</a>
     <a href="/alertas">Meus Alertas</a>
     <a href="/importar-adcc" id="nav-importar-adcc" style="display:none">Importar ADCC</a>
+    <a href="/gerenciar-noticias" id="nav-gerenciar-noticias" style="display:none">Gerenciar Notícias</a>
     <div id="nav-usuario" class="nav-usuario"></div>
   </nav>
 
 <main>
-  <form id="form-busca">
+  <div id="destaques" class="destaques"></div>
+
+  <div id="prompt-login" class="form-auth" style="display:none; text-align: center;">
+    <h2>Faça login pra buscar atletas</h2>
+    <p style="color: #7c8894; font-size: 0.9rem;">Cadastro e busca são gratuitos.</p>
+    <p>
+      <a href="/login"><button type="button">Entrar</button></a>
+      <a href="/cadastro"><button type="button" class="btn-secundario">Cadastrar</button></a>
+    </p>
+  </div>
+
+  <form id="form-busca" style="display:none">
     <div class="campo">
       <label>Federação</label>
       <div id="federacao-opcoes" class="opcoes-federacao"></div>

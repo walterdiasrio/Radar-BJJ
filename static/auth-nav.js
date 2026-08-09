@@ -4,16 +4,16 @@ async function carregarSessaoNoMenu() {
   if (!el) return;
 
   const elImportarAdcc = document.getElementById("nav-importar-adcc");
+  const elGerenciarNoticias = document.getElementById("nav-gerenciar-noticias");
 
-  const aplicarVisibilidadeMestre = (ehMestre) => {
-    window.sessaoAtual = window.sessaoAtual || {};
-    window.sessaoAtual.mestre = ehMestre;
+  const aplicarSessao = (dados) => {
+    window.sessaoAtual = dados;
     const elEquipe = document.getElementById("equipe");
     if (elEquipe) {
       const campo = elEquipe.closest(".campo");
-      if (campo) campo.style.display = ehMestre ? "" : "none";
+      if (campo) campo.style.display = dados.mestre ? "" : "none";
     }
-    document.dispatchEvent(new CustomEvent("sessao-carregada", { detail: { mestre: ehMestre } }));
+    document.dispatchEvent(new CustomEvent("sessao-carregada", { detail: dados }));
   };
 
   try {
@@ -27,16 +27,19 @@ async function carregarSessaoNoMenu() {
         window.location.reload();
       });
       if (elImportarAdcc) elImportarAdcc.style.display = dados.admin ? "" : "none";
-      aplicarVisibilidadeMestre(!!dados.mestre);
+      if (elGerenciarNoticias) elGerenciarNoticias.style.display = dados.admin ? "" : "none";
+      aplicarSessao({ logado: true, mestre: !!dados.mestre, admin: !!dados.admin });
     } else {
       el.innerHTML = `<a href="/login">Entrar</a><a href="/cadastro">Cadastrar</a>`;
       if (elImportarAdcc) elImportarAdcc.style.display = "none";
-      aplicarVisibilidadeMestre(false);
+      if (elGerenciarNoticias) elGerenciarNoticias.style.display = "none";
+      aplicarSessao({ logado: false, mestre: false, admin: false });
     }
   } catch (err) {
     el.innerHTML = `<a href="/login">Entrar</a><a href="/cadastro">Cadastrar</a>`;
     if (elImportarAdcc) elImportarAdcc.style.display = "none";
-    aplicarVisibilidadeMestre(false);
+    if (elGerenciarNoticias) elGerenciarNoticias.style.display = "none";
+    aplicarSessao({ logado: false, mestre: false, admin: false });
   }
 }
 

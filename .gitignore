@@ -3,5 +3,7 @@ __pycache__/
 .secret_key
 usuarios.db
 alertas.db
+noticias.db
 dados_adcc/
+noticias_imagens/
 .DS_Store
