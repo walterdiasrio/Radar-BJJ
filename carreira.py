@@ -281,6 +281,11 @@ def calcular_estatisticas(usuario_id):
     pratas = sum(1 for c in competicoes if c["medalha"] == "prata")
     bronzes = sum(1 for c in competicoes if c["medalha"] == "bronze")
 
+    finalizacoes = sum(1 for l in vitorias if l["metodo"] == "finalizacao")
+    vitorias_pontos = sum(1 for l in vitorias if l["metodo"] == "pontos")
+    campeonatos_diferentes = len({c["campeonato"] for c in competicoes if c["campeonato"]})
+    paises_diferentes = len({c["pais"] for c in competicoes if c["pais"]})
+
     cumulativo = 0
     grafico = []
     for l in lutas:
@@ -300,5 +305,9 @@ def calcular_estatisticas(usuario_id):
         "ouros": ouros,
         "pratas": pratas,
         "bronzes": bronzes,
+        "finalizacoes": finalizacoes,
+        "vitorias_pontos": vitorias_pontos,
+        "campeonatos_diferentes": campeonatos_diferentes,
+        "paises_diferentes": paises_diferentes,
         "grafico": grafico,
     }

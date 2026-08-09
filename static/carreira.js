@@ -267,6 +267,10 @@ async function carregarEstatisticas() {
       { label: "Taxa de vitória", value: s.taxa_vitoria + "%" },
       { label: "Sequência atual", value: s.sequencia_atual },
       { label: "Melhor sequência", value: s.melhor_sequencia },
+      { label: "Finalizações", value: s.finalizacoes },
+      { label: "Vitórias por pontos", value: s.vitorias_pontos },
+      { label: "Campeonatos diferentes", value: s.campeonatos_diferentes },
+      { label: "Países diferentes", value: s.paises_diferentes },
       { label: "🥇 Ouros", value: s.ouros },
       { label: "🥈 Pratas", value: s.pratas },
       { label: "🥉 Bronzes", value: s.bronzes },
@@ -328,6 +332,15 @@ function corDaFaixa(faixa) {
 
 let ultimoBlobStory = null;
 
+function carregarImagem(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
 async function gerarImagemStory() {
   const canvas = document.getElementById("canvas-story");
   const ctx = canvas.getContext("2d");
@@ -355,55 +368,64 @@ async function gerarImagemStory() {
   grad.addColorStop(1, "#060a12");
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, W, H);
-
-  // Marca d'água / wordmark
   ctx.textAlign = "center";
-  ctx.font = "bold 64px -apple-system, Arial, sans-serif";
-  ctx.fillStyle = "#ffffff";
-  ctx.fillText("RADAR", W / 2 - 90, 180);
-  ctx.fillStyle = "#7fd4ff";
-  ctx.fillText("BJJ", W / 2 + 130, 180);
+
+  // Banner do site, no topo
+  let yAposBanner = 140;
+  try {
+    const banner = await carregarImagem("img/banner.png");
+    const larguraBanner = 780;
+    const alturaBanner = larguraBanner * (banner.height / banner.width);
+    ctx.drawImage(banner, W / 2 - larguraBanner / 2, 60, larguraBanner, alturaBanner);
+    yAposBanner = 60 + alturaBanner + 50;
+  } catch (err) {
+    // segue sem o banner se não conseguir carregar
+  }
 
   ctx.font = "26px -apple-system, Arial, sans-serif";
   ctx.fillStyle = "#b7cbdc";
-  ctx.fillText("RESUMO DE CARREIRA", W / 2, 230);
+  ctx.fillText("RESUMO DE CARREIRA", W / 2, yAposBanner);
 
   // Nome do atleta
-  ctx.font = "bold 76px -apple-system, Arial, sans-serif";
+  ctx.font = "bold 72px -apple-system, Arial, sans-serif";
   ctx.fillStyle = "#ffffff";
   const nome = perfil.nome || "Atleta Radar BJJ";
-  ctx.fillText(nome, W / 2, 380);
+  ctx.fillText(nome, W / 2, yAposBanner + 90);
 
   // Faixa (badge)
   const faixa = perfil.faixa || "Branca";
   const grau = Number(perfil.grau || 0);
   const faixaTexto = `Faixa ${faixa}${grau > 0 ? " · " + grau + "º grau" : ""}`;
-  ctx.font = "bold 34px -apple-system, Arial, sans-serif";
+  ctx.font = "bold 32px -apple-system, Arial, sans-serif";
   const larguraBadge = ctx.measureText(faixaTexto).width + 70;
   const xBadge = W / 2 - larguraBadge / 2;
-  const yBadge = 430;
+  const yBadge = yAposBanner + 130;
   ctx.fillStyle = corDaFaixa(faixa);
-  roundRect(ctx, xBadge, yBadge, larguraBadge, 64, 32);
+  roundRect(ctx, xBadge, yBadge, larguraBadge, 60, 30);
   ctx.fill();
   ctx.fillStyle = ["preta", "azul", "roxa", "marrom", "verde", "verde-preta", "cinza-preta", "laranja-preta", "amarela-preta"].includes(faixa.toLowerCase()) ? "#ffffff" : "#1c2733";
-  ctx.fillText(faixaTexto, W / 2, yBadge + 44);
+  ctx.fillText(faixaTexto, W / 2, yBadge + 41);
 
+  let yAcademia = yBadge + 60;
   if (perfil.academia) {
-    ctx.font = "30px -apple-system, Arial, sans-serif";
+    yAcademia = yBadge + 110;
+    ctx.font = "28px -apple-system, Arial, sans-serif";
     ctx.fillStyle = "#b7cbdc";
-    ctx.fillText(perfil.academia, W / 2, 540);
+    ctx.fillText(perfil.academia, W / 2, yAcademia);
   }
 
-  // Grade de estatísticas
+  // Grade de estatísticas (3 linhas x 2 colunas)
   const statsPrincipais = [
     { valor: stats.competicoes || 0, label: "Competições" },
     { valor: stats.vitorias || 0, label: "Vitórias" },
     { valor: (stats.taxa_vitoria || 0) + "%", label: "Taxa de vitória" },
     { valor: stats.melhor_sequencia || 0, label: "Melhor sequência" },
+    { valor: stats.finalizacoes || 0, label: "Finalizações" },
+    { valor: stats.campeonatos_diferentes || 0, label: "Campeonatos" },
   ];
 
-  const gridTopo = 660;
-  const gridAltura = 260;
+  const gridTopo = yAcademia + 100;
+  const gridAltura = 210;
   const colW = W / 2;
   statsPrincipais.forEach((item, i) => {
     const col = i % 2;
@@ -412,16 +434,16 @@ async function gerarImagemStory() {
     const cy = gridTopo + linha * gridAltura;
 
     ctx.fillStyle = "rgba(255,255,255,0.06)";
-    roundRect(ctx, cx - colW / 2 + 24, cy - 90, colW - 48, gridAltura - 40, 20);
+    roundRect(ctx, cx - colW / 2 + 24, cy - 75, colW - 48, gridAltura - 40, 20);
     ctx.fill();
 
-    ctx.font = "bold 72px -apple-system, Arial, sans-serif";
+    ctx.font = "bold 60px -apple-system, Arial, sans-serif";
     ctx.fillStyle = "#7fd4ff";
-    ctx.fillText(String(item.valor), cx, cy + 10);
+    ctx.fillText(String(item.valor), cx, cy);
 
-    ctx.font = "26px -apple-system, Arial, sans-serif";
+    ctx.font = "24px -apple-system, Arial, sans-serif";
     ctx.fillStyle = "#b7cbdc";
-    ctx.fillText(item.label, cx, cy + 60);
+    ctx.fillText(item.label, cx, cy + 46);
   });
 
   // Medalhas
@@ -430,8 +452,8 @@ async function gerarImagemStory() {
     { valor: stats.pratas || 0, icone: "🥈" },
     { valor: stats.bronzes || 0, icone: "🥉" },
   ];
-  const yMedalhas = gridTopo + 2 * gridAltura + 40;
-  ctx.font = "48px -apple-system, Arial, sans-serif";
+  const yMedalhas = gridTopo + 3 * gridAltura + 20;
+  ctx.font = "44px -apple-system, Arial, sans-serif";
   const larguraTotal = 340 * medalhas.length;
   let xMedalha = W / 2 - larguraTotal / 2 + 170;
   medalhas.forEach(m => {
@@ -441,9 +463,9 @@ async function gerarImagemStory() {
   });
 
   // Rodapé
-  ctx.font = "30px -apple-system, Arial, sans-serif";
+  ctx.font = "28px -apple-system, Arial, sans-serif";
   ctx.fillStyle = "#7fd4ff";
-  ctx.fillText("radarbjj.com.br", W / 2, H - 100);
+  ctx.fillText("radarbjj.com.br", W / 2, H - 60);
 
   canvas.toBlob(blob => {
     ultimoBlobStory = blob;
