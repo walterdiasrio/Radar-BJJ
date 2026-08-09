@@ -46,7 +46,7 @@ header {
 }
 
 .menu-lateral a {
-  color: #eaf2f9;
+  color: #ffffff;
   text-decoration: none;
   padding: 13px 22px;
   font-weight: 600;
@@ -54,8 +54,8 @@ header {
   border-left: 3px solid transparent;
 }
 
-.menu-lateral a:hover { color: white; background: rgba(255, 255, 255, 0.1); }
-.menu-lateral a.ativo { color: white; border-left-color: #7fd4ff; background: rgba(255, 255, 255, 0.12); }
+.menu-lateral a:hover { background: rgba(255, 255, 255, 0.1); }
+.menu-lateral a.ativo { border-left-color: #7fd4ff; background: rgba(255, 255, 255, 0.12); }
 
 .nav-usuario {
   margin-top: auto;
@@ -66,7 +66,7 @@ header {
 }
 
 .nav-usuario a {
-  color: #eaf2f9;
+  color: #ffffff;
   text-decoration: none;
   padding: 10px 22px;
   font-weight: 600;
