@@ -130,6 +130,8 @@ function renderizarCompeticoes(competicoes) {
 async function carregar() {
   const federacao = federacaoSelecionada(elFederacaoOpcoes);
   elBtn.disabled = true;
+  elPublicoAdulto.disabled = true;
+  elPublicoKids.disabled = true;
   mostrarStatus("Carregando competições, pode levar alguns segundos...");
   elResultados.innerHTML = "";
 
@@ -148,6 +150,8 @@ async function carregar() {
     mostrarStatus(`Erro ao carregar: ${err.message}`, true);
   } finally {
     elBtn.disabled = false;
+    elPublicoAdulto.disabled = false;
+    elPublicoKids.disabled = false;
   }
 }
 
