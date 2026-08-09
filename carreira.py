@@ -78,6 +78,37 @@ def obter_perfil(usuario_id):
     return dict(linha)
 
 
+def _normalizar_academia(academia):
+    return (academia or "").strip().lower()
+
+
+def mesma_academia(academia_a, academia_b):
+    """Compara duas academias (perfil Mestre x perfil Aluno) — nunca
+    considera "mesma academia" quando uma delas está em branco, senão dois
+    perfis sem academia preenchida ficariam visíveis um pro outro."""
+    a = _normalizar_academia(academia_a)
+    b = _normalizar_academia(academia_b)
+    return bool(a) and a == b
+
+
+def listar_alunos_da_academia(academia_mestre, excluir_usuario_id):
+    """Todo perfil (exceto o do próprio Mestre) cuja academia bate,
+    ignorando maiúsculas/minúsculas e espaços nas pontas. Academia em
+    branco no perfil do Mestre não lista ninguém (ver mesma_academia)."""
+    alvo = _normalizar_academia(academia_mestre)
+    if not alvo:
+        return []
+    with _conn() as conn:
+        linhas = conn.execute(
+            "SELECT usuario_id, nome, faixa, grau, academia FROM perfis_atleta WHERE usuario_id != ?",
+            (excluir_usuario_id,),
+        ).fetchall()
+    return [
+        dict(linha) for linha in linhas
+        if _normalizar_academia(linha["academia"]) == alvo
+    ]
+
+
 def salvar_perfil(usuario_id, dados):
     perfil = {
         "avatar": (dados.get("avatar") or "🥋").strip() or "🥋",

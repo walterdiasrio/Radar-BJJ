@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Radar BJJ — Mensagens</title>
-<link rel="stylesheet" href="style.css">
+<title>Radar BJJ — Carreira do Aluno</title>
+<link rel="stylesheet" href="/style.css">
 </head>
 <body>
 <header>
-  <img src="img/banner.png" alt="Radar BJJ" class="banner">
+  <img src="/img/banner.png" alt="Radar BJJ" class="banner">
 </header>
 
 <div class="layout">
@@ -24,21 +24,18 @@
     <a href="/fale-conosco">Fale Conosco</a>
     <a href="/importar-adcc" id="nav-importar-adcc" style="display:none">Importar ADCC</a>
     <a href="/gerenciar-noticias" id="nav-gerenciar-noticias" style="display:none">Gerenciar Notícias</a>
-    <a href="/gerenciar-mensagens" id="nav-gerenciar-mensagens" class="ativo" style="display:none">Mensagens</a>
+    <a href="/gerenciar-mensagens" id="nav-gerenciar-mensagens" style="display:none">Mensagens</a>
     <div id="nav-usuario" class="nav-usuario"></div>
   </nav>
 
 <main>
-  <h2 style="color: var(--azul); margin-bottom: 4px;">Mensagens de contato</h2>
-  <p style="color: #7c8894; font-size: 0.9rem; margin-top: 0;">
-    Mensagens enviadas pelo Fale Conosco. As não lidas aparecem primeiro.
-  </p>
+  <p><a href="/meus-alunos" style="color: var(--azul-claro);">&larr; Voltar pra Meus Alunos</a></p>
   <div id="status" class="status-importacao"></div>
-  <div id="lista-mensagens"></div>
+  <div id="conteudo-aluno"></div>
 </main>
 </div>
 
-<script src="auth-nav.js"></script>
-<script src="gerenciar-mensagens.js"></script>
+<script src="/auth-nav.js"></script>
+<script src="/aluno-detalhe.js"></script>
 </body>
 </html>

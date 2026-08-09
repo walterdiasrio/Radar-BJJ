@@ -789,6 +789,52 @@ def api_carreira_estatisticas():
     return jsonify(carreira.calcular_estatisticas(session["usuario_id"]))
 
 
+@app.get("/meus-alunos")
+@assinatura_necessaria
+def pagina_meus_alunos():
+    if not _usuario_atual_eh_mestre():
+        return "Página não encontrada", 404
+    return send_from_directory("static", "meus-alunos.html")
+
+
+@app.get("/api/meus-alunos")
+@api_assinatura_necessaria
+def api_listar_meus_alunos():
+    if not _usuario_atual_eh_mestre():
+        return jsonify({"erro": "exclusivo do perfil Mestre"}), 403
+    perfil_mestre = carreira.obter_perfil(session["usuario_id"])
+    alunos = carreira.listar_alunos_da_academia(perfil_mestre.get("academia"), session["usuario_id"])
+    return jsonify(alunos)
+
+
+@app.get("/meus-alunos/<int:aluno_id>")
+@assinatura_necessaria
+def pagina_aluno_detalhe(aluno_id):
+    if not _usuario_atual_eh_mestre():
+        return "Página não encontrada", 404
+    return send_from_directory("static", "aluno-detalhe.html")
+
+
+@app.get("/api/meus-alunos/<int:aluno_id>")
+@api_assinatura_necessaria
+def api_aluno_detalhe(aluno_id):
+    if not _usuario_atual_eh_mestre():
+        return jsonify({"erro": "exclusivo do perfil Mestre"}), 403
+
+    perfil_mestre = carreira.obter_perfil(session["usuario_id"])
+    perfil_aluno = carreira.obter_perfil(aluno_id)
+    if not carreira.mesma_academia(perfil_mestre.get("academia"), perfil_aluno.get("academia")):
+        return jsonify({"erro": "aluno não encontrado"}), 404
+
+    usuario_aluno = auth.buscar_por_id(aluno_id)
+    return jsonify({
+        "perfil": perfil_aluno,
+        "email": usuario_aluno["email"] if usuario_aluno else None,
+        "competicoes": carreira.listar_competicoes(aluno_id),
+        "estatisticas": carreira.calcular_estatisticas(aluno_id),
+    })
+
+
 @app.get("/assinatura")
 @login_necessario
 def pagina_assinatura():

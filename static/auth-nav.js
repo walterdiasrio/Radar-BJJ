@@ -6,6 +6,7 @@ async function carregarSessaoNoMenu() {
   const elImportarAdcc = document.getElementById("nav-importar-adcc");
   const elGerenciarNoticias = document.getElementById("nav-gerenciar-noticias");
   const elGerenciarMensagens = document.getElementById("nav-gerenciar-mensagens");
+  const elMeusAlunos = document.getElementById("nav-meus-alunos");
 
   const aplicarSessao = (dados) => {
     window.sessaoAtual = dados;
@@ -30,12 +31,14 @@ async function carregarSessaoNoMenu() {
       if (elImportarAdcc) elImportarAdcc.style.display = dados.admin ? "" : "none";
       if (elGerenciarNoticias) elGerenciarNoticias.style.display = dados.admin ? "" : "none";
       if (elGerenciarMensagens) elGerenciarMensagens.style.display = dados.admin ? "" : "none";
+      if (elMeusAlunos) elMeusAlunos.style.display = dados.mestre ? "" : "none";
       aplicarSessao({ logado: true, mestre: !!dados.mestre, admin: !!dados.admin, email: dados.email });
     } else {
       el.innerHTML = `<a href="/login">Entrar</a><a href="/cadastro">Cadastrar</a>`;
       if (elImportarAdcc) elImportarAdcc.style.display = "none";
       if (elGerenciarNoticias) elGerenciarNoticias.style.display = "none";
       if (elGerenciarMensagens) elGerenciarMensagens.style.display = "none";
+      if (elMeusAlunos) elMeusAlunos.style.display = "none";
       aplicarSessao({ logado: false, mestre: false, admin: false });
     }
   } catch (err) {
@@ -43,6 +46,7 @@ async function carregarSessaoNoMenu() {
     if (elImportarAdcc) elImportarAdcc.style.display = "none";
     if (elGerenciarNoticias) elGerenciarNoticias.style.display = "none";
     if (elGerenciarMensagens) elGerenciarMensagens.style.display = "none";
+    if (elMeusAlunos) elMeusAlunos.style.display = "none";
     aplicarSessao({ logado: false, mestre: false, admin: false });
   }
 }
