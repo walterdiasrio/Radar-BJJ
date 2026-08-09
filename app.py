@@ -368,6 +368,45 @@ def api_remover_mensagem_contato(mensagem_id):
     return jsonify({"ok": True})
 
 
+@app.get("/gerenciar-usuarios")
+@admin_necessario
+def pagina_gerenciar_usuarios():
+    return send_from_directory("static", "gerenciar-usuarios.html")
+
+
+@app.get("/api/usuarios")
+@api_admin_necessario
+def api_listar_usuarios():
+    usuarios = auth.listar_usuarios()
+    resumo = {
+        "total": len(usuarios),
+        "por_perfil": {"atleta": 0, "mestre": 0},
+        "por_status_assinatura": {"trialing": 0, "active": 0, "past_due": 0, "canceled": 0, "sem_assinatura": 0},
+    }
+
+    lista = []
+    for usuario in usuarios:
+        assinatura = pagamentos.obter_assinatura(usuario["id"])
+        status = assinatura["status"] if assinatura else None
+
+        resumo["por_perfil"][usuario["tipo_perfil"]] = resumo["por_perfil"].get(usuario["tipo_perfil"], 0) + 1
+        chave_status = status if status in resumo["por_status_assinatura"] else "sem_assinatura"
+        resumo["por_status_assinatura"][chave_status] += 1
+
+        lista.append({
+            "id": usuario["id"],
+            "email": usuario["email"],
+            "tipo_perfil": usuario["tipo_perfil"],
+            "nome_usuario": usuario["nome_usuario"],
+            "criado_em": usuario["criado_em"],
+            "assinatura_status": status,
+            "assinatura_plano": assinatura["plano"] if assinatura else None,
+            "assinatura_periodicidade": assinatura["periodicidade"] if assinatura else None,
+        })
+
+    return jsonify({"resumo": resumo, "usuarios": lista})
+
+
 @app.get("/importar-adcc")
 @admin_necessario
 def pagina_importar_adcc():

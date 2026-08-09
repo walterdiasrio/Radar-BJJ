@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Radar BJJ — Esqueci minha senha</title>
+<title>Radar BJJ — Usuários</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -26,30 +26,43 @@
     <a href="/importar-ajp" id="nav-importar-ajp" style="display:none">Importar AJP</a>
     <a href="/gerenciar-noticias" id="nav-gerenciar-noticias" style="display:none">Gerenciar Notícias</a>
     <a href="/gerenciar-mensagens" id="nav-gerenciar-mensagens" style="display:none">Mensagens</a>
-    <a href="/gerenciar-usuarios" id="nav-gerenciar-usuarios" style="display:none">Usuários</a>
+    <a href="/gerenciar-usuarios" id="nav-gerenciar-usuarios" class="ativo" style="display:none">Usuários</a>
     <div id="nav-usuario" class="nav-usuario"></div>
   </nav>
 
 <main>
-  <form id="form-esqueci" class="form-auth">
-    <h2>Esqueci minha senha</h2>
-    <p style="text-align: left; color: #7c8894; font-size: 0.85rem;">
-      Informe o e-mail da sua conta. Se ele estiver cadastrado, mandamos um link pra você criar uma
-      senha nova (válido por 1 hora).
-    </p>
-    <div class="campo">
-      <label for="email">E-mail</label>
-      <input type="email" id="email" required autocomplete="email">
-    </div>
-    <button type="submit">Enviar link</button>
-    <p><a href="/login">Voltar pro login</a></p>
-  </form>
+  <h2 style="color: var(--azul); margin-bottom: 4px;">Usuários</h2>
+  <p style="color: #7c8894; font-size: 0.9rem; margin-top: 0;">
+    Todas as contas cadastradas, perfil e status da assinatura.
+  </p>
 
-  <div id="status"></div>
-  </main>
+  <div class="stats-grid" id="grade-resumo"></div>
+
+  <div id="status" class="status-importacao"></div>
+
+  <div class="campo" style="max-width: 320px;">
+    <label for="filtro-busca">Buscar por e-mail ou nome de usuário</label>
+    <input type="text" id="filtro-busca" placeholder="ex: fulano@email.com">
+  </div>
+
+  <div style="overflow-x: auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>E-mail</th>
+          <th>Perfil</th>
+          <th>Nome de usuário</th>
+          <th>Assinatura</th>
+          <th>Cadastro</th>
+        </tr>
+      </thead>
+      <tbody id="corpo-tabela-usuarios"></tbody>
+    </table>
+  </div>
+</main>
 </div>
 
 <script src="auth-nav.js"></script>
-<script src="esqueci-senha.js"></script>
+<script src="gerenciar-usuarios.js"></script>
 </body>
 </html>

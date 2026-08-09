@@ -7,6 +7,7 @@ async function carregarSessaoNoMenu() {
   const elImportarAjp = document.getElementById("nav-importar-ajp");
   const elGerenciarNoticias = document.getElementById("nav-gerenciar-noticias");
   const elGerenciarMensagens = document.getElementById("nav-gerenciar-mensagens");
+  const elGerenciarUsuarios = document.getElementById("nav-gerenciar-usuarios");
   const elMeusAlunos = document.getElementById("nav-meus-alunos");
 
   const aplicarSessao = (dados) => {
@@ -33,6 +34,7 @@ async function carregarSessaoNoMenu() {
       if (elImportarAjp) elImportarAjp.style.display = dados.admin ? "" : "none";
       if (elGerenciarNoticias) elGerenciarNoticias.style.display = dados.admin ? "" : "none";
       if (elGerenciarMensagens) elGerenciarMensagens.style.display = dados.admin ? "" : "none";
+      if (elGerenciarUsuarios) elGerenciarUsuarios.style.display = dados.admin ? "" : "none";
       if (elMeusAlunos) elMeusAlunos.style.display = dados.mestre ? "" : "none";
       aplicarSessao({ logado: true, mestre: !!dados.mestre, admin: !!dados.admin, email: dados.email });
     } else {
@@ -41,6 +43,7 @@ async function carregarSessaoNoMenu() {
       if (elImportarAjp) elImportarAjp.style.display = "none";
       if (elGerenciarNoticias) elGerenciarNoticias.style.display = "none";
       if (elGerenciarMensagens) elGerenciarMensagens.style.display = "none";
+      if (elGerenciarUsuarios) elGerenciarUsuarios.style.display = "none";
       if (elMeusAlunos) elMeusAlunos.style.display = "none";
       aplicarSessao({ logado: false, mestre: false, admin: false });
     }
@@ -50,6 +53,7 @@ async function carregarSessaoNoMenu() {
     if (elImportarAjp) elImportarAjp.style.display = "none";
     if (elGerenciarNoticias) elGerenciarNoticias.style.display = "none";
     if (elGerenciarMensagens) elGerenciarMensagens.style.display = "none";
+    if (elGerenciarUsuarios) elGerenciarUsuarios.style.display = "none";
     if (elMeusAlunos) elMeusAlunos.style.display = "none";
     aplicarSessao({ logado: false, mestre: false, admin: false });
   }

@@ -118,6 +118,16 @@ def buscar_por_id(usuario_id):
     return dict(linha) if linha else None
 
 
+def listar_usuarios():
+    """Todas as contas cadastradas, mais recentes primeiro — usado no
+    painel administrativo de usuários."""
+    with _conn() as conn:
+        linhas = conn.execute(
+            "SELECT id, email, tipo_perfil, nome_usuario, criado_em FROM usuarios ORDER BY criado_em DESC"
+        ).fetchall()
+    return [dict(linha) for linha in linhas]
+
+
 def buscar_por_email(email):
     email = (email or "").strip().lower()
     with _conn() as conn:
