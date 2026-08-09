@@ -29,7 +29,7 @@ async function carregarFederacoes() {
 }
 
 // Monta os checkboxes de federação: "Todas" marcada por padrão; marcar uma
-// individual desmarca "Todas"; desmarcar a última individual volta pra "Todas".
+// individual desmarca "Todas"; desmarcar a última individual volta para "Todas".
 function construirOpcoesFederacao(container, federacoes, onChange) {
   container.innerHTML =
     `<label class="opcao-todas"><input type="checkbox" value="${TODAS}" checked> Todas as federações</label>` +
@@ -296,7 +296,7 @@ elForm.addEventListener("submit", async (ev) => {
 
 elBtnCriarAlerta.addEventListener("click", async () => {
   const federacao = federacaoSelecionada(elFederacaoOpcoes);
-  const titulo = prompt("Nome pra esse alerta (ex: \"Roxa adulto masculino leve\"):");
+  const titulo = prompt("Nome para esse alerta (ex: \"Roxa adulto masculino leve\"):");
   if (!titulo) return;
 
   const corpo = {

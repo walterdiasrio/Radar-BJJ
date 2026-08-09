@@ -36,7 +36,7 @@ async function carregarPerfil() {
 
 // Aviso fixo (visível em qualquer aba) enquanto faltar nome, faixa ou
 // academia — sem esses três preenchidos, o vínculo com Mestre/Alunos e o
-// resumo pro Stories saem incompletos. Nome de usuário do Mestre fica de
+// resumo para o Stories saem incompletos. Nome de usuário do Mestre fica de
 // fora de propósito: o aluno pode não ter o Mestre cadastrado ainda.
 function atualizarLembretePerfil(perfil) {
   const elAviso = document.getElementById("lembrete-perfil");
@@ -50,7 +50,7 @@ function atualizarLembretePerfil(perfil) {
     return;
   }
   document.getElementById("lembrete-perfil-texto").textContent =
-    `Falta preencher: ${faltando.join(", ")}. Isso é essencial pro vínculo com Mestre/Alunos funcionar direito.`;
+    `Falta preencher: ${faltando.join(", ")}. Isso é essencial para o vínculo com Mestre/Alunos funcionar direito.`;
   elAviso.style.display = "flex";
 }
 
@@ -429,7 +429,7 @@ function desenharGrafico(pontos) {
   `;
 }
 
-// ---------- Compartilhar (imagem pro Stories) ----------
+// ---------- Compartilhar (imagem para o Stories) ----------
 const CORES_FAIXA = {
   "branca": "#f4f6f8", "cinza-branca": "#c7ccd1", "cinza": "#9aa1a8", "cinza-preta": "#5c636b",
   "amarela-branca": "#fff6c9", "amarela": "#f4d90c", "amarela-preta": "#c9b400",
@@ -579,7 +579,7 @@ async function gerarImagemStory() {
     xMedalha += 340;
   });
 
-  // Rodapé — link em destaque, com fundo pra chamar atenção no Stories
+  // Rodapé — link em destaque, com fundo para chamar atenção no Stories
   const urlSite = "www.radarbjj.com";
   ctx.font = "bold 44px -apple-system, Arial, sans-serif";
   const larguraUrl = ctx.measureText(urlSite).width + 60;

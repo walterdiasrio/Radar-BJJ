@@ -17,7 +17,7 @@ async function carregarFederacoes() {
 }
 
 // Monta os checkboxes de federação: "Todas" marcada por padrão; marcar uma
-// individual desmarca "Todas"; desmarcar a última individual volta pra "Todas".
+// individual desmarca "Todas"; desmarcar a última individual volta para "Todas".
 function construirOpcoesFederacao(container, federacoes, onChange) {
   container.innerHTML =
     `<label class="opcao-todas"><input type="checkbox" value="${TODAS}" checked> Todas as federações</label>` +

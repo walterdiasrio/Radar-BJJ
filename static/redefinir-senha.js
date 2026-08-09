@@ -33,7 +33,7 @@ elForm.addEventListener("submit", async (ev) => {
     const dados = await resp.json();
     if (!resp.ok) throw new Error(dados.erro || "erro ao redefinir senha");
 
-    mostrarStatus("Senha alterada! Redirecionando pro login...");
+    mostrarStatus("Senha alterada! Redirecionando para o login...");
     setTimeout(() => { window.location.href = "/login"; }, 1500);
   } catch (err) {
     mostrarStatus(`Erro: ${err.message}`, true);

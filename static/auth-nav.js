@@ -64,7 +64,7 @@ carregarSessaoNoMenu();
 })();
 
 // Wrapper de fetch para chamadas de API que exigem login: se a sessão
-// expirou (401), manda direto pro login em vez de mostrar erro genérico.
+// expirou (401), manda direto para o login em vez de mostrar erro genérico.
 async function fetchAutenticado(url, opts) {
   const resp = await fetch(url, opts);
   if (resp.status === 401) {

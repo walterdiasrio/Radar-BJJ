@@ -20,7 +20,7 @@ elForm.addEventListener("submit", async (ev) => {
     });
     if (!resp.ok) throw new Error("erro ao enviar");
 
-    mostrarStatus("Se esse e-mail estiver cadastrado, você vai receber um link pra redefinir a senha em instantes.");
+    mostrarStatus("Se esse e-mail estiver cadastrado, você vai receber um link para redefinir a senha em instantes.");
     elForm.reset();
   } catch (err) {
     mostrarStatus(`Erro: ${err.message}`, true);
