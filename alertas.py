@@ -33,6 +33,10 @@ RESEND_API_KEY = os.environ.get("RESEND_API_KEY")
 REMETENTE = os.environ.get("ALERTA_REMETENTE", "Radar BJJ <onboarding@resend.dev>")
 URL_SITE = os.environ.get("URL_SITE", "http://localhost:5050")
 
+# Limite por conta — evita que um único login seja usado pra criar alertas
+# de várias pessoas diferentes (cada assinatura é pensada pra um atleta só).
+LIMITE_ALERTAS_POR_USUARIO = 2
+
 
 def _conn():
     DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -132,8 +136,19 @@ def criar_alerta(usuario_id, titulo, federacao, data_nascimento, genero, faixa,
     de gente que já estava lá antes do alerta existir) pode demorar dezenas
     de segundos quando cobre várias federações, então roda em background;
     o alerta só fica ativo (entra na verificação periódica) depois que essa
-    captura inicial termina."""
+    captura inicial termina.
+
+    Retorna (alerta_id, erro) — erro é None em caso de sucesso."""
     with _conn() as conn:
+        total = conn.execute(
+            "SELECT COUNT(*) AS total FROM alertas WHERE usuario_id = ?", (usuario_id,)
+        ).fetchone()["total"]
+        if total >= LIMITE_ALERTAS_POR_USUARIO:
+            return None, (
+                f"limite de {LIMITE_ALERTAS_POR_USUARIO} alertas por conta atingido — "
+                "remova um alerta antes de criar outro"
+            )
+
         cursor = conn.execute("""
             INSERT INTO alertas
                 (usuario_id, titulo, federacao, data_nascimento, genero, faixa,
@@ -159,7 +174,7 @@ def criar_alerta(usuario_id, titulo, federacao, data_nascimento, genero, faixa,
                 conn.execute("UPDATE alertas SET ativo = 1 WHERE id = ?", (alerta_id,))
 
     threading.Thread(target=_preparar, daemon=True).start()
-    return alerta_id
+    return alerta_id, None
 
 
 def listar_alertas(usuario_id):

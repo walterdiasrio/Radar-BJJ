@@ -695,7 +695,7 @@ def api_criar_alerta():
         return jsonify({"erro": "peso inválido"}), 400
     peso_kg, peso_sem_kimono = _normalizar_pesos(peso_kg, peso_sem_kimono)
 
-    alerta_id = alertas.criar_alerta(
+    alerta_id, erro = alertas.criar_alerta(
         usuario_id=session["usuario_id"],
         titulo=titulo,
         federacao=federacao_bruta or TODAS,
@@ -707,6 +707,8 @@ def api_criar_alerta():
         nome_atleta=dados.get("nome") or "",
         equipe=dados.get("equipe") or "",
     )
+    if erro:
+        return jsonify({"erro": erro}), 400
     return jsonify({"ok": True, "id": alerta_id})
 
 
