@@ -1,8 +1,16 @@
+import os
 import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date
 
 from . import cbjj, fjjrio, cbjjd, cbjjo, cbjje, fpjj, adcc, idade as idade_mod, peso as peso_mod, datas as datas_mod
+
+# Quantas buscas em paralelo por vez. O Render Starter só tem 512MB de RAM
+# — muitas threads simultâneas fazendo scraping (cada resposta pode ser
+# vários MB, ex: FPJJ chega a ~9MB por evento) já derrubou o serviço por
+# estouro de memória. 8 é bem mais seguro que os 24 originais; dá pra
+# reajustar por variável de ambiente sem precisar mexer no código.
+MAX_WORKERS = int(os.environ.get("BUSCA_MAX_WORKERS", 8))
 
 FEDERACOES = {
     "cbjj": {"label": "CBJJ", "module": cbjj},
@@ -253,7 +261,7 @@ def buscar_atletas_agregado(federacao, evento_id, filtros):
             tarefas.append((fed, evento, filtros_fed))
 
     resultados = []
-    with ThreadPoolExecutor(max_workers=24) as executor:
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         futuros = {
             executor.submit(buscar_atletas, fed, evento["id"], filtros_fed): (fed, evento, filtros_fed)
             for fed, evento, filtros_fed in tarefas
@@ -341,7 +349,7 @@ def listar_competicoes(federacao):
             tarefas.append((fed, evento))
 
     resultado = []
-    with ThreadPoolExecutor(max_workers=24) as executor:
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         futuros = {
             executor.submit(_status_inscricao, fed, FEDERACOES[fed]["module"], evento): (fed, evento)
             for fed, evento in tarefas
