@@ -46,7 +46,7 @@ header {
 }
 
 .menu-lateral a {
-  color: #b7cbdc;
+  color: #eaf2f9;
   text-decoration: none;
   padding: 13px 22px;
   font-weight: 600;
@@ -54,8 +54,8 @@ header {
   border-left: 3px solid transparent;
 }
 
-.menu-lateral a:hover { color: white; background: rgba(255, 255, 255, 0.06); }
-.menu-lateral a.ativo { color: white; border-left-color: #7fd4ff; background: rgba(255, 255, 255, 0.08); }
+.menu-lateral a:hover { color: white; background: rgba(255, 255, 255, 0.1); }
+.menu-lateral a.ativo { color: white; border-left-color: #7fd4ff; background: rgba(255, 255, 255, 0.12); }
 
 .nav-usuario {
   margin-top: auto;
@@ -66,7 +66,7 @@ header {
 }
 
 .nav-usuario a {
-  color: #b7cbdc;
+  color: #eaf2f9;
   text-decoration: none;
   padding: 10px 22px;
   font-weight: 600;
@@ -88,15 +88,37 @@ header {
   .menu-lateral {
     width: 100%;
     flex-direction: row;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 0;
     min-height: 0;
+    padding: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
   }
+  .menu-lateral::-webkit-scrollbar { display: none; }
+  .menu-lateral a {
+    flex-shrink: 0;
+    white-space: nowrap;
+    padding: 14px 16px;
+    border-left: none;
+    border-bottom: 3px solid transparent;
+  }
+  .menu-lateral a.ativo { border-left-color: transparent; border-bottom-color: #7fd4ff; }
   .nav-usuario {
     margin-top: 0;
     flex-direction: row;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+    padding-top: 0;
     border-top: none;
     border-left: 1px solid rgba(255, 255, 255, 0.12);
+  }
+  .nav-usuario .nav-email {
+    display: flex;
+    align-items: center;
+    padding: 10px 14px;
   }
 }
 
