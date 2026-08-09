@@ -22,8 +22,8 @@ header {
 }
 
 .banner {
-  width: 90%;
-  max-width: 1260px;
+  width: 55%;
+  max-width: 700px;
   height: auto;
   display: inline-block;
 }
