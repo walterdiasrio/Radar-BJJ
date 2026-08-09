@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Radar BJJ — Fale Conosco</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <img src="img/banner.png" alt="Radar BJJ" class="banner">
+</header>
+
+<div class="layout">
+  <nav class="menu-lateral">
+    <a href="/">Home</a>
+    <a href="/buscador">Radar de Atletas</a>
+    <a href="/competicoes">Competições</a>
+    <a href="/noticias">BJJ News</a>
+    <a href="/alertas">Meus Alertas</a>
+    <a href="/carreira">Minha Carreira</a>
+    <a href="/assinatura">Minha Assinatura</a>
+    <a href="/fale-conosco" class="ativo">Fale Conosco</a>
+    <a href="/importar-adcc" id="nav-importar-adcc" style="display:none">Importar ADCC</a>
+    <a href="/gerenciar-noticias" id="nav-gerenciar-noticias" style="display:none">Gerenciar Notícias</a>
+    <a href="/gerenciar-mensagens" id="nav-gerenciar-mensagens" style="display:none">Mensagens</a>
+    <div id="nav-usuario" class="nav-usuario"></div>
+  </nav>
+
+<main>
+  <h2 style="color: var(--azul); margin-bottom: 4px;">Fale Conosco</h2>
+  <p style="color: #7c8894; font-size: 0.9rem; margin-top: 0;">
+    Dúvida, sugestão ou problema? Manda pra gente.
+  </p>
+
+  <div class="form-auth" style="max-width: 480px;">
+    <form id="form-contato">
+      <div class="campo">
+        <label for="c_nome">Nome</label>
+        <input type="text" id="c_nome" required placeholder="Seu nome">
+      </div>
+      <div class="campo">
+        <label for="c_email">E-mail</label>
+        <input type="email" id="c_email" required placeholder="seu@email.com">
+      </div>
+      <div class="campo">
+        <label for="c_assunto">Assunto</label>
+        <select id="c_assunto" required>
+          <option value="">Selecione...</option>
+          <option value="duvida">Dúvida</option>
+          <option value="sugestao">Sugestão</option>
+          <option value="problema_tecnico">Problema técnico</option>
+          <option value="assinatura">Assinatura/Cobrança</option>
+          <option value="parceria">Parceria/Patrocínio</option>
+          <option value="outro">Outro</option>
+        </select>
+      </div>
+      <div class="campo">
+        <label for="c_mensagem">Mensagem</label>
+        <textarea id="c_mensagem" rows="6" required placeholder="Escreva sua mensagem..."></textarea>
+      </div>
+      <button type="submit">Enviar mensagem</button>
+    </form>
+    <div id="status" class="status-importacao"></div>
+  </div>
+</main>
+</div>
+
+<script src="auth-nav.js"></script>
+<script src="fale-conosco.js"></script>
+</body>
+</html>

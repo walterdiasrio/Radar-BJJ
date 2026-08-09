@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Radar BJJ — BJJ News</title>
+<title>Radar BJJ — Mensagens</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -16,25 +16,28 @@
     <a href="/">Home</a>
     <a href="/buscador">Radar de Atletas</a>
     <a href="/competicoes">Competições</a>
-    <a href="/noticias" class="ativo">BJJ News</a>
+    <a href="/noticias">BJJ News</a>
     <a href="/alertas">Meus Alertas</a>
     <a href="/carreira">Minha Carreira</a>
     <a href="/assinatura">Minha Assinatura</a>
     <a href="/fale-conosco">Fale Conosco</a>
     <a href="/importar-adcc" id="nav-importar-adcc" style="display:none">Importar ADCC</a>
     <a href="/gerenciar-noticias" id="nav-gerenciar-noticias" style="display:none">Gerenciar Notícias</a>
-    <a href="/gerenciar-mensagens" id="nav-gerenciar-mensagens" style="display:none">Mensagens</a>
+    <a href="/gerenciar-mensagens" id="nav-gerenciar-mensagens" class="ativo" style="display:none">Mensagens</a>
     <div id="nav-usuario" class="nav-usuario"></div>
   </nav>
 
 <main>
-  <div id="destaques" class="destaques"></div>
-  <div id="status"></div>
-  </main>
+  <h2 style="color: var(--azul); margin-bottom: 4px;">Mensagens de contato</h2>
+  <p style="color: #7c8894; font-size: 0.9rem; margin-top: 0;">
+    Mensagens enviadas pelo Fale Conosco. As não lidas aparecem primeiro.
+  </p>
+  <div id="status" class="status-importacao"></div>
+  <div id="lista-mensagens"></div>
+</main>
 </div>
 
 <script src="auth-nav.js"></script>
-<script src="noticias-modal.js"></script>
-<script src="noticias-publico.js"></script>
+<script src="gerenciar-mensagens.js"></script>
 </body>
 </html>

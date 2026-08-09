@@ -6,6 +6,7 @@ alertas.db
 noticias.db
 assinaturas.db
 carreira.db
+contato.db
 dados_adcc/
 noticias_imagens/
 .DS_Store

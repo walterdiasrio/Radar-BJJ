@@ -12,6 +12,7 @@ from flask import Flask, jsonify, redirect, request, send_from_directory, sessio
 import alertas
 import auth
 import carreira
+import contato
 import noticias
 import pagamentos
 from connectors import FEDERACOES, TODAS, listar_eventos, buscar_atletas_agregado, listar_competicoes
@@ -41,6 +42,7 @@ alertas.init_db()
 noticias.init_db()
 pagamentos.init_db()
 carreira.init_db()
+contato.init_db()
 noticias.remover_noticias_expiradas()  # limpa logo na subida, não só no próximo ciclo
 
 
@@ -312,6 +314,56 @@ def pagina_noticias():
 @admin_necessario
 def pagina_gerenciar_noticias():
     return send_from_directory("static", "gerenciar-noticias.html")
+
+
+@app.get("/fale-conosco")
+def pagina_fale_conosco():
+    # Pública — aberta a todo mundo, logado ou não.
+    return send_from_directory("static", "fale-conosco.html")
+
+
+@app.post("/api/contato")
+def api_criar_mensagem_contato():
+    dados = request.get_json(silent=True) or {}
+    usuario_id = session.get("usuario_id")
+    mensagem_id, erro = contato.criar_mensagem(
+        dados.get("nome"), dados.get("email"), dados.get("assunto"), dados.get("mensagem"),
+        usuario_id=usuario_id,
+    )
+    if erro:
+        return jsonify({"erro": erro}), 400
+    return jsonify({"ok": True, "id": mensagem_id})
+
+
+@app.get("/gerenciar-mensagens")
+@admin_necessario
+def pagina_gerenciar_mensagens():
+    return send_from_directory("static", "gerenciar-mensagens.html")
+
+
+@app.get("/api/contato")
+@api_admin_necessario
+def api_listar_mensagens_contato():
+    return jsonify(contato.listar_mensagens())
+
+
+@app.post("/api/contato/<int:mensagem_id>/lida")
+@api_admin_necessario
+def api_marcar_mensagem_lida(mensagem_id):
+    dados = request.get_json(silent=True) or {}
+    ok = contato.marcar_lida(mensagem_id, dados.get("lida", True))
+    if not ok:
+        return jsonify({"erro": "mensagem não encontrada"}), 404
+    return jsonify({"ok": True})
+
+
+@app.delete("/api/contato/<int:mensagem_id>")
+@api_admin_necessario
+def api_remover_mensagem_contato(mensagem_id):
+    ok = contato.remover_mensagem(mensagem_id)
+    if not ok:
+        return jsonify({"erro": "mensagem não encontrada"}), 404
+    return jsonify({"ok": True})
 
 
 @app.get("/importar-adcc")
