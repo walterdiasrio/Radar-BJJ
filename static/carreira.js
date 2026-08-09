@@ -7,6 +7,7 @@ document.querySelectorAll(".tab-carreira-btn").forEach(btn => {
     document.getElementById(`tab-${btn.dataset.tab}`).classList.add("ativo");
     if (btn.dataset.tab === "historico") carregarHistorico();
     if (btn.dataset.tab === "estatisticas") carregarEstatisticas();
+    if (btn.dataset.tab === "compartilhar") gerarImagemStory();
   });
 });
 
@@ -311,6 +312,182 @@ function desenharGrafico(pontos) {
     <text x="${PAD - 6}" y="${PAD + 4}" font-size="11" fill="#888" text-anchor="end">${maxY}</text>
   `;
 }
+
+// ---------- Compartilhar (imagem pro Stories) ----------
+const CORES_FAIXA = {
+  "branca": "#f4f6f8", "cinza-branca": "#c7ccd1", "cinza": "#9aa1a8", "cinza-preta": "#5c636b",
+  "amarela-branca": "#fff6c9", "amarela": "#f4d90c", "amarela-preta": "#c9b400",
+  "laranja-branca": "#ffd9b3", "laranja": "#f28c28", "laranja-preta": "#b8611b",
+  "verde-branca": "#c9f2d0", "verde": "#2e9e44", "verde-preta": "#1d6b2c",
+  "azul": "#1e6091", "roxa": "#5b2e91", "marrom": "#5a3b23", "preta": "#111418",
+};
+
+function corDaFaixa(faixa) {
+  return CORES_FAIXA[(faixa || "").toLowerCase()] || "#1e6091";
+}
+
+let ultimoBlobStory = null;
+
+async function gerarImagemStory() {
+  const canvas = document.getElementById("canvas-story");
+  const ctx = canvas.getContext("2d");
+  const W = canvas.width, H = canvas.height;
+
+  mostrarStatus("status-story", "Gerando imagem...");
+
+  let perfil = {};
+  let stats = {};
+  try {
+    const [respPerfil, respStats] = await Promise.all([
+      fetchAutenticado("/api/carreira/perfil"),
+      fetchAutenticado("/api/carreira/estatisticas"),
+    ]);
+    perfil = await respPerfil.json();
+    stats = await respStats.json();
+  } catch (err) {
+    mostrarStatus("status-story", `Erro ao carregar dados: ${err.message}`, true);
+    return;
+  }
+
+  // Fundo em gradiente
+  const grad = ctx.createLinearGradient(0, 0, W, H);
+  grad.addColorStop(0, "#0b3d63");
+  grad.addColorStop(1, "#060a12");
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  // Marca d'água / wordmark
+  ctx.textAlign = "center";
+  ctx.font = "bold 64px -apple-system, Arial, sans-serif";
+  ctx.fillStyle = "#ffffff";
+  ctx.fillText("RADAR", W / 2 - 90, 180);
+  ctx.fillStyle = "#7fd4ff";
+  ctx.fillText("BJJ", W / 2 + 130, 180);
+
+  ctx.font = "26px -apple-system, Arial, sans-serif";
+  ctx.fillStyle = "#b7cbdc";
+  ctx.fillText("RESUMO DE CARREIRA", W / 2, 230);
+
+  // Nome do atleta
+  ctx.font = "bold 76px -apple-system, Arial, sans-serif";
+  ctx.fillStyle = "#ffffff";
+  const nome = perfil.nome || "Atleta Radar BJJ";
+  ctx.fillText(nome, W / 2, 380);
+
+  // Faixa (badge)
+  const faixa = perfil.faixa || "Branca";
+  const grau = Number(perfil.grau || 0);
+  const faixaTexto = `Faixa ${faixa}${grau > 0 ? " · " + grau + "º grau" : ""}`;
+  ctx.font = "bold 34px -apple-system, Arial, sans-serif";
+  const larguraBadge = ctx.measureText(faixaTexto).width + 70;
+  const xBadge = W / 2 - larguraBadge / 2;
+  const yBadge = 430;
+  ctx.fillStyle = corDaFaixa(faixa);
+  roundRect(ctx, xBadge, yBadge, larguraBadge, 64, 32);
+  ctx.fill();
+  ctx.fillStyle = ["preta", "azul", "roxa", "marrom", "verde", "verde-preta", "cinza-preta", "laranja-preta", "amarela-preta"].includes(faixa.toLowerCase()) ? "#ffffff" : "#1c2733";
+  ctx.fillText(faixaTexto, W / 2, yBadge + 44);
+
+  if (perfil.academia) {
+    ctx.font = "30px -apple-system, Arial, sans-serif";
+    ctx.fillStyle = "#b7cbdc";
+    ctx.fillText(perfil.academia, W / 2, 540);
+  }
+
+  // Grade de estatísticas
+  const statsPrincipais = [
+    { valor: stats.competicoes || 0, label: "Competições" },
+    { valor: stats.vitorias || 0, label: "Vitórias" },
+    { valor: (stats.taxa_vitoria || 0) + "%", label: "Taxa de vitória" },
+    { valor: stats.melhor_sequencia || 0, label: "Melhor sequência" },
+  ];
+
+  const gridTopo = 660;
+  const gridAltura = 260;
+  const colW = W / 2;
+  statsPrincipais.forEach((item, i) => {
+    const col = i % 2;
+    const linha = Math.floor(i / 2);
+    const cx = colW * col + colW / 2;
+    const cy = gridTopo + linha * gridAltura;
+
+    ctx.fillStyle = "rgba(255,255,255,0.06)";
+    roundRect(ctx, cx - colW / 2 + 24, cy - 90, colW - 48, gridAltura - 40, 20);
+    ctx.fill();
+
+    ctx.font = "bold 72px -apple-system, Arial, sans-serif";
+    ctx.fillStyle = "#7fd4ff";
+    ctx.fillText(String(item.valor), cx, cy + 10);
+
+    ctx.font = "26px -apple-system, Arial, sans-serif";
+    ctx.fillStyle = "#b7cbdc";
+    ctx.fillText(item.label, cx, cy + 60);
+  });
+
+  // Medalhas
+  const medalhas = [
+    { valor: stats.ouros || 0, icone: "🥇" },
+    { valor: stats.pratas || 0, icone: "🥈" },
+    { valor: stats.bronzes || 0, icone: "🥉" },
+  ];
+  const yMedalhas = gridTopo + 2 * gridAltura + 40;
+  ctx.font = "48px -apple-system, Arial, sans-serif";
+  const larguraTotal = 340 * medalhas.length;
+  let xMedalha = W / 2 - larguraTotal / 2 + 170;
+  medalhas.forEach(m => {
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText(`${m.icone} ${m.valor}`, xMedalha, yMedalhas);
+    xMedalha += 340;
+  });
+
+  // Rodapé
+  ctx.font = "30px -apple-system, Arial, sans-serif";
+  ctx.fillStyle = "#7fd4ff";
+  ctx.fillText("radarbjj.com.br", W / 2, H - 100);
+
+  canvas.toBlob(blob => {
+    ultimoBlobStory = blob;
+    mostrarStatus("status-story", "Imagem pronta! 🥋");
+    const btnCompartilhar = document.getElementById("btn-compartilhar-story");
+    if (navigator.canShare && blob && navigator.canShare({ files: [new File([blob], "story.png", { type: "image/png" })] })) {
+      btnCompartilhar.classList.remove("hidden");
+    } else {
+      btnCompartilhar.classList.add("hidden");
+    }
+  }, "image/png");
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+document.getElementById("btn-baixar-story").addEventListener("click", () => {
+  if (!ultimoBlobStory) return;
+  const url = URL.createObjectURL(ultimoBlobStory);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "radar-bjj-carreira.png";
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById("btn-compartilhar-story").addEventListener("click", async () => {
+  if (!ultimoBlobStory) return;
+  try {
+    await navigator.share({
+      files: [new File([ultimoBlobStory], "radar-bjj-carreira.png", { type: "image/png" })],
+      title: "Minha carreira no Radar BJJ",
+    });
+  } catch (err) {
+    // usuário cancelou o compartilhamento — sem problema
+  }
+});
 
 // ---------- Init ----------
 addLutaRow();
