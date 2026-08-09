@@ -14,6 +14,18 @@ services:
         sync: false
       - key: URL_SITE
         value: https://radar-bjj.onrender.com
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_PRICE_ALUNO_MENSAL
+        sync: false
+      - key: STRIPE_PRICE_ALUNO_ANUAL
+        sync: false
+      - key: STRIPE_PRICE_MESTRE_MENSAL
+        sync: false
+      - key: STRIPE_PRICE_MESTRE_ANUAL
+        sync: false
     disk:
       name: radar-bjj-data
       mountPath: /var/data

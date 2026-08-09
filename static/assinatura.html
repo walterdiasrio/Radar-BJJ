@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Radar BJJ — Assinatura</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <img src="img/banner.png" alt="Radar BJJ" class="banner">
+</header>
+
+<div class="layout">
+  <nav class="menu-lateral">
+    <a href="/">Home</a>
+    <a href="/buscador">Buscador de Atletas</a>
+    <a href="/competicoes">Competições</a>
+    <a href="/noticias">BJJ News</a>
+    <a href="/alertas">Meus Alertas</a>
+    <a href="/assinatura" class="ativo">Minha Assinatura</a>
+    <a href="/importar-adcc" id="nav-importar-adcc" style="display:none">Importar ADCC</a>
+    <a href="/gerenciar-noticias" id="nav-gerenciar-noticias" style="display:none">Gerenciar Notícias</a>
+    <div id="nav-usuario" class="nav-usuario"></div>
+  </nav>
+
+<main>
+  <div id="assinatura-ativa" style="display:none"></div>
+
+  <div id="planos-container">
+    <h2 style="color: var(--azul); margin-bottom: 4px;">Escolha seu plano</h2>
+    <p style="color: #7c8894; font-size: 0.9rem; margin-top: 0;">
+      7 dias de teste grátis em qualquer plano. Cancele quando quiser.
+    </p>
+
+    <div class="grade-planos">
+      <div class="plano-card">
+        <h3>Aluno</h3>
+        <p class="plano-desc">Busca de atletas e alertas de competição.</p>
+        <div class="plano-preco">
+          <span class="plano-preco-valor">R$ 9,90</span><span class="plano-preco-periodo">/mês</span>
+        </div>
+        <button type="button" class="btn-assinar" data-plano="aluno" data-periodicidade="mensal">Assinar mensal</button>
+        <div class="plano-anual">
+          <span>ou R$ 99,00/ano</span>
+          <button type="button" class="btn-secundario btn-assinar" data-plano="aluno" data-periodicidade="anual">Assinar anual</button>
+        </div>
+      </div>
+
+      <div class="plano-card plano-destaque">
+        <h3>Mestre</h3>
+        <p class="plano-desc">Tudo do Aluno + busca e alertas por equipe/academia.</p>
+        <div class="plano-preco">
+          <span class="plano-preco-valor">R$ 19,90</span><span class="plano-preco-periodo">/mês</span>
+        </div>
+        <button type="button" class="btn-assinar" data-plano="mestre" data-periodicidade="mensal">Assinar mensal</button>
+        <div class="plano-anual">
+          <span>ou R$ 199,90/ano</span>
+          <button type="button" class="btn-secundario btn-assinar" data-plano="mestre" data-periodicidade="anual">Assinar anual</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="status" class="status-importacao"></div>
+  </div>
+</main>
+</div>
+
+<script src="auth-nav.js"></script>
+<script src="assinatura.js"></script>
+</body>
+</html>

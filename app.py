@@ -12,6 +12,7 @@ from flask import Flask, jsonify, redirect, request, send_from_directory, sessio
 import alertas
 import auth
 import noticias
+import pagamentos
 from connectors import FEDERACOES, TODAS, listar_eventos, buscar_atletas_agregado, listar_competicoes
 from connectors import adcc
 from connectors import idade as idade_mod
@@ -37,6 +38,7 @@ app.secret_key = os.environ.get("SECRET_KEY") or _SECRET_KEY_PATH.read_text().st
 auth.init_db()
 alertas.init_db()
 noticias.init_db()
+pagamentos.init_db()
 noticias.remover_noticias_expiradas()  # limpa logo na subida, não só no próximo ciclo
 
 
@@ -148,6 +150,37 @@ def api_admin_necessario(view):
     return wrapper
 
 
+def _usuario_atual_tem_assinatura():
+    """Admin sempre tem acesso, sem precisar assinar."""
+    return _usuario_atual_eh_admin() or pagamentos.usuario_tem_acesso(session.get("usuario_id"))
+
+
+def assinatura_necessaria(view):
+    """Protege páginas do Buscador/Alertas: sem sessão manda pro login,
+    logado mas sem assinatura ativa (nem em teste grátis) manda pra
+    página de planos."""
+    @wraps(view)
+    def wrapper(*args, **kwargs):
+        if not session.get("usuario_id"):
+            return redirect("/login")
+        if not _usuario_atual_tem_assinatura():
+            return redirect("/assinatura")
+        return view(*args, **kwargs)
+    return wrapper
+
+
+def api_assinatura_necessaria(view):
+    """Protege endpoints de API do Buscador/Alertas."""
+    @wraps(view)
+    def wrapper(*args, **kwargs):
+        if not session.get("usuario_id"):
+            return jsonify({"erro": "faça login para continuar"}), 401
+        if not _usuario_atual_tem_assinatura():
+            return jsonify({"erro": "assinatura necessária", "requer_assinatura": True}), 402
+        return view(*args, **kwargs)
+    return wrapper
+
+
 @app.get("/")
 def home():
     # Pública — página inicial, com o BJJ News em destaque.
@@ -155,7 +188,7 @@ def home():
 
 
 @app.get("/buscador")
-@login_necessario
+@assinatura_necessaria
 def index():
     return send_from_directory("static", "index.html")
 
@@ -334,12 +367,19 @@ def api_sessao():
         session.clear()
         return jsonify({"logado": False})
     eh_admin = usuario["email"] == ADMIN_EMAIL
+    assinatura = pagamentos.obter_assinatura(usuario["id"])
     return jsonify({
         "logado": True,
         "email": usuario["email"],
         "admin": eh_admin,
         "tipo_perfil": usuario["tipo_perfil"],
         "mestre": eh_admin or usuario["tipo_perfil"] == "mestre",
+        "assinatura": {
+            "tem_acesso": eh_admin or pagamentos.usuario_tem_acesso(usuario["id"]),
+            "status": assinatura["status"] if assinatura else None,
+            "plano": assinatura["plano"] if assinatura else None,
+            "periodicidade": assinatura["periodicidade"] if assinatura else None,
+        },
     })
 
 
@@ -377,7 +417,7 @@ def api_federacoes():
 
 
 @app.get("/api/eventos")
-@api_login_necessario
+@api_assinatura_necessaria
 def api_eventos():
     federacao = request.args.get("federacao")
     if federacao not in FEDERACOES:
@@ -437,7 +477,7 @@ def _categoria_completa(federacao, ano_nascimento, peso_kg, genero, data_nascime
 
 
 @app.get("/api/categoria")
-@api_login_necessario
+@api_assinatura_necessaria
 def api_categoria():
     federacao = _parse_federacao(request.args.get("federacao"))
     genero = request.args.get("genero", "")
@@ -480,7 +520,7 @@ def api_categoria():
 
 
 @app.get("/api/atletas")
-@api_login_necessario
+@api_assinatura_necessaria
 def api_atletas():
     federacao = _parse_federacao(request.args.get("federacao"))
     evento_id = request.args.get("evento")
@@ -558,19 +598,19 @@ def api_competicoes():
 
 
 @app.get("/alertas")
-@login_necessario
+@assinatura_necessaria
 def pagina_alertas():
     return send_from_directory("static", "alertas.html")
 
 
 @app.get("/api/alertas")
-@api_login_necessario
+@api_assinatura_necessaria
 def api_listar_alertas():
     return jsonify(alertas.listar_alertas(session["usuario_id"]))
 
 
 @app.post("/api/alertas")
-@api_login_necessario
+@api_assinatura_necessaria
 def api_criar_alerta():
     dados = request.get_json(silent=True) or {}
     titulo = (dados.get("titulo") or "").strip()
@@ -617,11 +657,61 @@ def api_criar_alerta():
 
 
 @app.delete("/api/alertas/<int:alerta_id>")
-@api_login_necessario
+@api_assinatura_necessaria
 def api_remover_alerta(alerta_id):
     removido = alertas.remover_alerta(session["usuario_id"], alerta_id)
     if not removido:
         return jsonify({"erro": "alerta não encontrado"}), 404
+    return jsonify({"ok": True})
+
+
+@app.get("/assinatura")
+@login_necessario
+def pagina_assinatura():
+    return send_from_directory("static", "assinatura.html")
+
+
+@app.get("/assinatura/sucesso")
+@login_necessario
+def pagina_assinatura_sucesso():
+    return send_from_directory("static", "assinatura-sucesso.html")
+
+
+@app.post("/api/checkout")
+@api_login_necessario
+def api_checkout():
+    dados = request.get_json(silent=True) or {}
+    plano = dados.get("plano", "")
+    periodicidade = dados.get("periodicidade", "")
+
+    usuario = auth.buscar_por_id(session["usuario_id"])
+    url, erro = pagamentos.criar_sessao_checkout(usuario, plano, periodicidade)
+    if erro:
+        return jsonify({"erro": erro}), 400
+    return jsonify({"ok": True, "url": url})
+
+
+@app.post("/api/portal")
+@api_login_necessario
+def api_portal():
+    usuario = auth.buscar_por_id(session["usuario_id"])
+    url, erro = pagamentos.criar_sessao_portal(usuario)
+    if erro:
+        return jsonify({"erro": erro}), 400
+    return jsonify({"ok": True, "url": url})
+
+
+@app.post("/webhook/stripe")
+def webhook_stripe():
+    payload = request.get_data()
+    assinatura_header = request.headers.get("Stripe-Signature", "")
+    try:
+        pagamentos.processar_evento_webhook(payload, assinatura_header)
+    except ValueError:
+        return "assinatura inválida", 400
+    except Exception:
+        traceback.print_exc()
+        return "erro ao processar evento", 500
     return jsonify({"ok": True})
 
 

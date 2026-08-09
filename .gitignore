@@ -4,6 +4,7 @@ __pycache__/
 usuarios.db
 alertas.db
 noticias.db
+assinaturas.db
 dados_adcc/
 noticias_imagens/
 .DS_Store

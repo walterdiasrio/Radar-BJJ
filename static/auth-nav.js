@@ -53,5 +53,9 @@ async function fetchAutenticado(url, opts) {
     window.location.href = "/login";
     throw new Error("sessão expirada, redirecionando para login");
   }
+  if (resp.status === 402) {
+    window.location.href = "/assinatura";
+    throw new Error("assinatura necessária, redirecionando");
+  }
   return resp;
 }

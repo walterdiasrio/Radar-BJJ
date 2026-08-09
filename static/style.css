@@ -493,12 +493,70 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
 
 .noticia-modal-fechar:hover { background: rgba(0, 0, 0, 0.75); }
 
+.grade-planos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 18px;
+  max-width: 700px;
+}
+
+.plano-card {
+  background: white;
+  border: 1px solid var(--borda);
+  border-radius: 10px;
+  padding: 20px;
+}
+
+.plano-card h3 {
+  margin: 0 0 6px;
+  color: var(--azul);
+}
+
+.plano-destaque {
+  border-color: var(--azul-claro);
+  box-shadow: 0 0 0 1px var(--azul-claro);
+}
+
+.plano-desc {
+  font-size: 0.85rem;
+  color: #7c8894;
+  margin: 0 0 14px;
+  min-height: 2.4em;
+}
+
+.plano-preco {
+  margin-bottom: 14px;
+}
+
+.plano-preco-valor {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--texto);
+}
+
+.plano-preco-periodo {
+  font-size: 0.9rem;
+  color: #7c8894;
+}
+
+.plano-anual {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+  font-size: 0.85rem;
+  color: #7c8894;
+}
+
+.plano-anual button { margin-top: 0; }
+
 @media (prefers-color-scheme: dark) {
   .cartao-alerta { background: #1b2127; }
   .destaque-card { background: #1b2127; }
   .noticia-item { background: #1b2127; }
   .noticia-modal { background: #1b2127; }
   .noticia-modal-texto { color: var(--texto); }
+  .plano-card { background: #1b2127; }
 }
 
 th {
