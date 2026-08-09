@@ -16,11 +16,25 @@ function mostrarStatus(texto, ehErro = false) {
   elStatus.className = "status-importacao" + (ehErro ? " erro" : "");
 }
 
+function filtrarPlanoPorPerfil(tipoPerfil) {
+  const elAtleta = document.getElementById("plano-card-atleta");
+  const elMestre = document.getElementById("plano-card-mestre");
+  if (tipoPerfil === "mestre") {
+    if (elAtleta) elAtleta.style.display = "none";
+  } else {
+    if (elMestre) elMestre.style.display = "none";
+  }
+}
+
 async function carregarAssinaturaAtual() {
   try {
     const resp = await fetch("/api/sessao");
     const dados = await resp.json();
-    if (!dados.logado || !dados.assinatura || !dados.assinatura.status) return;
+    if (!dados.logado) return;
+
+    filtrarPlanoPorPerfil(dados.tipo_perfil);
+
+    if (!dados.assinatura || !dados.assinatura.status) return;
 
     const a = dados.assinatura;
     elAssinaturaAtiva.style.display = "";
