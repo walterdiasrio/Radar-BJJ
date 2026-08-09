@@ -57,6 +57,24 @@ header {
 .menu-lateral a:hover { background: rgba(255, 255, 255, 0.1); }
 .menu-lateral a.ativo { border-left-color: #7fd4ff; background: rgba(255, 255, 255, 0.12); }
 
+.nav-admin-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.nav-admin-titulo {
+  padding: 4px 22px 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7fd4ff;
+}
+
 .nav-usuario {
   margin-top: auto;
   display: flex;
@@ -106,6 +124,20 @@ header {
     border-bottom: 3px solid transparent;
   }
   .menu-lateral a.ativo { border-left-color: transparent; border-bottom-color: #7fd4ff; }
+  .nav-admin-grupo {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+    border-left: 1px solid rgba(255, 255, 255, 0.12);
+  }
+  .nav-admin-titulo {
+    display: flex;
+    align-items: center;
+    padding: 0 10px 0 14px;
+  }
   .nav-usuario {
     margin-top: 0;
     flex-direction: row;

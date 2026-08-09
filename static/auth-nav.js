@@ -3,11 +3,7 @@ async function carregarSessaoNoMenu() {
   const el = document.getElementById("nav-usuario");
   if (!el) return;
 
-  const elImportarAdcc = document.getElementById("nav-importar-adcc");
-  const elImportarAjp = document.getElementById("nav-importar-ajp");
-  const elGerenciarNoticias = document.getElementById("nav-gerenciar-noticias");
-  const elGerenciarMensagens = document.getElementById("nav-gerenciar-mensagens");
-  const elGerenciarUsuarios = document.getElementById("nav-gerenciar-usuarios");
+  const elNavAdmin = document.getElementById("nav-admin");
   const elMeusAlunos = document.getElementById("nav-meus-alunos");
 
   const aplicarSessao = (dados) => {
@@ -30,30 +26,18 @@ async function carregarSessaoNoMenu() {
         await fetch("/api/sair", { method: "POST" });
         window.location.reload();
       });
-      if (elImportarAdcc) elImportarAdcc.style.display = dados.admin ? "" : "none";
-      if (elImportarAjp) elImportarAjp.style.display = dados.admin ? "" : "none";
-      if (elGerenciarNoticias) elGerenciarNoticias.style.display = dados.admin ? "" : "none";
-      if (elGerenciarMensagens) elGerenciarMensagens.style.display = dados.admin ? "" : "none";
-      if (elGerenciarUsuarios) elGerenciarUsuarios.style.display = dados.admin ? "" : "none";
+      if (elNavAdmin) elNavAdmin.style.display = dados.admin ? "" : "none";
       if (elMeusAlunos) elMeusAlunos.style.display = dados.mestre ? "" : "none";
       aplicarSessao({ logado: true, mestre: !!dados.mestre, admin: !!dados.admin, email: dados.email });
     } else {
       el.innerHTML = `<a href="/login">Entrar</a><a href="/cadastro">Cadastrar</a>`;
-      if (elImportarAdcc) elImportarAdcc.style.display = "none";
-      if (elImportarAjp) elImportarAjp.style.display = "none";
-      if (elGerenciarNoticias) elGerenciarNoticias.style.display = "none";
-      if (elGerenciarMensagens) elGerenciarMensagens.style.display = "none";
-      if (elGerenciarUsuarios) elGerenciarUsuarios.style.display = "none";
+      if (elNavAdmin) elNavAdmin.style.display = "none";
       if (elMeusAlunos) elMeusAlunos.style.display = "none";
       aplicarSessao({ logado: false, mestre: false, admin: false });
     }
   } catch (err) {
     el.innerHTML = `<a href="/login">Entrar</a><a href="/cadastro">Cadastrar</a>`;
-    if (elImportarAdcc) elImportarAdcc.style.display = "none";
-    if (elImportarAjp) elImportarAjp.style.display = "none";
-    if (elGerenciarNoticias) elGerenciarNoticias.style.display = "none";
-    if (elGerenciarMensagens) elGerenciarMensagens.style.display = "none";
-    if (elGerenciarUsuarios) elGerenciarUsuarios.style.display = "none";
+    if (elNavAdmin) elNavAdmin.style.display = "none";
     if (elMeusAlunos) elMeusAlunos.style.display = "none";
     aplicarSessao({ logado: false, mestre: false, admin: false });
   }
