@@ -9,14 +9,16 @@
 <body>
 <header>
   <img src="img/banner.png" alt="Radar BJJ" class="banner">
-  <nav class="menu-principal">
+</header>
+
+<div class="layout">
+  <nav class="menu-lateral">
     <a href="/">Buscador de Atletas</a>
     <a href="/competicoes">Competições</a>
     <a href="/alertas">Meus Alertas</a>
     <a href="/importar-adcc" class="ativo">Importar ADCC</a>
-    <span id="nav-usuario" class="nav-usuario"></span>
+    <div id="nav-usuario" class="nav-usuario"></div>
   </nav>
-</header>
 
 <main>
   <div class="form-auth" style="max-width: 560px;">
@@ -46,7 +48,8 @@
   </div>
 
   <div id="eventos-importados" style="max-width: 560px; margin: 32px auto 0;"></div>
-</main>
+  </main>
+</div>
 
 <script src="auth-nav.js"></script>
 <script src="importar-adcc.js"></script>

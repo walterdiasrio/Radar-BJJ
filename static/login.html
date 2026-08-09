@@ -9,12 +9,14 @@
 <body>
 <header>
   <img src="img/banner.png" alt="Radar BJJ" class="banner">
-  <nav class="menu-principal">
+</header>
+
+<div class="layout">
+  <nav class="menu-lateral">
     <a href="/">Buscador de Atletas</a>
     <a href="/competicoes">Competições</a>
-    <span id="nav-usuario" class="nav-usuario"></span>
+    <div id="nav-usuario" class="nav-usuario"></div>
   </nav>
-</header>
 
 <main>
   <form id="form-login" class="form-auth">
@@ -33,7 +35,8 @@
   </form>
 
   <div id="status"></div>
-</main>
+  </main>
+</div>
 
 <script src="auth-nav.js"></script>
 <script src="login.js"></script>

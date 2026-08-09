@@ -9,14 +9,16 @@
 <body>
 <header>
   <img src="img/banner.png" alt="Radar BJJ — Busque atletas, encontre resultados. CBJJ, FJJRio, CBJJD, CBJJO, CBJJE, FPJJ" class="banner">
-  <nav class="menu-principal">
+</header>
+
+<div class="layout">
+  <nav class="menu-lateral">
     <a href="/" class="ativo">Buscador de Atletas</a>
     <a href="/competicoes">Competições</a>
     <a href="/alertas">Meus Alertas</a>
     <a href="/importar-adcc" id="nav-importar-adcc" style="display:none">Importar ADCC</a>
-    <span id="nav-usuario" class="nav-usuario"></span>
+    <div id="nav-usuario" class="nav-usuario"></div>
   </nav>
-</header>
 
 <main>
   <form id="form-busca">
@@ -89,7 +91,8 @@
   <div id="status-alerta"></div>
 
   <div id="resultados"></div>
-</main>
+  </main>
+</div>
 
 <script src="auth-nav.js"></script>
 <script src="app.js"></script>

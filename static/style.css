@@ -28,38 +28,47 @@ header {
   display: inline-block;
 }
 
-.menu-principal {
+.layout {
+  display: flex;
+  align-items: flex-start;
+}
+
+.menu-lateral {
   line-height: normal;
   display: flex;
-  justify-content: center;
-  gap: 4px;
+  flex-direction: column;
+  gap: 2px;
   background: #0b3d63;
-  padding: 0 12px;
+  width: 220px;
+  flex-shrink: 0;
+  padding: 16px 0;
+  min-height: calc(100vh - 160px);
 }
 
-.menu-principal a {
+.menu-lateral a {
   color: #b7cbdc;
   text-decoration: none;
-  padding: 14px 18px;
+  padding: 13px 22px;
   font-weight: 600;
   font-size: 0.9rem;
-  border-bottom: 3px solid transparent;
+  border-left: 3px solid transparent;
 }
 
-.menu-principal a:hover { color: white; }
-.menu-principal a.ativo { color: white; border-bottom-color: #7fd4ff; }
+.menu-lateral a:hover { color: white; background: rgba(255, 255, 255, 0.06); }
+.menu-lateral a.ativo { color: white; border-left-color: #7fd4ff; background: rgba(255, 255, 255, 0.08); }
 
 .nav-usuario {
-  margin-left: auto;
+  margin-top: auto;
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .nav-usuario a {
   color: #b7cbdc;
   text-decoration: none;
-  padding: 14px 10px;
+  padding: 10px 22px;
   font-weight: 600;
   font-size: 0.85rem;
 }
@@ -68,8 +77,27 @@ header {
 
 .nav-usuario .nav-email {
   color: #7fd4ff;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 600;
+  padding: 4px 22px;
+  word-break: break-all;
+}
+
+@media (max-width: 700px) {
+  .layout { flex-direction: column; }
+  .menu-lateral {
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+    min-height: 0;
+  }
+  .nav-usuario {
+    margin-top: 0;
+    flex-direction: row;
+    flex-wrap: wrap;
+    border-top: none;
+    border-left: 1px solid rgba(255, 255, 255, 0.12);
+  }
 }
 
 .form-auth {
@@ -104,6 +132,8 @@ header {
 }
 
 main {
+  flex: 1;
+  min-width: 0;
   max-width: 960px;
   margin: 0 auto;
   padding: 24px 16px 60px;
