@@ -151,8 +151,9 @@ def index():
 
 
 @app.get("/competicoes")
-@login_necessario
 def competicoes():
+    # Pública — Competições e Notícias são abertas a todos; só o Buscador
+    # de Atletas e os Alertas exigem login.
     return send_from_directory("static", "competicoes.html")
 
 
@@ -349,7 +350,6 @@ def api_sair():
 
 
 @app.get("/api/federacoes")
-@api_login_necessario
 def api_federacoes():
     return jsonify([
         {"id": fid, "label": info["label"]} for fid, info in FEDERACOES.items()
@@ -523,7 +523,6 @@ def api_atletas():
 
 
 @app.get("/api/competicoes")
-@api_login_necessario
 def api_competicoes():
     federacao = _parse_federacao(request.args.get("federacao", TODAS))
     if federacao is None:
