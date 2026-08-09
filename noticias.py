@@ -29,17 +29,22 @@ def init_db():
             CREATE TABLE IF NOT EXISTS noticias (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 manchete TEXT NOT NULL,
+                texto TEXT NOT NULL DEFAULT '',
                 imagem_arquivo TEXT NOT NULL,
                 criado_em TEXT NOT NULL DEFAULT (datetime('now'))
             )
         """)
+        # Migração pra bancos criados antes do texto completo existir.
+        colunas = {linha["name"] for linha in conn.execute("PRAGMA table_info(noticias)")}
+        if "texto" not in colunas:
+            conn.execute("ALTER TABLE noticias ADD COLUMN texto TEXT NOT NULL DEFAULT ''")
 
 
 def _extensao(nome_arquivo):
     return (nome_arquivo or "").rsplit(".", 1)[-1].lower() if "." in (nome_arquivo or "") else ""
 
 
-def criar_noticia(manchete, arquivo_imagem, nome_original):
+def criar_noticia(manchete, texto, arquivo_imagem, nome_original):
     """arquivo_imagem é o FileStorage do Flask (request.files[...]).
     Retorna (noticia_id, erro)."""
     manchete = (manchete or "").strip()
@@ -56,8 +61,8 @@ def criar_noticia(manchete, arquivo_imagem, nome_original):
 
     with _conn() as conn:
         cursor = conn.execute(
-            "INSERT INTO noticias (manchete, imagem_arquivo) VALUES (?, ?)",
-            (manchete, nome_arquivo),
+            "INSERT INTO noticias (manchete, texto, imagem_arquivo) VALUES (?, ?, ?)",
+            (manchete, (texto or "").strip(), nome_arquivo),
         )
         return cursor.lastrowid, None
 

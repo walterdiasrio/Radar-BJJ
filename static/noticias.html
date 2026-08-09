@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Radar BJJ — Meus Alertas</title>
+<title>Radar BJJ — BJJ News</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -15,27 +15,21 @@
   <nav class="menu-lateral">
     <a href="/">Buscador de Atletas</a>
     <a href="/competicoes">Competições</a>
-    <a href="/noticias">BJJ News</a>
-    <a href="/alertas" class="ativo">Meus Alertas</a>
+    <a href="/noticias" class="ativo">BJJ News</a>
+    <a href="/alertas">Meus Alertas</a>
     <a href="/importar-adcc" id="nav-importar-adcc" style="display:none">Importar ADCC</a>
     <a href="/gerenciar-noticias" id="nav-gerenciar-noticias" style="display:none">Gerenciar Notícias</a>
     <div id="nav-usuario" class="nav-usuario"></div>
   </nav>
 
 <main>
-  <p style="color: var(--azul-claro); font-size: 0.85rem;">
-    Você recebe um e-mail sempre que aparecer um atleta novo batendo com os filtros de um alerta, em
-    qualquer competição futura. Pra criar um, vá até o <a href="/">Buscador de Atletas</a>, preencha os
-    filtros desejados e clique em "Criar alerta com esses filtros".
-  </p>
-
+  <div id="destaques" class="destaques"></div>
   <div id="status"></div>
-
-  <div id="lista-alertas"></div>
   </main>
 </div>
 
 <script src="auth-nav.js"></script>
-<script src="alertas.js"></script>
+<script src="noticias-modal.js"></script>
+<script src="noticias-publico.js"></script>
 </body>
 </html>

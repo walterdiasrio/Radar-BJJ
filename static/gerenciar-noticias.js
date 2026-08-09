@@ -47,11 +47,13 @@ async function remover(id) {
 elForm.addEventListener("submit", async (ev) => {
   ev.preventDefault();
   const manchete = document.getElementById("manchete").value;
+  const texto = document.getElementById("texto").value;
   const arquivo = document.getElementById("imagem").files[0];
   if (!arquivo) return;
 
   const formData = new FormData();
   formData.append("manchete", manchete);
+  formData.append("texto", texto);
   formData.append("imagem", arquivo);
 
   mostrarStatus("Publicando...");

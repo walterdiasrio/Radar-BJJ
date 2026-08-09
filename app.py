@@ -219,6 +219,7 @@ def api_listar_noticias():
         {
             "id": n["id"],
             "manchete": n["manchete"],
+            "texto": n["texto"],
             "imagem_url": f"/noticias-imagens/{n['imagem_arquivo']}",
             "criado_em": n["criado_em"],
         }
@@ -235,10 +236,11 @@ def servir_imagem_noticia(nome_arquivo):
 @api_admin_necessario
 def api_criar_noticia():
     manchete = request.form.get("manchete", "")
+    texto = request.form.get("texto", "")
     arquivo = request.files.get("imagem")
     if not arquivo or not arquivo.filename:
         return jsonify({"erro": "selecione uma imagem"}), 400
-    noticia_id, erro = noticias.criar_noticia(manchete, arquivo, arquivo.filename)
+    noticia_id, erro = noticias.criar_noticia(manchete, texto, arquivo, arquivo.filename)
     if erro:
         return jsonify({"erro": erro}), 400
     return jsonify({"ok": True, "id": noticia_id})
@@ -251,6 +253,12 @@ def api_remover_noticia(noticia_id):
     if not removida:
         return jsonify({"erro": "notícia não encontrada"}), 404
     return jsonify({"ok": True})
+
+
+@app.get("/noticias")
+def pagina_noticias():
+    # Pública — igual Competições, aberta a todo mundo.
+    return send_from_directory("static", "noticias.html")
 
 
 @app.get("/gerenciar-noticias")

@@ -159,11 +159,13 @@ main {
   color: var(--azul);
 }
 
-select, input[type="text"], input[type="number"] {
+select, input[type="text"], input[type="number"], textarea {
   padding: 9px 10px;
   border: 1px solid var(--borda);
   border-radius: 6px;
   font-size: 0.95rem;
+  font-family: inherit;
+  width: 100%;
 }
 
 .opcoes-federacao {
@@ -421,10 +423,82 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
   font-weight: 600;
 }
 
+.destaque-card, .noticia-card {
+  cursor: pointer;
+}
+
+.noticia-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(6, 10, 18, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 1000;
+}
+
+.noticia-modal-overlay.escondido { display: none; }
+
+.noticia-modal {
+  background: white;
+  border-radius: 10px;
+  overflow: hidden;
+  max-width: 700px;
+  width: 100%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.noticia-modal img {
+  width: 100%;
+  max-height: 50vh;
+  object-fit: contain;
+  background: #060a12;
+  flex-shrink: 0;
+}
+
+.noticia-modal-manchete {
+  padding: 18px 22px 4px;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--azul);
+}
+
+.noticia-modal-texto {
+  padding: 10px 22px 22px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  line-height: 1.5;
+  color: var(--texto);
+}
+
+.noticia-modal-fechar {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(0, 0, 0, 0.55);
+  color: white;
+  border: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1.3rem;
+  line-height: 1;
+  margin-top: 0;
+}
+
+.noticia-modal-fechar:hover { background: rgba(0, 0, 0, 0.75); }
+
 @media (prefers-color-scheme: dark) {
   .cartao-alerta { background: #1b2127; }
   .destaque-card { background: #1b2127; }
   .noticia-item { background: #1b2127; }
+  .noticia-modal { background: #1b2127; }
+  .noticia-modal-texto { color: var(--texto); }
 }
 
 th {

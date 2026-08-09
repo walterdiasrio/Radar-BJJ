@@ -337,16 +337,20 @@ async function carregarDestaques() {
       return;
     }
     elDestaques.innerHTML = `
-      <h2 class="destaques-titulo">Destaques</h2>
+      <h2 class="destaques-titulo">BJJ News</h2>
       <div class="destaques-grade">
-        ${lista.map(n => `
-          <div class="destaque-card">
+        ${lista.map((n, i) => `
+          <div class="destaque-card" data-indice="${i}">
             <img src="${n.imagem_url}" alt="${n.manchete}">
             <div class="destaque-manchete">${n.manchete}</div>
           </div>
         `).join("")}
       </div>
     `;
+    elDestaques.querySelectorAll(".destaque-card").forEach(card => {
+      const noticia = lista[Number(card.dataset.indice)];
+      card.addEventListener("click", () => abrirNoticiaModal(noticia.imagem_url, noticia.manchete, noticia.texto));
+    });
   } catch (err) {
     elDestaques.innerHTML = "";
   }
