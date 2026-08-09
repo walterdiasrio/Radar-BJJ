@@ -55,12 +55,27 @@ def listar_eventos():
 
 def status_inscricao(evento):
     """True = inscrições abertas, False = fechadas, None = não deu pra saber.
-    A própria página do evento tem o texto "AS INSCRIÇÕES PARA ESSE EVENTO
-    ESTÃO ABERTAS/FECHADAS."."""
+    A página do evento tem um botão em '.registration-button a': quando as
+    inscrições estão abertas ele é um link de verdade pra plataforma de
+    inscrição ("Inscreva-se agora"); quando fecham (por prazo ou por atingir
+    o limite de vagas) ele vira um botão desabilitado com texto avisando
+    disso. (Versão antiga do site tinha um texto fixo "AS INSCRIÇÕES ESTÃO
+    ABERTAS/FECHADAS" que não é mais usado — mantido como fallback abaixo
+    caso a página volte a mudar.)"""
     url = evento.get("url")
     if not url:
         return None
     resp = get(url)
+    soup = BeautifulSoup(resp.text, "lxml")
+
+    botao = soup.select_one(".registration-button a")
+    if botao:
+        texto_botao = botao.get_text(strip=True).lower()
+        if "fechad" in texto_botao or "limite" in texto_botao or "encerr" in texto_botao:
+            return False
+        if "inscreva" in texto_botao or "inscrição" in texto_botao or "inscricao" in texto_botao:
+            return True
+
     texto = resp.text.upper()
     if "INSCRIÇÕES PARA ESSE EVENTO ESTÃO ABERTAS" in texto:
         return True
