@@ -12,6 +12,8 @@ const elStatus = document.getElementById("status");
 const elResultados = document.getElementById("resultados");
 const elForm = document.getElementById("form-busca");
 const elBtnBuscar = document.getElementById("btn-buscar");
+const elBtnCriarAlerta = document.getElementById("btn-criar-alerta");
+const elStatusAlerta = document.getElementById("status-alerta");
 
 const LABEL_FEDERACAO = { cbjj: "CBJJ", fjjrio: "FJJRio", cbjjd: "CBJJD", cbjjo: "CBJJO", cbjje: "CBJJE", fpjj: "FPJJ", adcc: "ADCC" };
 
@@ -283,6 +285,44 @@ elForm.addEventListener("submit", async (ev) => {
     mostrarStatus(`Erro na busca: ${err.message}`, true);
   } finally {
     elBtnBuscar.disabled = false;
+  }
+});
+
+elBtnCriarAlerta.addEventListener("click", async () => {
+  const federacao = federacaoSelecionada(elFederacaoOpcoes);
+  const titulo = prompt("Nome pra esse alerta (ex: \"Roxa adulto masculino leve\"):");
+  if (!titulo) return;
+
+  const corpo = {
+    titulo,
+    federacao: federacaoParaParametro(federacao),
+    genero: elGenero.value,
+    data_nascimento: elDataNascimento.value,
+    faixa: document.getElementById("faixa").value,
+    peso_kg: elPesoKg.value,
+    peso_sem_kimono: elPesoSemKimono.value,
+    nome: document.getElementById("nome").value,
+    equipe: document.getElementById("equipe").value,
+  };
+
+  elBtnCriarAlerta.disabled = true;
+  elStatusAlerta.textContent = "Criando alerta...";
+  elStatusAlerta.className = "";
+
+  try {
+    const resp = await fetchAutenticado("/api/alertas", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(corpo),
+    });
+    const dados = await resp.json();
+    if (!resp.ok) throw new Error(dados.erro || "erro ao criar alerta");
+    elStatusAlerta.textContent = `Alerta "${titulo}" criado! Veja em "Meus Alertas".`;
+  } catch (err) {
+    elStatusAlerta.textContent = `Erro ao criar alerta: ${err.message}`;
+    elStatusAlerta.className = "erro";
+  } finally {
+    elBtnCriarAlerta.disabled = false;
   }
 });
 

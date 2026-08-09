@@ -195,6 +195,15 @@ button {
   margin-top: 6px;
 }
 
+.btn-secundario {
+  background: transparent;
+  color: var(--azul-claro);
+  border: 1px solid var(--azul-claro);
+  margin-left: 8px;
+}
+
+.btn-secundario:hover { background: #eef6fb; }
+
 button:hover { background: var(--azul); }
 button:disabled { opacity: 0.6; cursor: not-allowed; }
 
@@ -274,6 +283,58 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
 .badge-aberta { background: #e3f6e8; color: #1a7d3a; }
 .badge-fechada { background: #fdeceb; color: #b3261e; }
 .badge-desconhecida { background: #eef2f6; color: #7c8894; }
+
+.cartao-alerta {
+  background: white;
+  border: 1px solid var(--borda);
+  border-radius: 10px;
+  padding: 16px 18px;
+  margin-bottom: 12px;
+}
+
+.cartao-alerta-topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.cartao-alerta-topo h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--azul);
+}
+
+.cartao-alerta-federacao {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--azul-claro);
+  margin-top: 4px;
+}
+
+.cartao-alerta-filtros {
+  font-size: 0.85rem;
+  color: #55606b;
+  margin-top: 6px;
+}
+
+.btn-remover {
+  background: transparent;
+  color: #b3261e;
+  border: 1px solid #b3261e;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  margin-top: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.btn-remover:hover { background: #fdeceb; }
+
+@media (prefers-color-scheme: dark) {
+  .cartao-alerta { background: #1b2127; }
+}
 
 th {
   background: #eef2f6;

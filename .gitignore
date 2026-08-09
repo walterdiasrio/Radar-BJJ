@@ -2,5 +2,6 @@ __pycache__/
 *.pyc
 .secret_key
 usuarios.db
+alertas.db
 dados_adcc/
 .DS_Store

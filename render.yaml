@@ -10,6 +10,10 @@ services:
         value: /var/data
       - key: PYTHON_VERSION
         value: 3.11.9
+      - key: RESEND_API_KEY
+        sync: false
+      - key: URL_SITE
+        value: https://radar-bjj.onrender.com
     disk:
       name: radar-bjj-data
       mountPath: /var/data

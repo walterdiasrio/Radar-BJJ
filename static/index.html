@@ -12,6 +12,7 @@
   <nav class="menu-principal">
     <a href="/" class="ativo">Buscador de Atletas</a>
     <a href="/competicoes">Competições</a>
+    <a href="/alertas">Meus Alertas</a>
     <a href="/importar-adcc" id="nav-importar-adcc" style="display:none">Importar ADCC</a>
     <span id="nav-usuario" class="nav-usuario"></span>
   </nav>
@@ -81,9 +82,11 @@
     </div>
 
     <button type="submit" id="btn-buscar">Buscar</button>
+    <button type="button" id="btn-criar-alerta" class="btn-secundario">Criar alerta com esses filtros</button>
   </form>
 
   <div id="status"></div>
+  <div id="status-alerta"></div>
 
   <div id="resultados"></div>
 </main>

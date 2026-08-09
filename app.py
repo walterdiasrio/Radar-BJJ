@@ -1,5 +1,7 @@
 import os
 import secrets
+import threading
+import time
 import traceback
 from datetime import date
 from functools import wraps
@@ -7,11 +9,14 @@ from pathlib import Path
 
 from flask import Flask, jsonify, redirect, request, send_from_directory, session
 
+import alertas
 import auth
 from connectors import FEDERACOES, TODAS, listar_eventos, buscar_atletas_agregado, listar_competicoes
 from connectors import adcc
 from connectors import idade as idade_mod
 from connectors import peso as peso_mod
+
+INTERVALO_ALERTAS_SEGUNDOS = int(os.environ.get("INTERVALO_ALERTAS_SEGUNDOS", 30 * 60))
 
 app = Flask(__name__, static_folder="static", static_url_path="")
 
@@ -29,6 +34,22 @@ if not _SECRET_KEY_PATH.exists():
 app.secret_key = os.environ.get("SECRET_KEY") or _SECRET_KEY_PATH.read_text().strip()
 
 auth.init_db()
+alertas.init_db()
+
+
+def _iniciar_verificacao_periodica_de_alertas():
+    def loop():
+        while True:
+            time.sleep(INTERVALO_ALERTAS_SEGUNDOS)
+            try:
+                alertas.verificar_todos()
+            except Exception:
+                traceback.print_exc()
+
+    threading.Thread(target=loop, daemon=True).start()
+
+
+_iniciar_verificacao_periodica_de_alertas()
 
 
 def _parse_federacao(bruto):
@@ -399,5 +420,73 @@ def api_competicoes():
     return jsonify({"total": len(competicoes_lista), "competicoes": competicoes_lista, "avisos": erros})
 
 
+@app.get("/alertas")
+@login_necessario
+def pagina_alertas():
+    return send_from_directory("static", "alertas.html")
+
+
+@app.get("/api/alertas")
+@api_login_necessario
+def api_listar_alertas():
+    return jsonify(alertas.listar_alertas(session["usuario_id"]))
+
+
+@app.post("/api/alertas")
+@api_login_necessario
+def api_criar_alerta():
+    dados = request.get_json(silent=True) or {}
+    titulo = (dados.get("titulo") or "").strip()
+    if not titulo:
+        return jsonify({"erro": "dê um nome pro alerta"}), 400
+
+    federacao_bruta = dados.get("federacao", "")
+    if _parse_federacao(federacao_bruta) is None and federacao_bruta != TODAS:
+        return jsonify({"erro": "federação inválida"}), 400
+
+    data_nascimento = dados.get("data_nascimento") or ""
+    if data_nascimento:
+        try:
+            date.fromisoformat(data_nascimento)
+        except ValueError:
+            return jsonify({"erro": "data de nascimento inválida"}), 400
+
+    try:
+        peso_kg = float(str(dados.get("peso_kg")).replace(",", ".")) if dados.get("peso_kg") else None
+        peso_sem_kimono = (
+            float(str(dados.get("peso_sem_kimono")).replace(",", "."))
+            if dados.get("peso_sem_kimono") else None
+        )
+    except ValueError:
+        return jsonify({"erro": "peso inválido"}), 400
+    peso_kg, peso_sem_kimono = _normalizar_pesos(peso_kg, peso_sem_kimono)
+
+    alerta_id = alertas.criar_alerta(
+        usuario_id=session["usuario_id"],
+        titulo=titulo,
+        federacao=federacao_bruta or TODAS,
+        data_nascimento=data_nascimento,
+        genero=dados.get("genero") or "",
+        faixa=dados.get("faixa") or "",
+        peso_kg=str(peso_kg) if peso_kg is not None else "",
+        peso_sem_kimono=str(peso_sem_kimono) if peso_sem_kimono is not None else "",
+        nome_atleta=dados.get("nome") or "",
+        equipe=dados.get("equipe") or "",
+    )
+    return jsonify({"ok": True, "id": alerta_id})
+
+
+@app.delete("/api/alertas/<int:alerta_id>")
+@api_login_necessario
+def api_remover_alerta(alerta_id):
+    removido = alertas.remover_alerta(session["usuario_id"], alerta_id)
+    if not removido:
+        return jsonify({"erro": "alerta não encontrado"}), 404
+    return jsonify({"ok": True})
+
+
 if __name__ == "__main__":
-    app.run(debug=True, port=5050)
+    # use_reloader=False: com o reload automático ligado, o Flask importa
+    # este módulo duas vezes (processo monitor + processo de trabalho), o
+    # que duplicaria a thread de verificação de alertas.
+    app.run(debug=True, port=5050, use_reloader=False)
