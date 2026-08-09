@@ -45,6 +45,24 @@ async function carregarSessaoNoMenu() {
 
 carregarSessaoNoMenu();
 
+// Submenu "Admin": abre com hover no desktop (via CSS), e com clique/toque
+// em qualquer dispositivo (essencial no celular, que não tem hover) —
+// fecha ao clicar fora.
+(() => {
+  const elDropdown = document.getElementById("nav-admin");
+  const elToggle = elDropdown ? elDropdown.querySelector(".nav-admin-toggle") : null;
+  if (!elToggle) return;
+
+  elToggle.addEventListener("click", (ev) => {
+    ev.preventDefault();
+    elDropdown.classList.toggle("aberto");
+  });
+
+  document.addEventListener("click", (ev) => {
+    if (!elDropdown.contains(ev.target)) elDropdown.classList.remove("aberto");
+  });
+})();
+
 // Wrapper de fetch para chamadas de API que exigem login: se a sessão
 // expirou (401), manda direto pro login em vez de mostrar erro genérico.
 async function fetchAutenticado(url, opts) {
