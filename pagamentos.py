@@ -1,6 +1,6 @@
 """Assinaturas pagas via Stripe Checkout (mode=subscription).
 
-Dois planos (aluno/mestre), cada um mensal ou anual, com 7 dias de teste
+Dois planos (atleta/mestre), cada um mensal ou anual, com 7 dias de teste
 grátis. O Stripe é a fonte da verdade sobre cobrança — aqui a gente só
 guarda um espelho local (assinaturas.db) atualizado pelos webhooks, pra
 não precisar bater na API do Stripe a cada requisição só pra saber se o
@@ -24,8 +24,8 @@ DIAS_TESTE_GRATIS = 7
 
 # id do Price configurado no Stripe pra cada combinação de plano/periodicidade.
 PRECOS = {
-    ("aluno", "mensal"): os.environ.get("STRIPE_PRICE_ALUNO_MENSAL", ""),
-    ("aluno", "anual"): os.environ.get("STRIPE_PRICE_ALUNO_ANUAL", ""),
+    ("atleta", "mensal"): os.environ.get("STRIPE_PRICE_ATLETA_MENSAL", ""),
+    ("atleta", "anual"): os.environ.get("STRIPE_PRICE_ATLETA_ANUAL", ""),
     ("mestre", "mensal"): os.environ.get("STRIPE_PRICE_MESTRE_MENSAL", ""),
     ("mestre", "anual"): os.environ.get("STRIPE_PRICE_MESTRE_ANUAL", ""),
 }

@@ -2,7 +2,7 @@ const elStatus = document.getElementById("status");
 const elAssinaturaAtiva = document.getElementById("assinatura-ativa");
 const elPlanosContainer = document.getElementById("planos-container");
 
-const NOMES_PLANO = { aluno: "Aluno", mestre: "Mestre" };
+const NOMES_PLANO = { atleta: "Atleta", mestre: "Mestre" };
 const NOMES_STATUS = {
   trialing: "em teste grátis",
   active: "ativa",

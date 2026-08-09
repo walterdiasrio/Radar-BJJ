@@ -19,7 +19,7 @@ DB_PATH = DATA_DIR / "usuarios.db"
 
 _EMAIL_REGEX = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
-TIPOS_PERFIL = ("mestre", "aluno")
+TIPOS_PERFIL = ("mestre", "atleta")
 
 VALIDADE_TOKEN_RESET = timedelta(hours=1)
 
@@ -39,14 +39,16 @@ def init_db():
                 email TEXT UNIQUE NOT NULL,
                 senha_hash TEXT NOT NULL,
                 email_verificado INTEGER NOT NULL DEFAULT 0,
-                tipo_perfil TEXT NOT NULL DEFAULT 'aluno',
+                tipo_perfil TEXT NOT NULL DEFAULT 'atleta',
                 criado_em TEXT NOT NULL DEFAULT (datetime('now'))
             )
         """)
-        # Migração pra bancos criados antes do perfil Mestre/Aluno existir.
+        # Migração pra bancos criados antes do perfil Mestre/Atleta existir.
         colunas = {linha["name"] for linha in conn.execute("PRAGMA table_info(usuarios)")}
         if "tipo_perfil" not in colunas:
-            conn.execute("ALTER TABLE usuarios ADD COLUMN tipo_perfil TEXT NOT NULL DEFAULT 'aluno'")
+            conn.execute("ALTER TABLE usuarios ADD COLUMN tipo_perfil TEXT NOT NULL DEFAULT 'atleta'")
+        # Migração pra bancos onde o perfil ainda se chamava "aluno".
+        conn.execute("UPDATE usuarios SET tipo_perfil = 'atleta' WHERE tipo_perfil = 'aluno'")
 
         conn.execute("""
             CREATE TABLE IF NOT EXISTS reset_senha (
@@ -71,7 +73,7 @@ def cadastrar(email, senha, tipo_perfil):
     if not senha or len(senha) < 8:
         return None, "A senha precisa ter pelo menos 8 caracteres."
     if tipo_perfil not in TIPOS_PERFIL:
-        return None, "Selecione um tipo de perfil (Mestre ou Aluno)."
+        return None, "Selecione um tipo de perfil (Mestre ou Atleta)."
 
     senha_hash = generate_password_hash(senha)
     try:

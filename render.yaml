@@ -18,9 +18,9 @@ services:
         sync: false
       - key: STRIPE_WEBHOOK_SECRET
         sync: false
-      - key: STRIPE_PRICE_ALUNO_MENSAL
+      - key: STRIPE_PRICE_ATLETA_MENSAL
         sync: false
-      - key: STRIPE_PRICE_ALUNO_ANUAL
+      - key: STRIPE_PRICE_ATLETA_ANUAL
         sync: false
       - key: STRIPE_PRICE_MESTRE_MENSAL
         sync: false
