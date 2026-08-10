@@ -8,9 +8,12 @@ from . import cbjj, fjjrio, cbjjd, cbjjo, cbjje, fpjj, adcc, ajp, idade as idade
 # Quantas buscas em paralelo por vez. O Render Starter só tem 512MB de RAM
 # — muitas threads simultâneas fazendo scraping (cada resposta pode ser
 # vários MB, ex: FPJJ chega a ~9MB por evento) já derrubou o serviço por
-# estouro de memória. 8 é bem mais seguro que os 24 originais; dá pra
-# reajustar por variável de ambiente sem precisar mexer no código.
-MAX_WORKERS = int(os.environ.get("BUSCA_MAX_WORKERS", 8))
+# estouro de memória, mais de uma vez. Cada funcionalidade nova (Minha
+# Carreira, Fale Conosco, Assinaturas, AJP) aumenta um pouco a memória de
+# base do processo, sobrando menos folga pra esses picos — por isso o
+# valor foi reduzido de novo, de 8 pra 4. Dá pra reajustar por variável de
+# ambiente sem precisar mexer no código.
+MAX_WORKERS = int(os.environ.get("BUSCA_MAX_WORKERS", 4))
 
 FEDERACOES = {
     "cbjj": {"label": "CBJJ", "module": cbjj},
