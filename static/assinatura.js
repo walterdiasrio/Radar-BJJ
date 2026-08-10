@@ -36,7 +36,8 @@ async function carregarAssinaturaAtual() {
     filtrarPlanoPorPerfil(dados.tipo_perfil);
 
     const temAcesso = !!(dados.assinatura && dados.assinatura.tem_acesso);
-    if (elResumoRadar) elResumoRadar.style.display = temAcesso ? "none" : "";
+    const veioDoRadar = new URLSearchParams(window.location.search).get("de") === "/buscador";
+    if (elResumoRadar) elResumoRadar.style.display = (!temAcesso && veioDoRadar) ? "" : "none";
 
     if (!dados.assinatura || !dados.assinatura.status) return;
 

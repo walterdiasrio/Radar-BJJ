@@ -170,7 +170,7 @@ def assinatura_necessaria(view):
         if not session.get("usuario_id"):
             return redirect("/login")
         if not _usuario_atual_tem_assinatura():
-            return redirect("/assinatura")
+            return redirect(f"/assinatura?de={request.path}")
         return view(*args, **kwargs)
     return wrapper
 
