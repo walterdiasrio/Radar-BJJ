@@ -5,6 +5,7 @@ async function carregarSessaoNoMenu() {
 
   const elNavAdmin = document.getElementById("nav-admin");
   const elMeusAlunos = document.getElementById("nav-meus-alunos");
+  const elAssinatura = document.getElementById("nav-assinatura");
 
   const ICONE_LOGOUT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>';
   const ICONE_LOGIN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>';
@@ -32,17 +33,20 @@ async function carregarSessaoNoMenu() {
       });
       if (elNavAdmin) elNavAdmin.style.display = dados.admin ? "" : "none";
       if (elMeusAlunos) elMeusAlunos.style.display = dados.mestre ? "" : "none";
+      if (elAssinatura) elAssinatura.style.display = "";
       aplicarSessao({ logado: true, mestre: !!dados.mestre, admin: !!dados.admin, email: dados.email });
     } else {
       el.innerHTML = `<a href="/login">${ICONE_LOGIN}<span>Entrar</span></a><a href="/cadastro">${ICONE_CADASTRO}<span>Cadastrar</span></a>`;
       if (elNavAdmin) elNavAdmin.style.display = "none";
       if (elMeusAlunos) elMeusAlunos.style.display = "none";
+      if (elAssinatura) elAssinatura.style.display = "none";
       aplicarSessao({ logado: false, mestre: false, admin: false });
     }
   } catch (err) {
     el.innerHTML = `<a href="/login">Entrar</a><a href="/cadastro">Cadastrar</a>`;
     if (elNavAdmin) elNavAdmin.style.display = "none";
     if (elMeusAlunos) elMeusAlunos.style.display = "none";
+    if (elAssinatura) elAssinatura.style.display = "none";
     aplicarSessao({ logado: false, mestre: false, admin: false });
   }
 }
