@@ -6,6 +6,10 @@ async function carregarSessaoNoMenu() {
   const elNavAdmin = document.getElementById("nav-admin");
   const elMeusAlunos = document.getElementById("nav-meus-alunos");
 
+  const ICONE_LOGOUT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>';
+  const ICONE_LOGIN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>';
+  const ICONE_CADASTRO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>';
+
   const aplicarSessao = (dados) => {
     window.sessaoAtual = dados;
     const elEquipe = document.getElementById("equipe");
@@ -20,7 +24,7 @@ async function carregarSessaoNoMenu() {
     const resp = await fetch("/api/sessao");
     const dados = await resp.json();
     if (dados.logado) {
-      el.innerHTML = `<span class="nav-email">${dados.email}</span><a href="#" id="nav-sair">Sair</a>`;
+      el.innerHTML = `<span class="nav-email">${dados.email}</span><a href="#" id="nav-sair">${ICONE_LOGOUT}<span>Sair</span></a>`;
       document.getElementById("nav-sair").addEventListener("click", async (ev) => {
         ev.preventDefault();
         await fetch("/api/sair", { method: "POST" });
@@ -30,7 +34,7 @@ async function carregarSessaoNoMenu() {
       if (elMeusAlunos) elMeusAlunos.style.display = dados.mestre ? "" : "none";
       aplicarSessao({ logado: true, mestre: !!dados.mestre, admin: !!dados.admin, email: dados.email });
     } else {
-      el.innerHTML = `<a href="/login">Entrar</a><a href="/cadastro">Cadastrar</a>`;
+      el.innerHTML = `<a href="/login">${ICONE_LOGIN}<span>Entrar</span></a><a href="/cadastro">${ICONE_CADASTRO}<span>Cadastrar</span></a>`;
       if (elNavAdmin) elNavAdmin.style.display = "none";
       if (elMeusAlunos) elMeusAlunos.style.display = "none";
       aplicarSessao({ logado: false, mestre: false, admin: false });
