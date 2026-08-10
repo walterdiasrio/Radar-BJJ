@@ -92,6 +92,25 @@ def listar_eventos(federacao):
     return _apenas_futuros(_sem_bugs(eventos))
 
 
+def _listar_eventos_paralelo(federacoes_alvo):
+    """Busca a lista de eventos de várias federações ao mesmo tempo, em vez
+    de uma de cada vez — com 8 federações, buscar em sequência (cada uma
+    esperando a anterior terminar) deixava a busca "todas as federações"
+    lenta, e se uma federação demorasse ou falhasse, atrasava/derrubava as
+    seguintes também. Retorna (eventos_por_federacao, erros)."""
+    eventos_por_federacao = {}
+    erros = []
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        futuros = {executor.submit(listar_eventos, fed): fed for fed in federacoes_alvo}
+        for futuro in as_completed(futuros):
+            fed = futuros[futuro]
+            try:
+                eventos_por_federacao[fed] = futuro.result()
+            except Exception as exc:
+                erros.append(f"{FEDERACOES[fed]['label']}: não foi possível carregar competições ({exc})")
+    return eventos_por_federacao, erros
+
+
 def _apenas_futuros(eventos):
     """Descarta competições cuja data já passou (antes de hoje). Eventos
     cuja data não deu para interpretar são mantidos — preferimos mostrar
@@ -240,13 +259,11 @@ def buscar_atletas_agregado(federacao, evento_id, filtros):
     federacao_unica = len(federacoes_alvo) == 1
 
     tarefas = []  # (federacao, evento, filtros_fed)
-    erros = []
+    eventos_por_federacao, erros = _listar_eventos_paralelo(federacoes_alvo)
     avisos_ja_mostrados = set()
     for fed in federacoes_alvo:
-        try:
-            eventos = listar_eventos(fed)
-        except Exception as exc:
-            erros.append(f"{FEDERACOES[fed]['label']}: não foi possível carregar competições ({exc})")
+        eventos = eventos_por_federacao.get(fed)
+        if eventos is None:
             continue
 
         if evento_id != TODAS and federacao_unica:
@@ -349,14 +366,9 @@ def listar_competicoes(federacao):
     federacoes_alvo = _federacoes_alvo(federacao)
 
     tarefas = []  # (fed, evento)
-    erros = []
+    eventos_por_federacao, erros = _listar_eventos_paralelo(federacoes_alvo)
     for fed in federacoes_alvo:
-        try:
-            eventos = listar_eventos(fed)
-        except Exception as exc:
-            erros.append(f"{FEDERACOES[fed]['label']}: não foi possível carregar competições ({exc})")
-            continue
-        for evento in eventos:
+        for evento in eventos_por_federacao.get(fed, []):
             tarefas.append((fed, evento))
 
     resultado = []
