@@ -1,6 +1,7 @@
 const elStatus = document.getElementById("status");
 const elAssinaturaAtiva = document.getElementById("assinatura-ativa");
 const elPlanosContainer = document.getElementById("planos-container");
+const elResumoRadar = document.getElementById("resumo-radar");
 
 const NOMES_PLANO = { atleta: "Atleta", mestre: "Mestre" };
 const NOMES_STATUS = {
@@ -33,6 +34,9 @@ async function carregarAssinaturaAtual() {
     if (!dados.logado) return;
 
     filtrarPlanoPorPerfil(dados.tipo_perfil);
+
+    const temAcesso = !!(dados.assinatura && dados.assinatura.tem_acesso);
+    if (elResumoRadar) elResumoRadar.style.display = temAcesso ? "none" : "";
 
     if (!dados.assinatura || !dados.assinatura.status) return;
 
