@@ -24,8 +24,11 @@ header {
 .banner {
   width: 100%;
   max-width: 1600px;
-  height: auto;
-  display: inline-block;
+  max-height: 220px;
+  object-fit: cover;
+  object-position: top;
+  display: block;
+  margin: 0 auto;
 }
 
 .layout {
