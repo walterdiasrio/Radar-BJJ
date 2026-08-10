@@ -20,7 +20,28 @@ elForm.addEventListener("submit", async (ev) => {
       body: JSON.stringify({ email, senha }),
     });
     const dados = await resp.json();
-    if (!resp.ok) throw new Error(dados.erro || "erro ao entrar");
+    if (!resp.ok) {
+      if (dados.email_nao_confirmado) {
+        mostrarStatus("Confirme seu e-mail antes de entrar. ", true);
+        const btnReenviar = document.createElement("button");
+        btnReenviar.type = "button";
+        btnReenviar.className = "btn-secundario";
+        btnReenviar.textContent = "Reenviar confirmação";
+        btnReenviar.style.marginLeft = "8px";
+        btnReenviar.addEventListener("click", async () => {
+          btnReenviar.disabled = true;
+          await fetch("/api/reenviar-confirmacao", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email }),
+          });
+          mostrarStatus("Se esse e-mail estiver cadastrado, reenviamos o link de confirmação.");
+        });
+        elStatus.appendChild(btnReenviar);
+        return;
+      }
+      throw new Error(dados.erro || "erro ao entrar");
+    }
 
     window.location.href = "/buscador";
   } catch (err) {

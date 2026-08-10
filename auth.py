@@ -1,10 +1,9 @@
 """Cadastro e login de usuários, com senha em hash e sessão do Flask.
 
-Guardado num SQLite local (usuarios.db). Sem verificação de e-mail por
-enquanto — isso exige um serviço de envio (SMTP/SendGrid) ainda não
-configurado. Quando isso for definido, o campo email_verificado já está
-pronto pra ser usado como gate de "só e-mail confirmado recebe alerta".
-"""
+Guardado num SQLite local (usuarios.db). O cadastro só é efetivado depois
+que o usuário confirma o e-mail (link com token, enviado via Resend —
+ver criar_token_verificacao/confirmar_email); até lá, o login fica
+bloqueado (ver campo email_verificado, checado em app.py)."""
 import os
 import re
 import secrets
@@ -23,6 +22,7 @@ _NOME_USUARIO_REGEX = re.compile(r"^[a-z0-9_]{3,20}$")
 TIPOS_PERFIL = ("mestre", "atleta")
 
 VALIDADE_TOKEN_RESET = timedelta(hours=1)
+VALIDADE_TOKEN_VERIFICACAO = timedelta(hours=24)
 
 
 def _conn():
@@ -67,6 +67,28 @@ def init_db():
             )
         """)
 
+        # A tabela de verificação de e-mail só passou a existir com essa
+        # migração — se ainda não existia, é a primeira subida com login
+        # exigindo e-mail confirmado. Sem isso, toda conta criada antes
+        # dessa mudança (email_verificado=0 por padrão desde sempre, mas
+        # nunca de fato checado) ficaria bloqueada de repente.
+        tabela_verificacao_ja_existia = conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='verificacao_email'"
+        ).fetchone() is not None
+
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS verificacao_email (
+                token TEXT PRIMARY KEY,
+                usuario_id INTEGER NOT NULL,
+                criado_em TEXT NOT NULL DEFAULT (datetime('now')),
+                expira_em TEXT NOT NULL,
+                usado INTEGER NOT NULL DEFAULT 0
+            )
+        """)
+
+        if not tabela_verificacao_ja_existia:
+            conn.execute("UPDATE usuarios SET email_verificado = 1 WHERE email_verificado = 0")
+
 
 def email_valido(email):
     return bool(email) and bool(_EMAIL_REGEX.match(email.strip()))
@@ -95,15 +117,20 @@ def cadastrar(email, senha, tipo_perfil):
 
 
 def autenticar(email, senha):
-    """Retorna (usuario, erro). usuario é um dict se sucesso."""
+    """Retorna (usuario, erro). usuario é um dict se sucesso. Login fica
+    bloqueado pra quem ainda não confirmou o e-mail (erro específico, pra
+    a tela de login oferecer reenviar a confirmação)."""
     email = (email or "").strip().lower()
     with _conn() as conn:
         linha = conn.execute(
-            "SELECT id, email, senha_hash, tipo_perfil, nome_usuario FROM usuarios WHERE email = ?", (email,)
+            "SELECT id, email, senha_hash, tipo_perfil, nome_usuario, email_verificado FROM usuarios WHERE email = ?",
+            (email,),
         ).fetchone()
 
     if not linha or not check_password_hash(linha["senha_hash"], senha or ""):
         return None, "E-mail ou senha incorretos."
+    if not linha["email_verificado"]:
+        return None, "email_nao_confirmado"
     return {
         "id": linha["id"], "email": linha["email"],
         "tipo_perfil": linha["tipo_perfil"], "nome_usuario": linha["nome_usuario"],
@@ -132,7 +159,7 @@ def buscar_por_email(email):
     email = (email or "").strip().lower()
     with _conn() as conn:
         linha = conn.execute(
-            "SELECT id, email, tipo_perfil, nome_usuario FROM usuarios WHERE email = ?", (email,)
+            "SELECT id, email, tipo_perfil, nome_usuario, email_verificado FROM usuarios WHERE email = ?", (email,)
         ).fetchone()
     return dict(linha) if linha else None
 
@@ -197,4 +224,32 @@ def redefinir_senha(token, nova_senha):
         senha_hash = generate_password_hash(nova_senha)
         conn.execute("UPDATE usuarios SET senha_hash = ? WHERE id = ?", (senha_hash, linha["usuario_id"]))
         conn.execute("UPDATE reset_senha SET usado = 1 WHERE token = ?", (token,))
+    return True, None
+
+
+def criar_token_verificacao(usuario_id):
+    """Gera um token de confirmação de e-mail, válido por
+    VALIDADE_TOKEN_VERIFICACAO."""
+    token = secrets.token_urlsafe(32)
+    expira_em = (datetime.utcnow() + VALIDADE_TOKEN_VERIFICACAO).isoformat()
+    with _conn() as conn:
+        conn.execute(
+            "INSERT INTO verificacao_email (token, usuario_id, expira_em) VALUES (?, ?, ?)",
+            (token, usuario_id, expira_em),
+        )
+    return token
+
+
+def confirmar_email(token):
+    """Retorna (ok, erro). Marca o e-mail como confirmado e libera o
+    login."""
+    with _conn() as conn:
+        linha = conn.execute(
+            "SELECT usuario_id, expira_em, usado FROM verificacao_email WHERE token = ?", (token,)
+        ).fetchone()
+        if not _token_valido(linha):
+            return False, "Link inválido ou expirado. Peça um novo."
+
+        conn.execute("UPDATE usuarios SET email_verificado = 1 WHERE id = ?", (linha["usuario_id"],))
+        conn.execute("UPDATE verificacao_email SET usado = 1 WHERE token = ?", (token,))
     return True, None

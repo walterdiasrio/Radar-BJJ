@@ -23,7 +23,8 @@ elForm.addEventListener("submit", async (ev) => {
     const dados = await resp.json();
     if (!resp.ok) throw new Error(dados.erro || "erro ao cadastrar");
 
-    window.location.href = "/buscador";
+    elForm.style.display = "none";
+    mostrarStatus(`Falta pouco! Enviamos um link de confirmação para ${dados.email}. Clique nele pra ativar sua conta.`);
   } catch (err) {
     mostrarStatus(err.message, true);
   }

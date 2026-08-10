@@ -262,6 +262,49 @@ def api_redefinir_senha():
     return jsonify({"ok": True})
 
 
+def _enviar_email_confirmacao(usuario_id, email):
+    token = auth.criar_token_verificacao(usuario_id)
+    link = f"{alertas.URL_SITE}/confirmar-email?token={token}"
+    corpo = (
+        "<p>Falta só confirmar seu e-mail pra ativar sua conta no Radar BJJ.</p>"
+        f'<p><a href="{link}">Clique aqui pra confirmar seu e-mail</a></p>'
+        "<p>Esse link vale por 24 horas. Se você não se cadastrou no Radar BJJ, pode ignorar este e-mail.</p>"
+    )
+    alertas.enviar_email(email, "Radar BJJ — confirme seu e-mail", corpo)
+
+
+@app.get("/confirmar-email")
+def pagina_confirmar_email():
+    return send_from_directory("static", "confirmar-email.html")
+
+
+@app.post("/api/confirmar-email")
+def api_confirmar_email():
+    dados = request.get_json(silent=True) or {}
+    token = dados.get("token") or ""
+
+    if not token:
+        return jsonify({"erro": "link inválido"}), 400
+
+    ok, erro = auth.confirmar_email(token)
+    if not ok:
+        return jsonify({"erro": erro}), 400
+    return jsonify({"ok": True})
+
+
+@app.post("/api/reenviar-confirmacao")
+def api_reenviar_confirmacao():
+    dados = request.get_json(silent=True) or {}
+    email = (dados.get("email") or "").strip().lower()
+
+    usuario = auth.buscar_por_email(email) if email else None
+    if usuario and not usuario["email_verificado"]:
+        _enviar_email_confirmacao(usuario["id"], usuario["email"])
+
+    # Mesma resposta sempre — não revela se o e-mail existe ou já foi confirmado.
+    return jsonify({"ok": True})
+
+
 @app.get("/api/noticias")
 def api_listar_noticias():
     return jsonify([
@@ -529,14 +572,20 @@ def api_cadastro():
     usuario_id, erro = auth.cadastrar(dados.get("email"), dados.get("senha"), dados.get("tipo_perfil"))
     if erro:
         return jsonify({"erro": erro}), 400
-    session["usuario_id"] = usuario_id
-    return jsonify({"ok": True, "email": dados.get("email", "").strip().lower()})
+
+    email = dados.get("email", "").strip().lower()
+    _enviar_email_confirmacao(usuario_id, email)
+    # Sem login automático — o cadastro só é efetivado depois de confirmar
+    # o e-mail (ver auth.autenticar, que bloqueia login não confirmado).
+    return jsonify({"ok": True, "email": email, "precisa_confirmar": True})
 
 
 @app.post("/api/entrar")
 def api_entrar():
     dados = request.get_json(silent=True) or {}
     usuario, erro = auth.autenticar(dados.get("email"), dados.get("senha"))
+    if erro == "email_nao_confirmado":
+        return jsonify({"erro": "confirme seu e-mail antes de entrar", "email_nao_confirmado": True}), 403
     if erro:
         return jsonify({"erro": erro}), 401
     session["usuario_id"] = usuario["id"]
