@@ -1,5 +1,7 @@
 import os
 import re
+import threading
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date
 
@@ -85,11 +87,35 @@ def _atleta_combina(atleta, filtros_fed):
 
 _NOME_FALLBACK = re.compile(r"^evento\s*\d+$", re.I)
 
+# Cache da lista de eventos por federação — sem isso, cada busca faz
+# scraping ao vivo de novo, o que é lento e vulnerável a instabilidade
+# momentânea do site de origem (federação fora do ar por alguns segundos
+# derrubava ela inteira daquela busca). 10 minutos é curto o bastante pra
+# não atrasar "abriu inscrição"/nova competição de forma perceptível.
+# ADCC/AJP ficam de fora: não fazem scraping (são importados manualmente
+# pelo admin), então cachear só atrasaria um evento recém-importado
+# aparecer na busca, sem ganhar nada em troca (ler o JSON local já é
+# instantâneo).
+CACHE_TTL_EVENTOS_SEGUNDOS = int(os.environ.get("CACHE_TTL_EVENTOS_SEGUNDOS", 600))
+_cache_eventos = {}
+_cache_eventos_lock = threading.Lock()
+
 
 def listar_eventos(federacao):
+    cacheavel = federacao not in FEDERACOES_SMOOTHCOMP
+    if cacheavel:
+        with _cache_eventos_lock:
+            entrada = _cache_eventos.get(federacao)
+            if entrada and time.time() - entrada[0] < CACHE_TTL_EVENTOS_SEGUNDOS:
+                return entrada[1]
+
     modulo = FEDERACOES[federacao]["module"]
-    eventos = modulo.listar_eventos()
-    return _apenas_futuros(_sem_bugs(eventos))
+    eventos = _apenas_futuros(_sem_bugs(modulo.listar_eventos()))
+
+    if cacheavel:
+        with _cache_eventos_lock:
+            _cache_eventos[federacao] = (time.time(), eventos)
+    return eventos
 
 
 def _listar_eventos_paralelo(federacoes_alvo):
