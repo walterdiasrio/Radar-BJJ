@@ -211,7 +211,7 @@ function renderizarResultados(atletas) {
     const totalFederacao = [...blocoFed.eventos.values()].reduce((soma, ev) => soma + ev.itens.length, 0);
     return `
     <section class="bloco-federacao">
-      <h2>${blocoFed.federacao} <span class="contagem">(${totalFederacao})</span></h2>
+      <h2><img src="/img/federacoes/${(blocoFed.federacao || "").toLowerCase()}.png" class="logo-federacao" alt="" loading="lazy">${blocoFed.federacao} <span class="contagem">(${totalFederacao})</span></h2>
       ${[...blocoFed.eventos.values()].map(bloco => {
         const temSituacao = bloco.itens.some(a => a.pagamento);
         const situacaoOk = new Set(["Pago", "Confirmado"]);
