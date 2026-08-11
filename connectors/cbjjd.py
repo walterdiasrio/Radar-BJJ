@@ -37,12 +37,14 @@ def listar_eventos():
         seen.add(path)
         nome_el = a.select_one(".post-des p")
         data_el = a.select_one(".post-date span")
+        local_el = a.select_one(".post-location span")
         titulo = nome_el.get_text(strip=True) if nome_el else (a.get_text(strip=True) or path)
         eventos.append({
             "id": path,
             "nome": titulo,
             "url": href,
             "data": data_el.get_text(strip=True) if data_el else "",
+            "local": local_el.get_text(strip=True) if local_el else "",
         })
     return eventos
 
