@@ -188,54 +188,67 @@ function renderizarResultados(atletas) {
   }
 
   // A API já devolve os atletas agrupados por federação e, dentro de cada
-  // uma, em ordem cronológica de competição — aqui só precisamos desenhar
-  // um bloco por federação, na sequência em que eles chegam.
-  const blocos = [];
-  let blocoAtual = null;
+  // uma, em ordem cronológica — aqui desenhamos um bloco por federação e,
+  // dentro dele, uma subseção por competição (agrupando por nome de
+  // evento com um Map, em vez de assumir que já vêm contíguos — quando
+  // duas competições da mesma federação caem exatamente na mesma data,
+  // a ordem entre elas na resposta não é garantida).
+  const blocosFederacao = [];
+  let blocoFedAtual = null;
   for (const a of atletas) {
-    if (!blocoAtual || blocoAtual.federacao !== a.federacao) {
-      blocoAtual = { federacao: a.federacao || "—", itens: [] };
-      blocos.push(blocoAtual);
+    if (!blocoFedAtual || blocoFedAtual.federacao !== a.federacao) {
+      blocoFedAtual = { federacao: a.federacao || "—", eventos: new Map() };
+      blocosFederacao.push(blocoFedAtual);
     }
-    blocoAtual.itens.push(a);
+    const chaveEvento = a.evento || "—";
+    if (!blocoFedAtual.eventos.has(chaveEvento)) {
+      blocoFedAtual.eventos.set(chaveEvento, { evento: chaveEvento, data: a.data || "", itens: [] });
+    }
+    blocoFedAtual.eventos.get(chaveEvento).itens.push(a);
   }
 
-  elResultados.innerHTML = blocos.map(bloco => {
-    const temSituacao = bloco.itens.some(a => a.pagamento);
-    const situacaoOk = new Set(["Pago", "Confirmado"]);
+  elResultados.innerHTML = blocosFederacao.map(blocoFed => {
+    const totalFederacao = [...blocoFed.eventos.values()].reduce((soma, ev) => soma + ev.itens.length, 0);
     return `
     <section class="bloco-federacao">
-      <h2>${bloco.federacao} <span class="contagem">(${bloco.itens.length})</span></h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Atleta</th>
-            <th>Equipe</th>
-            <th>Competição</th>
-            <th>Data</th>
-            <th>Categoria</th>
-            <th>Gênero</th>
-            <th>Faixa</th>
-            <th>Peso</th>
-            ${temSituacao ? "<th>Situação</th>" : ""}
-          </tr>
-        </thead>
-        <tbody>
-          ${bloco.itens.map(a => `
-            <tr>
-              <td>${a.nome || ""}</td>
-              <td>${a.equipe || ""}</td>
-              <td>${a.evento || ""}</td>
-              <td>${a.data || ""}</td>
-              <td>${a.categoria_idade || ""}</td>
-              <td>${a.genero || ""}</td>
-              <td>${a.faixa || ""}</td>
-              <td>${a.peso || ""}</td>
-              ${temSituacao ? `<td class="${situacaoOk.has(a.pagamento) ? 'pago' : 'nao-pago'}">${a.pagamento || ""}</td>` : ""}
-            </tr>
-          `).join("")}
-        </tbody>
-      </table>
+      <h2>${blocoFed.federacao} <span class="contagem">(${totalFederacao})</span></h2>
+      ${[...blocoFed.eventos.values()].map(bloco => {
+        const temSituacao = bloco.itens.some(a => a.pagamento);
+        const situacaoOk = new Set(["Pago", "Confirmado"]);
+        return `
+        <div class="bloco-competicao">
+          <h3 class="destaque-competicao">
+            ${bloco.evento} <span class="contagem">(${bloco.itens.length})</span>
+            ${bloco.data ? `<span class="destaque-competicao-data">${bloco.data}</span>` : ""}
+          </h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Atleta</th>
+                <th>Equipe</th>
+                <th>Categoria</th>
+                <th>Gênero</th>
+                <th>Faixa</th>
+                <th>Peso</th>
+                ${temSituacao ? "<th>Situação</th>" : ""}
+              </tr>
+            </thead>
+            <tbody>
+              ${bloco.itens.map(a => `
+                <tr>
+                  <td>${a.nome || ""}</td>
+                  <td>${a.equipe || ""}</td>
+                  <td>${a.categoria_idade || ""}</td>
+                  <td>${a.genero || ""}</td>
+                  <td>${a.faixa || ""}</td>
+                  <td>${a.peso || ""}</td>
+                  ${temSituacao ? `<td class="${situacaoOk.has(a.pagamento) ? 'pago' : 'nao-pago'}">${a.pagamento || ""}</td>` : ""}
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      `; }).join("")}
     </section>
   `; }).join("");
 }

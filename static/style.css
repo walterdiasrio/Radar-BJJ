@@ -418,6 +418,41 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
   overflow-x: auto;
 }
 
+.bloco-federacao {
+  margin-bottom: 32px;
+}
+
+.bloco-competicao {
+  margin-bottom: 18px;
+}
+
+.destaque-competicao {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 8px;
+  padding: 8px 14px;
+  background: var(--azul);
+  color: #ffffff;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.destaque-competicao .contagem {
+  font-weight: 400;
+  color: #d7e2f2;
+  font-size: 0.8rem;
+}
+
+.destaque-competicao-data {
+  margin-left: auto;
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: #d7e2f2;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
