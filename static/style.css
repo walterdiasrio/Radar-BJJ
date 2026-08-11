@@ -574,7 +574,7 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
 }
 
 .destaques-home .destaques-titulo-logo {
-  height: 40px;
+  height: 80px;
 }
 
 .destaques-home .destaques-grade {
@@ -598,7 +598,7 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
 }
 
 .destaques-titulo-logo {
-  height: 28px;
+  height: 56px;
   width: auto;
   display: block;
 }

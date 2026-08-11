@@ -34,6 +34,11 @@ _ORDEM_FEDERACAO = {fid: i for i, fid in enumerate(FEDERACOES)}
 # da tabela por ano de nascimento que as federações brasileiras usam.
 FEDERACOES_SMOOTHCOMP = {"adcc", "ajp"}
 
+# Dentro do Smoothcomp, só o ADCC é NO-GI (peso sem kimono) — a AJP é
+# competição de Gi, então usa peso COM kimono igual às federações
+# brasileiras, mesmo categorizando a idade pela plataforma Smoothcomp.
+FEDERACOES_SMOOTHCOMP_SEM_KIMONO = {"adcc"}
+
 TODAS = "todas"
 
 
@@ -208,17 +213,20 @@ def _filtros_para_federacao(fed, filtros, evento_id=None):
             return filtros_fed, avisos
         filtros_fed["categoria_idade"] = categoria
 
-        peso_sem_kimono = filtros.get("peso_sem_kimono")
-        if peso_sem_kimono:
+        peso_bruto = (
+            filtros.get("peso_sem_kimono") if fed in FEDERACOES_SMOOTHCOMP_SEM_KIMONO
+            else filtros.get("peso_kg")
+        )
+        if peso_bruto:
             try:
-                peso_sem_kimono = float(str(peso_sem_kimono).replace(",", "."))
+                peso_bruto = float(str(peso_bruto).replace(",", "."))
             except (TypeError, ValueError):
                 avisos.append(f"{FEDERACOES[fed]['label']}: peso inválido")
                 return filtros_fed, avisos
             if not filtros.get("genero"):
                 avisos.append(f"{FEDERACOES[fed]['label']}: selecione o gênero para calcular a categoria de peso")
             else:
-                categoria_peso = modulo.categoria_peso_exata(evento_id, categoria, filtros.get("genero"), peso_sem_kimono)
+                categoria_peso = modulo.categoria_peso_exata(evento_id, categoria, filtros.get("genero"), peso_bruto)
                 if categoria_peso:
                     filtros_fed["peso_categoria"] = categoria_peso
                 else:

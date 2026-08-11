@@ -18,7 +18,7 @@ import pagamentos
 from connectors import FEDERACOES, TODAS, listar_eventos, buscar_atletas_agregado, listar_competicoes
 from connectors import adcc
 from connectors import ajp
-from connectors import FEDERACOES_SMOOTHCOMP
+from connectors import FEDERACOES_SMOOTHCOMP, FEDERACOES_SMOOTHCOMP_SEM_KIMONO
 from connectors import idade as idade_mod
 from connectors import peso as peso_mod
 
@@ -647,11 +647,12 @@ def _categoria_completa(federacao, ano_nascimento, peso_kg, genero, data_nascime
         resultado["idade_exata"] = idade_exata
         resultado["data_referencia"] = data_referencia.strftime("%d/%m/%Y")
 
-        if peso_sem_kimono is not None and categoria:
+        peso_smoothcomp = peso_sem_kimono if federacao in FEDERACOES_SMOOTHCOMP_SEM_KIMONO else peso_kg
+        if peso_smoothcomp is not None and categoria:
             if not genero:
                 resultado["aviso_peso"] = "selecione o gênero"
             else:
-                resultado["peso_categoria"] = modulo.categoria_peso_exata(evento_id, categoria, genero, peso_sem_kimono)
+                resultado["peso_categoria"] = modulo.categoria_peso_exata(evento_id, categoria, genero, peso_smoothcomp)
         return resultado
 
     idade_categoria = idade_mod.categoria_para(federacao, ano_nascimento)
