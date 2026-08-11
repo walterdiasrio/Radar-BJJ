@@ -9,7 +9,7 @@ async function carregarDestaques() {
       return;
     }
     elDestaques.innerHTML = `
-      <h2 class="destaques-titulo">BJJ News</h2>
+      <h2 class="destaques-titulo"><img src="/img/bjjnews-logo.png" alt="BJJ News" class="destaques-titulo-logo"></h2>
       <div class="destaques-grade">
         ${lista.map((n, i) => `
           <div class="destaque-card" data-indice="${i}">

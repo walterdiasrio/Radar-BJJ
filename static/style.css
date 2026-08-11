@@ -27,10 +27,8 @@ header {
 
 .banner {
   width: 100%;
-  max-width: 900px;
   height: auto;
   display: block;
-  margin: 0 auto;
 }
 
 .layout {
@@ -558,10 +556,51 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
 
 .destaques { margin-bottom: 28px; }
 
+.home-grid {
+  display: flex;
+  align-items: flex-start;
+  gap: 28px;
+  flex-wrap: wrap;
+}
+
+.home-cartao-boasvindas {
+  flex: 1 1 380px;
+  margin: 0;
+}
+
+.destaques-home {
+  flex: 1.3 1 420px;
+  margin-bottom: 0;
+}
+
+.destaques-home .destaques-titulo-logo {
+  height: 40px;
+}
+
+.destaques-home .destaques-grade {
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+.destaques-home .destaque-manchete {
+  padding: 16px 18px;
+  font-size: 1.2rem;
+}
+
+@media (max-width: 900px) {
+  .home-cartao-boasvindas { margin: 0 auto; }
+}
+
 .destaques-titulo {
   margin: 0 0 12px;
   font-size: 1.1rem;
   color: var(--azul);
+}
+
+.destaques-titulo-logo {
+  height: 28px;
+  width: auto;
+  display: block;
 }
 
 .destaques-grade {
