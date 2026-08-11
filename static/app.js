@@ -52,12 +52,16 @@ function construirOpcoesFederacao(container, federacoes, onChange) {
   });
 }
 
-// Retorna TODAS, um id único (string) ou uma lista de ids (seleção múltipla).
+// Retorna TODAS, um id único (string), uma lista de ids (seleção múltipla)
+// ou null se nada estiver marcado — nesse caso não buscamos nada (em vez de
+// silenciosamente cair pra "todas as federações", que confundia: se uma
+// federação demorasse/falhasse pra um termo específico, parecia que só uma
+// tinha sido pesquisada).
 function federacaoSelecionada(container) {
   const checkboxes = Array.from(container.querySelectorAll('input[type="checkbox"]'));
   if (checkboxes[0].checked) return TODAS;
   const selecionadas = checkboxes.slice(1).filter(c => c.checked).map(c => c.value);
-  if (!selecionadas.length) return TODAS;
+  if (!selecionadas.length) return null;
   return selecionadas.length === 1 ? selecionadas[0] : selecionadas;
 }
 
@@ -66,6 +70,13 @@ function federacaoParaParametro(selecao) {
 }
 
 async function carregarEventos(federacao) {
+  if (federacao === null) {
+    elEvento.innerHTML = '<option value="">Selecione uma federação</option>';
+    elEvento.disabled = true;
+    elBtnBuscar.disabled = true;
+    return;
+  }
+
   if (federacao === TODAS || Array.isArray(federacao)) {
     const texto = federacao === TODAS
       ? "Todas as competições, de todas as federações"
@@ -120,7 +131,7 @@ async function atualizarCategoriaCalculada() {
   const genero = elGenero.value;
   const evento = elEvento.value;
 
-  if (!dataNascimento) {
+  if (!dataNascimento || federacao === null) {
     elCategoriaCalculada.textContent = "";
     elPesoCalculado.textContent = "";
     return;
@@ -269,6 +280,10 @@ elEvento.addEventListener("change", atualizarCategoriaCalculada);
 elForm.addEventListener("submit", async (ev) => {
   ev.preventDefault();
   const federacao = federacaoSelecionada(elFederacaoOpcoes);
+  if (federacao === null) {
+    mostrarStatus("Selecione ao menos uma federação para buscar.", true);
+    return;
+  }
   const evento = elEvento.value;
   if (!evento) return;
 
@@ -311,6 +326,11 @@ elForm.addEventListener("submit", async (ev) => {
 
 elBtnCriarAlerta.addEventListener("click", async () => {
   const federacao = federacaoSelecionada(elFederacaoOpcoes);
+  if (federacao === null) {
+    elStatusAlerta.textContent = "Selecione ao menos uma federação antes de criar o alerta.";
+    elStatusAlerta.className = "erro";
+    return;
+  }
   const titulo = prompt("Nome para esse alerta (ex: \"Roxa adulto masculino leve\"):");
   if (!titulo) return;
 
@@ -347,4 +367,4 @@ elBtnCriarAlerta.addEventListener("click", async () => {
   }
 });
 
-carregarFederacoes().then(() => carregarEventos(TODAS));
+carregarFederacoes().then(() => carregarEventos(null));

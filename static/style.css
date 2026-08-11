@@ -412,9 +412,9 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 }
 
 .logo-federacao {
-  width: 32px;
-  height: 32px;
-  border-radius: 7px;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
   object-fit: contain;
   border: 1px solid var(--borda);
   flex-shrink: 0;

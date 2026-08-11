@@ -356,6 +356,45 @@ def _status_inscricao(fed, modulo, evento):
     return None
 
 
+_UF_VALIDAS = {
+    "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG",
+    "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO",
+}
+
+# Nome completo do estado -> sigla, pros casos em que o local vem por extenso
+# em vez da sigla (ex: "..., Uberlândia, Minas Gerais"). Mantém os acentos de
+# propósito: sem eles, "pará" viraria "para" e bateria com a preposição
+# comum, gerando falso positivo em quase qualquer texto.
+_NOME_ESTADO_PARA_UF = {
+    "acre": "AC", "alagoas": "AL", "amapá": "AP", "amazonas": "AM", "bahia": "BA",
+    "ceará": "CE", "distrito federal": "DF", "espírito santo": "ES", "goiás": "GO",
+    "maranhão": "MA", "mato grosso do sul": "MS", "mato grosso": "MT",
+    "minas gerais": "MG", "pará": "PA", "paraíba": "PB", "paraná": "PR",
+    "pernambuco": "PE", "piauí": "PI", "rio de janeiro": "RJ",
+    "rio grande do norte": "RN", "rio grande do sul": "RS", "rondônia": "RO",
+    "roraima": "RR", "santa catarina": "SC", "são paulo": "SP", "sergipe": "SE",
+    "tocantins": "TO",
+}
+_NOMES_ESTADO_POR_TAMANHO = sorted(_NOME_ESTADO_PARA_UF, key=len, reverse=True)
+
+
+def _extrair_uf(local):
+    """Tenta achar o estado a partir do texto livre de "local" — primeiro
+    procura uma sigla de 2 letras isolada (ex: "Fortaleza, CE"), senão tenta
+    o nome do estado por extenso (ex: "..., Minas Gerais"). None quando o
+    local é só o nome do ginásio, sem cidade/estado."""
+    if not local:
+        return None
+    for codigo in reversed(re.findall(r"\b([A-Z]{2})\b", local)):
+        if codigo in _UF_VALIDAS:
+            return codigo
+    texto = local.lower()
+    for nome in _NOMES_ESTADO_POR_TAMANHO:
+        if nome in texto:
+            return _NOME_ESTADO_PARA_UF[nome]
+    return None
+
+
 _PALAVRAS_KIDS = re.compile(r"pr[ée].?mirim|\bmirim\b|infantil|infanto|\bkids\b", re.I)
 _PALAVRAS_ADULTO = re.compile(r"\bmaster\b|\badulto\b|\bjuvenil\b", re.I)
 
@@ -420,6 +459,7 @@ def listar_competicoes(federacao):
                     "data": datas_mod.formatar(evento.get("data", "")),
                     "mes": datas_mod.rotulo_mes(data_ordenacao),
                     "local": evento.get("local", ""),
+                    "uf": _extrair_uf(evento.get("local", "")),
                     "inscricoes_abertas": inscricoes_abertas,
                     "publico": _classificar_publico(nome, fed),
                 },

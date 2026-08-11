@@ -3,6 +3,7 @@ const TODAS = "todas";
 const elFederacaoOpcoes = document.getElementById("federacao-opcoes");
 const elPublicoAdulto = document.getElementById("publico-adulto");
 const elPublicoKids = document.getElementById("publico-kids");
+const elEstadoOpcoes = document.getElementById("estado-opcoes");
 const elForm = document.getElementById("form-filtro");
 const elBtn = document.getElementById("btn-carregar");
 const elStatus = document.getElementById("status");
@@ -40,12 +41,14 @@ function construirOpcoesFederacao(container, federacoes, onChange) {
   });
 }
 
-// Retorna TODAS, um id único (string) ou uma lista de ids (seleção múltipla).
+// Retorna TODAS, um id único (string), uma lista de ids (seleção múltipla)
+// ou null se nada estiver marcado — nesse caso não buscamos nada (em vez de
+// cair pra "todas as federações" sem o usuário ter pedido isso).
 function federacaoSelecionada(container) {
   const checkboxes = Array.from(container.querySelectorAll('input[type="checkbox"]'));
   if (checkboxes[0].checked) return TODAS;
   const selecionadas = checkboxes.slice(1).filter(c => c.checked).map(c => c.value);
-  if (!selecionadas.length) return TODAS;
+  if (!selecionadas.length) return null;
   return selecionadas.length === 1 ? selecionadas[0] : selecionadas;
 }
 
@@ -69,11 +72,35 @@ function badgeInscricao(aberta) {
 function competicoesFiltradas() {
   const mostrarAdulto = elPublicoAdulto.checked;
   const mostrarKids = elPublicoKids.checked;
+  const estado = elEstadoOpcoes.value;
   return competicoesCarregadas.filter(c => {
+    if (estado && c.uf !== estado) return false;
     if (c.publico === "ambos") return mostrarAdulto || mostrarKids;
     if (c.publico === "kids") return mostrarKids;
     return mostrarAdulto;
   });
+}
+
+// Monta a lista de estados só com as UFs que de fato apareceram nos
+// resultados carregados — evita mostrar opções vazias. Mantém a seleção
+// atual se ainda fizer sentido depois de recarregar.
+const NOMES_UF = {
+  AC: "Acre", AL: "Alagoas", AP: "Amapá", AM: "Amazonas", BA: "Bahia",
+  CE: "Ceará", DF: "Distrito Federal", ES: "Espírito Santo", GO: "Goiás",
+  MA: "Maranhão", MT: "Mato Grosso", MS: "Mato Grosso do Sul", MG: "Minas Gerais",
+  PA: "Pará", PB: "Paraíba", PR: "Paraná", PE: "Pernambuco", PI: "Piauí",
+  RJ: "Rio de Janeiro", RN: "Rio Grande do Norte", RS: "Rio Grande do Sul",
+  RO: "Rondônia", RR: "Roraima", SC: "Santa Catarina", SP: "São Paulo",
+  SE: "Sergipe", TO: "Tocantins",
+};
+
+function popularEstados() {
+  const selecionadoAntes = elEstadoOpcoes.value;
+  const ufs = [...new Set(competicoesCarregadas.map(c => c.uf).filter(Boolean))].sort();
+  elEstadoOpcoes.innerHTML =
+    '<option value="">Todos os estados</option>' +
+    ufs.map(uf => `<option value="${uf}">${NOMES_UF[uf] || uf} (${uf})</option>`).join("");
+  if (ufs.includes(selecionadoAntes)) elEstadoOpcoes.value = selecionadoAntes;
 }
 
 function aplicarFiltroPublico() {
@@ -131,9 +158,16 @@ function renderizarCompeticoes(competicoes) {
 
 async function carregar() {
   const federacao = federacaoSelecionada(elFederacaoOpcoes);
+  if (federacao === null) {
+    competicoesCarregadas = [];
+    elResultados.innerHTML = "";
+    mostrarStatus("Selecione ao menos uma federação para buscar.", true);
+    return;
+  }
   elBtn.disabled = true;
   elPublicoAdulto.disabled = true;
   elPublicoKids.disabled = true;
+  elEstadoOpcoes.disabled = true;
   mostrarStatus("Carregando competições, pode levar alguns segundos...");
   elResultados.innerHTML = "";
 
@@ -143,6 +177,7 @@ async function carregar() {
     if (!resp.ok) throw new Error(dados.erro || "erro ao carregar competições");
 
     competicoesCarregadas = dados.competicoes;
+    popularEstados();
     const filtradas = competicoesFiltradas();
     renderizarCompeticoes(filtradas);
     let resumo = `${filtradas.length} de ${dados.total} competição(ões) encontrada(s).`;
@@ -154,6 +189,7 @@ async function carregar() {
     elBtn.disabled = false;
     elPublicoAdulto.disabled = false;
     elPublicoKids.disabled = false;
+    elEstadoOpcoes.disabled = false;
   }
 }
 
@@ -164,5 +200,6 @@ elForm.addEventListener("submit", (ev) => {
 
 elPublicoAdulto.addEventListener("change", aplicarFiltroPublico);
 elPublicoKids.addEventListener("change", aplicarFiltroPublico);
+elEstadoOpcoes.addEventListener("change", aplicarFiltroPublico);
 
 carregarFederacoes().then(carregar);
