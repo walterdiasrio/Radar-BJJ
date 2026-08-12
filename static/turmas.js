@@ -65,7 +65,7 @@ function renderizarTurmas(turmas) {
           <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:8px;">
             ${t.alunos.map(a => `
               <span style="display:inline-flex; align-items:center; gap:6px; background:#eef2f6; border-radius:20px; padding:4px 6px 4px 12px; font-size:0.85rem;">
-                ${a.nome || "(sem nome)"}
+                <a href="/meus-alunos/${a.usuario_id}" style="color: var(--azul); text-decoration: none;">${a.nome || "(sem nome)"}</a>
                 <button type="button" class="btn-remover-aluno-turma" data-turma-id="${t.id}" data-aluno-id="${a.usuario_id}"
                   style="border:none; background:transparent; color:#b3261e; cursor:pointer; font-size:1rem; line-height:1; padding:2px 4px;">×</button>
               </span>
