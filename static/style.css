@@ -287,6 +287,13 @@ main {
   padding: 24px 16px 60px;
 }
 
+.pagina-titulo-logo {
+  display: block;
+  height: 90px;
+  width: auto;
+  margin: 0 0 20px;
+}
+
 #form-busca {
   background: white;
   border: 1px solid var(--borda);
