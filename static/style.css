@@ -640,6 +640,7 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
   font-weight: 600;
   font-size: 0.95rem;
   color: var(--texto);
+  font-family: "Times New Roman", Times, serif;
 }
 
 .noticia-item {
@@ -664,6 +665,7 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
 .noticia-item .noticia-manchete {
   flex: 1;
   font-weight: 600;
+  font-family: "Times New Roman", Times, serif;
 }
 
 .destaque-card, .noticia-card {
@@ -708,6 +710,7 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
   font-size: 1.2rem;
   font-weight: 700;
   color: var(--azul);
+  font-family: "Times New Roman", Times, serif;
 }
 
 .noticia-modal-texto {
@@ -716,6 +719,7 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
   white-space: pre-wrap;
   line-height: 1.5;
   color: var(--texto);
+  font-family: "Times New Roman", Times, serif;
 }
 
 .noticia-modal-fechar {
