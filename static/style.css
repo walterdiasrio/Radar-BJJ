@@ -41,7 +41,8 @@ header {
   display: flex;
   flex-direction: column;
   gap: 0;
-  background: var(--azul);
+  background: var(--azul) url('img/menu-bg.png') no-repeat top center;
+  background-size: 100% 100%;
   width: 240px;
   flex-shrink: 0;
   padding: 10px 0;
