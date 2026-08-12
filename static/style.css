@@ -289,7 +289,7 @@ main {
 
 .pagina-titulo-logo {
   display: block;
-  height: 90px;
+  height: 153px;
   width: auto;
   margin: 0 0 20px;
 }
@@ -586,7 +586,7 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
 }
 
 .destaques-home .destaques-titulo-logo {
-  height: 80px;
+  height: 136px;
 }
 
 .destaques-home .destaques-grade {
@@ -610,7 +610,7 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
 }
 
 .destaques-titulo-logo {
-  height: 56px;
+  height: 95px;
   width: auto;
   display: block;
 }
