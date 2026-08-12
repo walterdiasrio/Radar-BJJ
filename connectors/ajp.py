@@ -56,14 +56,19 @@ def buscar_atletas(evento_id, filtros):
 
 
 def _extrair_id_evento(html):
-    m = re.search(r"smoothcomp\.com/[a-z_]*/event/(\d+)", html)
+    # A AJP usa domínio próprio (ajptour.com), não smoothcomp.com direto —
+    # mesma plataforma por trás, mas white-label, então o link do evento
+    # tem cara de "ajptour.com/en/event/1560" em vez de
+    # "smoothcomp.com/.../event/1560" (só a ADCC usa o domínio direto).
+    m = re.search(r"(?:smoothcomp\.com|ajptour\.com)/[a-z_]*/event/(\d+)", html)
     return m.group(1) if m else None
 
 
 def _extrair_nome(soup):
     titulo = soup.find("title")
     if titulo and titulo.text:
-        nome = re.split(r"\s*[|\-–]\s*Smoothcomp", titulo.text, flags=re.I)[0].strip()
+        bruto = re.split(r"\s*[|\-–]\s*Smoothcomp", titulo.text, flags=re.I)[0]
+        nome = re.sub(r"\s+", " ", bruto).strip()
         if nome:
             return nome
     h2 = soup.select_one(".event-cms-page h2")
@@ -80,7 +85,33 @@ def _extrair_local(soup):
     return ""
 
 
+def _extrair_data_json_ld(soup):
+    """A página do evento AJP (ajptour.com) traz um bloco JSON-LD
+    (schema.org/SportsEvent) com startDate em ISO 8601 — bem mais
+    confiável do que procurar a data no texto visível, porque o AJP
+    mostra as datas sem ano ali ("12 Sep - 13 Sep", ano só aparece em
+    outro lugar da página)."""
+    for script in soup.find_all("script", type="application/ld+json"):
+        if not script.string:
+            continue
+        try:
+            dados = json.loads(script.string)
+        except ValueError:
+            continue
+        inicio = dados.get("startDate") if isinstance(dados, dict) else None
+        if inicio:
+            try:
+                return date.fromisoformat(inicio[:10]).strftime("%d/%m/%Y")
+            except ValueError:
+                continue
+    return ""
+
+
 def _extrair_data(soup):
+    data_json_ld = _extrair_data_json_ld(soup)
+    if data_json_ld:
+        return data_json_ld
+
     texto = soup.get_text(" ", strip=True)
     padrao = re.compile(r"([A-Za-z]{3,9})\.?\s+(\d{1,2}),\s*(\d{4})")
     ocorrencias = padrao.findall(texto)
@@ -119,27 +150,60 @@ def parse_evento_html(html):
 
 def _genero_pt(genero_raw):
     g = genero_raw.strip().lower()
-    if g.startswith("women") or g == "girls":
+    if g.startswith("women") or g.startswith("girls"):
         return "feminino"
-    if g.startswith("men") or g == "boys":
+    if g.startswith("men") or g.startswith("boys"):
         return "masculino"
     return genero_raw
 
 
-def _partes_categoria(header_texto):
-    partes = [p.strip() for p in header_texto.split("/")]
-    primeiro = partes[0] if partes else ""
+_BELTS_EN = {"white", "grey", "gray", "yellow", "orange", "green", "blue", "purple", "brown", "black"}
 
-    m_kids = re.match(r"(.+?)\s*\[(.*?)\]\s*$", primeiro)
-    if m_kids:
-        genero_raw, categoria_idade = m_kids.group(1).strip(), m_kids.group(2).strip()
-        nivel = partes[1] if len(partes) > 1 else ""
-        peso = partes[2] if len(partes) > 2 else ""
-    else:
-        genero_raw = primeiro
-        categoria_idade = partes[1] if len(partes) > 1 else ""
-        nivel = partes[2] if len(partes) > 2 else ""
-        peso = partes[3] if len(partes) > 3 else ""
+# Rótulos de idade que não seguem os padrões numéricos (_KIDS_INTERVALO,
+# _KIDS_ATE, _MASTERS) mas ainda assim são categoria de idade, não faixa
+# nem nível — usado só pra classificar corretamente o campo na hora de
+# extrair (ver _partes_categoria); categoria_exata_para_idade não sabe
+# resolver esses a partir da data de nascimento (não há uma tabela oficial
+# e estável de faixa etária pra eles disponível na página do evento).
+_ROTULOS_IDADE_SEM_TABELA = {"teen", "junior", "youth", "juvenile", "kids"}
+
+
+def _eh_rotulo_idade(token):
+    token = token.strip()
+    return bool(
+        _KIDS_INTERVALO.match(token) or _KIDS_ATE.match(token) or _MASTERS.match(token)
+        or token.lower() in _ROTULOS_IDADE_SEM_TABELA or token.lower() == "adult"
+    )
+
+
+def _partes_categoria(header_texto):
+    """O cabeçalho de cada grupo de inscritos tem 4 campos separados por
+    "/", mas a ORDEM dos dois campos do meio varia: divisões kids/teen
+    vêm como "Gênero / Idade / Faixa / Peso" (ex: "Girls GI / Teen /
+    Yellow / 57KG"), enquanto divisões adulto vêm como "Gênero / Faixa /
+    Nível-ou-Master / Peso" (ex: "Men's GI / Blue / Amateur / 62KG",
+    "Men's GI / Purple / Master 2 / 77KG") — sem token de idade quando é
+    só "Amateur"/"Professional" (implicitamente Adulto). Por isso os dois
+    campos do meio são classificados pelo próprio conteúdo (é idade? é
+    faixa?) em vez de por posição fixa."""
+    partes = [p.strip() for p in header_texto.split("/")]
+    genero_raw = partes[0] if partes else ""
+    peso = partes[-1] if len(partes) > 1 else ""
+    meio = partes[1:-1]
+
+    # tokens que não batem com idade nem com faixa conhecida (ex:
+    # "Amateur"/"Professional") são descartados — não são faixa nem
+    # idade de verdade, então não há onde guardá-los; idade e faixa,
+    # quando presentes, continuam corretas de qualquer forma.
+    categoria_idade = ""
+    nivel = ""
+    for token in meio:
+        if not categoria_idade and _eh_rotulo_idade(token):
+            categoria_idade = token
+        elif not nivel and token.strip().lower() in _BELTS_EN:
+            nivel = token
+    if not categoria_idade:
+        categoria_idade = "Adult"
 
     if not peso and "absolute" in genero_raw.lower():
         peso = "Absoluto"
@@ -222,7 +286,7 @@ def idade_exata(data_nascimento, data_referencia):
 
 _KIDS_INTERVALO = re.compile(r"^(\d+)-(\d+)\s*years$", re.I)
 _KIDS_ATE = re.compile(r"^(\d+)\s*and under$", re.I)
-_MASTERS = re.compile(r"^Masters\s*(\d+)$", re.I)
+_MASTERS = re.compile(r"^Masters?\s*(\d+)$", re.I)
 
 
 _FAIXA_PT_PARA_EN = {
