@@ -19,6 +19,25 @@ function mostrarStatus(el, texto, ehErro = false) {
   el.className = "status-importacao" + (ehErro ? " erro" : "");
 }
 
+async function fetchImportacao(url, corpo) {
+  let resp;
+  try {
+    resp = await fetchAutenticado(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(corpo),
+    });
+  } catch {
+    // fetch() rejeitou antes de chegar resposta nenhuma (não é erro do
+    // servidor) — normalmente conexão instável ou o servidor reiniciando
+    // (ex: bem no meio de um deploy). Vale tentar de novo.
+    throw new Error("erro de conexão com o servidor — verifique sua internet e tente de novo em alguns segundos");
+  }
+  const dados = await resp.json();
+  if (!resp.ok) throw new Error(dados.erro || "erro ao importar");
+  return dados;
+}
+
 elArquivoEvento.addEventListener("change", async () => {
   const arquivo = elArquivoEvento.files[0];
   if (!arquivo) return;
@@ -28,13 +47,7 @@ elArquivoEvento.addEventListener("change", async () => {
 
   try {
     const html = await lerArquivoComoTexto(arquivo);
-    const resp = await fetchAutenticado("/api/adcc/importar-evento", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ html }),
-    });
-    const dados = await resp.json();
-    if (!resp.ok) throw new Error(dados.erro || "erro ao importar evento");
+    const dados = await fetchImportacao("/api/adcc/importar-evento", { html });
 
     eventoAtual = dados.evento;
     mostrarStatus(
@@ -56,13 +69,7 @@ elArquivoAtletas.addEventListener("change", async () => {
 
   try {
     const html = await lerArquivoComoTexto(arquivo);
-    const resp = await fetchAutenticado("/api/adcc/importar-atletas", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ evento_id: eventoAtual.id, html }),
-    });
-    const dados = await resp.json();
-    if (!resp.ok) throw new Error(dados.erro || "erro ao importar atletas");
+    const dados = await fetchImportacao("/api/adcc/importar-atletas", { evento_id: eventoAtual.id, html });
 
     mostrarStatus(elStatusAtletas, `${dados.total} atleta(s) importado(s) com sucesso.`);
   } catch (err) {
