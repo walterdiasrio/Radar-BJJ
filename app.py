@@ -1137,6 +1137,45 @@ def api_turma_remover_aluno(turma_id, aluno_id):
     return jsonify({"ok": True})
 
 
+@app.get("/api/turmas/posicoes")
+@api_assinatura_necessaria
+def api_listar_posicoes():
+    if not _usuario_atual_eh_mestre():
+        return jsonify({"erro": "exclusivo do perfil Mestre"}), 403
+    return jsonify(turmas.POSICOES)
+
+
+@app.get("/api/turmas/<int:turma_id>/planos-aula")
+@api_assinatura_necessaria
+def api_listar_planos_aula(turma_id):
+    if not _usuario_atual_eh_mestre():
+        return jsonify({"erro": "exclusivo do perfil Mestre"}), 403
+    if not turmas.turma_pertence_ao_mestre(session["usuario_id"], turma_id):
+        return jsonify({"erro": "turma não encontrada"}), 404
+    return jsonify(turmas.listar_planos_aula(session["usuario_id"], turma_id))
+
+
+@app.post("/api/turmas/<int:turma_id>/planos-aula")
+@api_assinatura_necessaria
+def api_criar_plano_aula(turma_id):
+    if not _usuario_atual_eh_mestre():
+        return jsonify({"erro": "exclusivo do perfil Mestre"}), 403
+    dados = request.get_json(silent=True) or {}
+    plano_id, erro = turmas.criar_plano_aula(session["usuario_id"], turma_id, dados)
+    if erro:
+        return jsonify({"erro": erro}), 400
+    return jsonify({"ok": True, "id": plano_id})
+
+
+@app.delete("/api/turmas/<int:turma_id>/planos-aula/<int:plano_id>")
+@api_assinatura_necessaria
+def api_remover_plano_aula(turma_id, plano_id):
+    if not _usuario_atual_eh_mestre():
+        return jsonify({"erro": "exclusivo do perfil Mestre"}), 403
+    turmas.remover_plano_aula(session["usuario_id"], turma_id, plano_id)
+    return jsonify({"ok": True})
+
+
 @app.get("/api/carreira/meu-mestre")
 @api_assinatura_necessaria
 def api_listar_meus_mestres():
