@@ -41,7 +41,7 @@ header {
   display: flex;
   flex-direction: column;
   gap: 0;
-  background: #ffffff;
+  background: var(--azul);
   width: 240px;
   flex-shrink: 0;
   padding: 10px 0;
@@ -53,7 +53,7 @@ header {
   display: flex;
   align-items: center;
   gap: 12px;
-  color: var(--azul);
+  color: #ffffff;
   text-decoration: none;
   padding: 13px 22px;
   font-family: var(--fonte-menu);
@@ -63,7 +63,7 @@ header {
   letter-spacing: 0.01em;
   text-transform: uppercase;
   border-left: 3px solid transparent;
-  border-bottom: 1px solid var(--borda);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .menu-lateral a svg {
@@ -73,11 +73,11 @@ header {
   stroke: currentColor;
 }
 
-.menu-lateral a:hover { background: #eef4fa; }
+.menu-lateral a:hover { background: rgba(255, 255, 255, 0.12); }
 .menu-lateral a.ativo {
   color: #ffffff;
-  background: var(--azul);
-  border-left-color: var(--azul-claro);
+  background: var(--azul-claro);
+  border-left-color: #ffffff;
 }
 
 .nav-admin-dropdown {
@@ -116,7 +116,11 @@ header {
 
 .nav-admin-submenu a {
   white-space: nowrap;
+  color: var(--azul);
+  border-bottom-color: var(--borda);
 }
+
+.nav-admin-submenu a:hover { background: #eef4fa; }
 
 @media (prefers-color-scheme: dark) {
   .menu-lateral { background: #1b2127; border-right-color: var(--borda); }
@@ -130,14 +134,14 @@ header {
   display: flex;
   flex-direction: column;
   padding-top: 12px;
-  border-top: 1px solid var(--borda);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .nav-usuario a {
   display: flex;
   align-items: center;
   gap: 10px;
-  color: var(--azul);
+  color: #ffffff;
   text-decoration: none;
   padding: 10px 22px;
   font-family: var(--fonte-menu);
@@ -149,10 +153,10 @@ header {
 
 .nav-usuario a svg { width: 17px; height: 17px; flex-shrink: 0; stroke: currentColor; }
 
-.nav-usuario a:hover { background: #eef4fa; }
+.nav-usuario a:hover { background: rgba(255, 255, 255, 0.12); }
 
 .nav-usuario .nav-email {
-  color: var(--azul-claro);
+  color: #cfe0f5;
   font-size: 0.8rem;
   font-weight: 600;
   padding: 4px 22px;
@@ -208,7 +212,8 @@ header {
   }
   .nav-admin-dropdown.aberto .nav-admin-submenu { display: flex; }
   .nav-admin-submenu a {
-    border-left: 1px solid var(--borda);
+    border-left: 1px solid rgba(255, 255, 255, 0.12);
+    color: #ffffff;
   }
   .nav-usuario {
     margin-top: 0;
