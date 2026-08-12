@@ -173,7 +173,12 @@ async function carregar() {
 
   try {
     const resp = await fetchAutenticado(`/api/competicoes?federacao=${encodeURIComponent(federacaoParaParametro(federacao))}`);
-    const dados = await resp.json();
+    let dados;
+    try {
+      dados = await resp.json();
+    } catch {
+      throw new Error("o servidor demorou demais pra responder (busca muito ampla). Tente selecionar menos federações.");
+    }
     if (!resp.ok) throw new Error(dados.erro || "erro ao carregar competições");
 
     competicoesCarregadas = dados.competicoes;

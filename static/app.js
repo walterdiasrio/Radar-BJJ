@@ -306,7 +306,12 @@ elForm.addEventListener("submit", async (ev) => {
 
   try {
     const resp = await fetchAutenticado(`/api/atletas?${params.toString()}`);
-    const dados = await resp.json();
+    let dados;
+    try {
+      dados = await resp.json();
+    } catch {
+      throw new Error("o servidor demorou demais pra responder (busca muito ampla). Tente selecionar menos federações ou uma competição específica.");
+    }
     if (!resp.ok) throw new Error(dados.erro || "erro na busca");
 
     renderizarResultados(dados.atletas);
