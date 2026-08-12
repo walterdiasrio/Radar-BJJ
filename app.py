@@ -986,13 +986,39 @@ def api_adicionar_aluno():
     if not _usuario_atual_eh_mestre():
         return jsonify({"erro": "exclusivo do perfil Mestre"}), 403
     dados = request.get_json(silent=True) or {}
-    aluno = auth.buscar_por_nome_usuario(dados.get("nome_usuario"))
+    aluno_id = dados.get("aluno_id")
+    aluno = auth.buscar_por_id(aluno_id) if aluno_id else auth.buscar_por_nome_usuario(dados.get("nome_usuario"))
     if not aluno:
-        return jsonify({"erro": "nenhum usuário encontrado com esse nome de usuário"}), 404
+        return jsonify({"erro": "nenhum usuário encontrado"}), 404
     ok, erro = carreira.criar_vinculo(mestre_id=session["usuario_id"], aluno_id=aluno["id"])
     if not ok:
         return jsonify({"erro": erro}), 400
     return jsonify({"ok": True})
+
+
+@app.get("/api/meus-alunos/buscar")
+@api_assinatura_necessaria
+def api_buscar_alunos_por_academia():
+    if not _usuario_atual_eh_mestre():
+        return jsonify({"erro": "exclusivo do perfil Mestre"}), 403
+
+    academia = (request.args.get("academia") or "").strip()
+    if not academia:
+        academia = (carreira.obter_perfil(session["usuario_id"]).get("academia") or "").strip()
+    if not academia:
+        return jsonify({"erro": "informe uma academia (ou cadastre a sua em Minha Carreira → Perfil)"}), 400
+
+    ja_vinculados = set(carreira.listar_ids_alunos_do_mestre(session["usuario_id"]))
+    ja_vinculados.add(session["usuario_id"])
+    candidatos = carreira.buscar_atletas_por_academia(academia, ja_vinculados)
+
+    atletas = []
+    for perfil in candidatos:
+        usuario = auth.buscar_por_id(perfil["usuario_id"])
+        if not usuario or usuario["tipo_perfil"] == "mestre" or usuario["email"] == ADMIN_EMAIL:
+            continue
+        atletas.append(perfil)
+    return jsonify({"academia": academia, "atletas": atletas})
 
 
 @app.delete("/api/meus-alunos/<int:aluno_id>")

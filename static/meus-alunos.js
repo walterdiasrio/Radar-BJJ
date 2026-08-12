@@ -70,4 +70,65 @@ async function removerAluno(alunoId) {
   }
 }
 
+const elStatusBusca = document.getElementById("status-busca-academia");
+const elListaBusca = document.getElementById("lista-busca-academia");
+
+function mostrarStatusBusca(texto, ehErro = false) {
+  elStatusBusca.textContent = texto;
+  elStatusBusca.className = "status-importacao" + (ehErro ? " erro" : "");
+}
+
+document.getElementById("form-buscar-academia").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const academia = document.getElementById("busca_academia").value.trim();
+  elListaBusca.innerHTML = "";
+  mostrarStatusBusca("Buscando...");
+  try {
+    const resp = await fetchAutenticado(`/api/meus-alunos/buscar?academia=${encodeURIComponent(academia)}`);
+    const dados = await resp.json();
+    if (!resp.ok) throw new Error(dados.erro || "não consegui buscar");
+
+    if (!dados.atletas.length) {
+      mostrarStatusBusca(`Nenhum atleta encontrado com a academia "${dados.academia}".`);
+      return;
+    }
+    mostrarStatusBusca(`${dados.atletas.length} atleta(s) encontrado(s) com a academia "${dados.academia}".`);
+    elListaBusca.innerHTML = dados.atletas.map(a => `
+      <div class="cartao-alerta">
+        <div class="cartao-alerta-topo">
+          <div>
+            <h3>${a.nome || "(sem nome)"}</h3>
+            <div class="cartao-alerta-federacao">Faixa ${a.faixa}${Number(a.grau) > 0 ? " · " + a.grau + "º grau" : ""} · ${a.academia}</div>
+          </div>
+          <button type="button" class="btn-add-busca" data-id="${a.usuario_id}">Adicionar</button>
+        </div>
+      </div>
+    `).join("");
+    elListaBusca.querySelectorAll(".btn-add-busca").forEach(btn => {
+      btn.addEventListener("click", () => adicionarAlunoPorId(Number(btn.dataset.id), btn));
+    });
+  } catch (err) {
+    mostrarStatusBusca(`Erro: ${err.message}`, true);
+  }
+});
+
+async function adicionarAlunoPorId(alunoId, botao) {
+  botao.disabled = true;
+  try {
+    const resp = await fetchAutenticado("/api/meus-alunos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ aluno_id: alunoId }),
+    });
+    const dados = await resp.json();
+    if (!resp.ok) throw new Error(dados.erro || "não consegui adicionar");
+    botao.closest(".cartao-alerta").remove();
+    mostrarStatus("Aluno adicionado!");
+    carregarAlunos();
+  } catch (err) {
+    botao.disabled = false;
+    mostrarStatusBusca(`Erro: ${err.message}`, true);
+  }
+}
+
 carregarAlunos();

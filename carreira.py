@@ -136,6 +136,21 @@ def listar_ids_mestres_do_aluno(aluno_id):
     return [linha["mestre_id"] for linha in linhas]
 
 
+def buscar_atletas_por_academia(academia, excluir_ids=()):
+    """Atletas cujo perfil (Minha Carreira) tem a academia igual à
+    informada (comparação sem diferenciar maiúsculas/minúsculas) — usado
+    pelo Mestre em Meus Alunos pra achar/adicionar alunos da própria
+    academia sem precisar saber o nome de usuário de cada um."""
+    academia = (academia or "").strip()
+    if not academia:
+        return []
+    with _conn() as conn:
+        linhas = conn.execute(
+            "SELECT * FROM perfis_atleta WHERE LOWER(academia) = LOWER(?) ORDER BY nome", (academia,)
+        ).fetchall()
+    return [dict(linha) for linha in linhas if linha["usuario_id"] not in excluir_ids]
+
+
 def salvar_perfil(usuario_id, dados):
     perfil = {
         "avatar": (dados.get("avatar") or "🥋").strip() or "🥋",

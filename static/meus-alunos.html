@@ -51,7 +51,21 @@
     <button type="submit">Adicionar</button>
   </form>
 
-  <div id="status" class="status-importacao"></div>
+  <h3 style="color: var(--azul); margin: 20px 0 4px;">Buscar por academia</h3>
+  <p style="color: #7c8894; font-size: 0.9rem; margin-top: 0;">
+    Encontre alunos que já cadastraram a mesma academia em Minha Carreira → Perfil.
+  </p>
+  <form id="form-buscar-academia" class="card-carreira" style="max-width: 420px; display: flex; gap: 8px; align-items: flex-end;">
+    <div class="campo" style="flex: 1; margin-bottom: 0;">
+      <label for="busca_academia">Academia</label>
+      <input type="text" id="busca_academia" placeholder="ex: Gracie Barra Centro">
+    </div>
+    <button type="submit">Buscar</button>
+  </form>
+  <div id="status-busca-academia" class="status-importacao"></div>
+  <div id="lista-busca-academia" style="margin-top: 8px;"></div>
+
+  <div id="status" class="status-importacao" style="margin-top: 20px;"></div>
   <div id="lista-alunos" style="margin-top: 12px;"></div>
 </main>
 </div>
