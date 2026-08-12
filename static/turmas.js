@@ -15,6 +15,8 @@ let turmasAtuais = [];
 let posicoesPorGrupo = {};
 const planosExpandidos = new Set();
 const planosPorTurma = {};
+const planoIaExpandidos = new Set();
+const planoIaEstado = {};
 
 function mostrarStatus(texto, ehErro = false) {
   elStatus.textContent = texto;
@@ -62,7 +64,7 @@ function renderizarPlanoAula(turma) {
   return `
     <div style="margin-top:12px; border-top:1px solid var(--borda); padding-top:12px;">
       <button type="button" class="btn-secundario btn-plano-aula" data-id="${turma.id}">
-        ${expandido ? "Esconder Plano de Aula" : "Plano de Aula"}
+        ${expandido ? "Esconder Histórico de Aulas" : "Histórico de Aulas"}
       </button>
 
       ${expandido ? `
@@ -98,6 +100,64 @@ function renderizarPlanoAula(turma) {
               </div>
             `).join("")}
           </div>
+        </div>
+      ` : ""}
+    </div>
+  `;
+}
+
+function renderizarPlanoIA(turma) {
+  const expandido = planoIaExpandidos.has(turma.id);
+  const estado = planoIaEstado[turma.id] || {};
+  const grupos = Object.keys(posicoesPorGrupo);
+
+  return `
+    <div style="margin-top:12px;">
+      <button type="button" class="btn-secundario btn-plano-ia" data-id="${turma.id}">
+        ${expandido ? "Esconder Plano de Aula IA" : "Plano de Aula IA"}
+      </button>
+
+      ${expandido ? `
+        <div style="margin-top:12px;">
+          <p style="color:#7c8894; font-size:0.85rem; margin-top:0;">
+            Escolha um foco e receba uma sugestão de aulas pro próximo mês, priorizando o que essa turma
+            menos treinou (e já sem posições de adulto, se a turma for Baby/Kids).
+          </p>
+          <div style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap;">
+            <div class="campo" style="max-width:320px; margin-bottom:0;">
+              <label>Foco</label>
+              <select class="plano_ia_foco" data-turma-id="${turma.id}">
+                <option value="">Selecione</option>
+                ${grupos.map(g => `<option value="${g}" ${estado.foco === g ? "selected" : ""}>${g}</option>`).join("")}
+              </select>
+            </div>
+            <button type="button" class="btn-gerar-plano-ia" data-id="${turma.id}" ${estado.carregando ? "disabled" : ""}>
+              ${estado.carregando ? "Gerando..." : "Gerar sugestão"}
+            </button>
+          </div>
+
+          ${estado.erro ? `<div class="status-importacao erro" style="margin-top:8px;">${estado.erro}</div>` : ""}
+
+          ${estado.resultado ? `
+            <div style="margin-top:14px;">
+              ${estado.resultado.aulas.map((a, i) => `
+                <div class="cartao-alerta" style="margin-top:8px; padding:12px 14px;">
+                  <div class="cartao-alerta-topo">
+                    <div class="cartao-alerta-federacao" style="margin-top:0;">${formatarDataBr(a.data)}</div>
+                    ${a.salvo
+                      ? `<span style="color:#1a7d3a; font-size:0.85rem; font-weight:600;">Salvo ✓</span>`
+                      : `<button type="button" class="btn-salvar-sugestao-ia" data-turma-id="${turma.id}" data-indice="${i}">Salvar no histórico</button>`}
+                  </div>
+                  <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;">
+                    ${a.posicoes.map(p => `<span style="background:#eef2f6; border-radius:20px; padding:3px 10px; font-size:0.8rem;">${p}</span>`).join("")}
+                  </div>
+                </div>
+              `).join("")}
+              ${estado.resultado.aulas.some(a => !a.salvo) ? `
+                <button type="button" class="btn-salvar-tudo-ia" data-id="${turma.id}" style="margin-top:10px;">Salvar plano inteiro no histórico</button>
+              ` : ""}
+            </div>
+          ` : ""}
         </div>
       ` : ""}
     </div>
@@ -158,6 +218,7 @@ function renderizarTurmas(turmas) {
         </form>
 
         ${renderizarPlanoAula(t)}
+        ${renderizarPlanoIA(t)}
       </div>
     `;
   }).join("");
@@ -190,6 +251,24 @@ function renderizarTurmas(turmas) {
   });
   elLista.querySelectorAll(".btn-remover-plano").forEach(btn => {
     btn.addEventListener("click", () => removerPlanoAula(Number(btn.dataset.turmaId), Number(btn.dataset.planoId)));
+  });
+  elLista.querySelectorAll(".btn-plano-ia").forEach(btn => {
+    btn.addEventListener("click", () => alternarPlanoIA(Number(btn.dataset.id)));
+  });
+  elLista.querySelectorAll(".plano_ia_foco").forEach(select => {
+    select.addEventListener("change", () => {
+      const turmaId = Number(select.dataset.turmaId);
+      planoIaEstado[turmaId] = { ...(planoIaEstado[turmaId] || {}), foco: select.value };
+    });
+  });
+  elLista.querySelectorAll(".btn-gerar-plano-ia").forEach(btn => {
+    btn.addEventListener("click", () => gerarPlanoIA(Number(btn.dataset.id)));
+  });
+  elLista.querySelectorAll(".btn-salvar-sugestao-ia").forEach(btn => {
+    btn.addEventListener("click", () => salvarSugestaoIA(Number(btn.dataset.turmaId), Number(btn.dataset.indice)));
+  });
+  elLista.querySelectorAll(".btn-salvar-tudo-ia").forEach(btn => {
+    btn.addEventListener("click", () => salvarTudoIA(Number(btn.dataset.id)));
   });
 }
 
@@ -258,6 +337,72 @@ async function removerPlanoAula(turmaId, planoId) {
     renderizarTurmas(turmasAtuais);
   } catch (err) {
     mostrarStatus(`Erro: ${err.message}`, true);
+  }
+}
+
+async function alternarPlanoIA(turmaId) {
+  if (planoIaExpandidos.has(turmaId)) {
+    planoIaExpandidos.delete(turmaId);
+    renderizarTurmas(turmasAtuais);
+    return;
+  }
+  await carregarPosicoes();
+  planoIaExpandidos.add(turmaId);
+  renderizarTurmas(turmasAtuais);
+}
+
+async function gerarPlanoIA(turmaId) {
+  const estado = planoIaEstado[turmaId] || {};
+  if (!estado.foco) {
+    planoIaEstado[turmaId] = { ...estado, erro: "selecione um foco primeiro" };
+    renderizarTurmas(turmasAtuais);
+    return;
+  }
+  planoIaEstado[turmaId] = { ...estado, carregando: true, erro: null };
+  renderizarTurmas(turmasAtuais);
+
+  try {
+    const resp = await fetchAutenticado(`/api/turmas/${turmaId}/plano-ia?foco=${encodeURIComponent(estado.foco)}`);
+    const dados = await resp.json();
+    if (!resp.ok) throw new Error(dados.erro || "não consegui gerar a sugestão");
+    planoIaEstado[turmaId] = { foco: estado.foco, carregando: false, erro: null, resultado: dados };
+  } catch (err) {
+    planoIaEstado[turmaId] = { foco: estado.foco, carregando: false, erro: err.message };
+  }
+  renderizarTurmas(turmasAtuais);
+}
+
+async function salvarSugestaoIA(turmaId, indice) {
+  const estado = planoIaEstado[turmaId];
+  if (!estado || !estado.resultado) return;
+  const aula = estado.resultado.aulas[indice];
+  try {
+    const resp = await fetchAutenticado(`/api/turmas/${turmaId}/planos-aula`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ data: aula.data, posicoes: aula.posicoes }),
+    });
+    const dados = await resp.json();
+    if (!resp.ok) throw new Error(dados.erro || "não consegui salvar");
+    aula.salvo = true;
+    if (planosExpandidos.has(turmaId)) {
+      const respLista = await fetchAutenticado(`/api/turmas/${turmaId}/planos-aula`);
+      planosPorTurma[turmaId] = await respLista.json();
+    } else {
+      delete planosPorTurma[turmaId]; // força recarregar na próxima vez que abrir
+    }
+    mostrarStatus("Aula salva no histórico!");
+    renderizarTurmas(turmasAtuais);
+  } catch (err) {
+    mostrarStatus(`Erro: ${err.message}`, true);
+  }
+}
+
+async function salvarTudoIA(turmaId) {
+  const estado = planoIaEstado[turmaId];
+  if (!estado || !estado.resultado) return;
+  for (let i = 0; i < estado.resultado.aulas.length; i++) {
+    if (!estado.resultado.aulas[i].salvo) await salvarSugestaoIA(turmaId, i);
   }
 }
 

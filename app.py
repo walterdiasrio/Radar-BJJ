@@ -1176,6 +1176,18 @@ def api_remover_plano_aula(turma_id, plano_id):
     return jsonify({"ok": True})
 
 
+@app.get("/api/turmas/<int:turma_id>/plano-ia")
+@api_assinatura_necessaria
+def api_sugerir_plano_ia(turma_id):
+    if not _usuario_atual_eh_mestre():
+        return jsonify({"erro": "exclusivo do perfil Mestre"}), 403
+    foco = request.args.get("foco", "")
+    resultado, erro = turmas.sugerir_plano_mensal(session["usuario_id"], turma_id, foco)
+    if erro:
+        return jsonify({"erro": erro}), 400
+    return jsonify(resultado)
+
+
 @app.get("/api/carreira/meu-mestre")
 @api_assinatura_necessaria
 def api_listar_meus_mestres():

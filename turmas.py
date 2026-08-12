@@ -3,9 +3,12 @@ Adolescente, Adulto) com horário de início/fim, e opcionalmente coloca
 alunos dela dentro. Só aceita alunos já vinculados ao Mestre em Meus
 Alunos (ver app.py) — turmas não criam vínculo novo, só organizam quem
 já é aluno."""
+import calendar
 import json
 import os
 import sqlite3
+from collections import Counter
+from datetime import date
 from pathlib import Path
 
 DATA_DIR = Path(os.environ.get("DATA_DIR", Path(__file__).parent))
@@ -49,6 +52,13 @@ POSICOES = {
     ],
 }
 _TODAS_POSICOES = {posicao for lista in POSICOES.values() for posicao in lista}
+
+# Chaves de calcanhar e toe hold machucam articulação em desenvolvimento —
+# IBJJF e a maioria das federações só liberam a partir de Adolescente/Adulto.
+# Chave de pé reta fica de fora dessa lista (já é liberada mais cedo).
+POSICOES_ADULTO_APENAS = {"Chave de Calcanhar", "Toe Hold"}
+
+_DIA_SEMANA_INDICE = {dia: i for i, dia in enumerate(DIAS_SEMANA)}
 
 
 def _conn():
@@ -260,3 +270,76 @@ def remover_plano_aula(mestre_id, turma_id, plano_id):
             "DELETE FROM planos_aula WHERE id = ? AND turma_id = ?", (plano_id, turma_id)
         )
         return cursor.rowcount > 0
+
+
+def _proximas_datas_do_mes(dias_semana, limite=8):
+    """Datas do PRÓXIMO mês (a partir de hoje) que caem nos dias da semana
+    da turma. Sem dias da semana cadastrados, cai pro mesmo dia da semana
+    de hoje (só pra sempre devolver algo)."""
+    hoje = date.today()
+    if hoje.month == 12:
+        ano, mes = hoje.year + 1, 1
+    else:
+        ano, mes = hoje.year, hoje.month + 1
+    ultimo_dia = calendar.monthrange(ano, mes)[1]
+
+    indices = {_DIA_SEMANA_INDICE[d] for d in dias_semana if d in _DIA_SEMANA_INDICE}
+    if not indices:
+        indices = {hoje.weekday()}
+
+    datas = [date(ano, mes, dia) for dia in range(1, ultimo_dia + 1) if date(ano, mes, dia).weekday() in indices]
+    return datas[:limite] if limite else datas
+
+
+def sugerir_plano_mensal(mestre_id, turma_id, foco, posicoes_por_aula=2):
+    """Sugestão de plano de aula pro próximo mês (não salva nada — o
+    Mestre revisa e decide o que registrar de fato). Cicla pelas posições
+    do foco escolhido que essa turma MENOS treinou até agora (as nunca
+    treinadas vêm primeiro), pulando posições de adulto quando a turma é
+    Baby/Kids. Retorna (resultado, erro)."""
+    if foco not in POSICOES:
+        return None, f"foco inválido (use: {', '.join(POSICOES.keys())})"
+
+    with _conn() as conn:
+        turma = conn.execute(
+            "SELECT * FROM turmas WHERE id = ? AND mestre_id = ?", (turma_id, mestre_id)
+        ).fetchone()
+        if not turma:
+            return None, "turma não encontrada"
+        turma = dict(turma)
+        turma["dias_semana"] = json.loads(turma["dias_semana"]) if turma["dias_semana"] else []
+
+        historico = conn.execute(
+            "SELECT posicoes FROM planos_aula WHERE turma_id = ?", (turma_id,)
+        ).fetchall()
+
+    pool = list(POSICOES[foco])
+    if turma["categoria"] in ("Baby", "Kids"):
+        pool = [p for p in pool if p not in POSICOES_ADULTO_APENAS]
+    if not pool:
+        return None, "não há posições liberadas pra essa categoria dentro desse foco"
+
+    contagem = Counter()
+    for linha in historico:
+        for posicao in json.loads(linha["posicoes"]):
+            if posicao in pool:
+                contagem[posicao] += 1
+    for posicao in pool:
+        contagem.setdefault(posicao, 0)
+
+    ordenadas = sorted(pool, key=lambda p: (contagem[p], p))
+
+    datas = _proximas_datas_do_mes(turma["dias_semana"])
+    if not datas:
+        return None, "não consegui calcular datas pro próximo mês"
+
+    sugestao = []
+    indice = 0
+    n = len(ordenadas)
+    for dia in datas:
+        qtd = min(posicoes_por_aula, n)
+        escolhidas = [ordenadas[(indice + i) % n] for i in range(qtd)]
+        indice += qtd
+        sugestao.append({"data": dia.isoformat(), "posicoes": escolhidas})
+
+    return {"foco": foco, "categoria": turma["categoria"], "aulas": sugestao}, None
