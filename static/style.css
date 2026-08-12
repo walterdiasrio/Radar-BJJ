@@ -585,6 +585,19 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
   margin-bottom: 0;
 }
 
+.banner-braus-link {
+  display: block;
+  margin-bottom: 16px;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.banner-braus {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
 .destaques-home .destaques-titulo-logo {
   height: 136px;
 }
