@@ -186,9 +186,38 @@ def _sem_bugs(eventos):
     return resultado
 
 
+# Lista de atletas inscritos por evento — sem isso, toda busca refaz o
+# scraping ao vivo da lista COMPLETA de inscritos de cada competição
+# escolhida, mesmo que o filtro (idade/peso/faixa) mude de uma busca pra
+# outra ou que duas pessoas busquem a mesma competição em seguida (os
+# conectores ignoram `filtros`: sempre devolvem todos os inscritos do
+# evento, e a filtragem acontece depois, em memória, em _atleta_combina).
+# É o principal gargalo de tempo numa busca "todas as federações, todas
+# as competições" — cachear aqui é o que mais acelera. TTL mais curto que
+# o de eventos porque inscrições abrem/fecham e mudam com mais frequência
+# durante a semana da competição. ADCC/AJP ficam de fora: já leem de um
+# JSON local instantâneo, cachear só adicionaria complexidade sem ganho.
+CACHE_TTL_ATLETAS_SEGUNDOS = int(os.environ.get("CACHE_TTL_ATLETAS_SEGUNDOS", 300))
+_cache_atletas = {}
+_cache_atletas_lock = threading.Lock()
+
+
 def buscar_atletas(federacao, evento_id, filtros):
+    cacheavel = federacao not in FEDERACOES_SMOOTHCOMP
+    if cacheavel:
+        chave = (federacao, evento_id)
+        with _cache_atletas_lock:
+            entrada = _cache_atletas.get(chave)
+            if entrada and time.time() - entrada[0] < CACHE_TTL_ATLETAS_SEGUNDOS:
+                return entrada[1]
+
     modulo = FEDERACOES[federacao]["module"]
-    return modulo.buscar_atletas(evento_id, filtros)
+    atletas = modulo.buscar_atletas(evento_id, filtros)
+
+    if cacheavel:
+        with _cache_atletas_lock:
+            _cache_atletas[chave] = (time.time(), atletas)
+    return atletas
 
 
 def _filtros_para_federacao(fed, filtros, evento_id=None, evento_nome=None):
