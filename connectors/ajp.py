@@ -45,7 +45,16 @@ def _salvar_eventos(eventos):
 
 
 def listar_eventos():
-    return _ler_eventos()
+    # inscricoes_abertas é calculado aqui (não gravado no JSON) pra
+    # continuar correto com o passar do tempo sem precisar reimportar —
+    # só o prazo em si (capturado na importação) fica salvo.
+    eventos = []
+    for evento in _ler_eventos():
+        evento = dict(evento)
+        prazo = evento.get("prazo_inscricao")
+        evento["inscricoes_abertas"] = date.today() <= date.fromisoformat(prazo) if prazo else None
+        eventos.append(evento)
+    return eventos
 
 
 def buscar_atletas(evento_id, filtros):
@@ -85,7 +94,7 @@ def _extrair_local(soup):
     return ""
 
 
-def _extrair_data_json_ld(soup):
+def _data_inicio_json_ld(soup):
     """A página do evento AJP (ajptour.com) traz um bloco JSON-LD
     (schema.org/SportsEvent) com startDate em ISO 8601 — bem mais
     confiável do que procurar a data no texto visível, porque o AJP
@@ -101,16 +110,15 @@ def _extrair_data_json_ld(soup):
         inicio = dados.get("startDate") if isinstance(dados, dict) else None
         if inicio:
             try:
-                return date.fromisoformat(inicio[:10]).strftime("%d/%m/%Y")
+                return date.fromisoformat(inicio[:10])
             except ValueError:
                 continue
-    return ""
+    return None
 
 
-def _extrair_data(soup):
-    data_json_ld = _extrair_data_json_ld(soup)
-    if data_json_ld:
-        return data_json_ld
+def _extrair_data(soup, data_inicio_json_ld):
+    if data_inicio_json_ld:
+        return data_inicio_json_ld.strftime("%d/%m/%Y")
 
     texto = soup.get_text(" ", strip=True)
     padrao = re.compile(r"([A-Za-z]{3,9})\.?\s+(\d{1,2}),\s*(\d{4})")
@@ -130,6 +138,41 @@ def _extrair_data(soup):
     if not mes:
         return ""
     return f"{int(dia):02d}/{mes:02d}/{ano_mais_comum}"
+
+
+_SCHEDULE_ITEM_INTERVALO = re.compile(r"(\d{1,2})\s+([A-Za-z]{3,9})\s*-\s*(\d{1,2})\s+([A-Za-z]{3,9})")
+
+
+def _extrair_prazo_inscricao(soup, ano_evento):
+    """As fases de inscrição ("Normal registration", "Late registration")
+    aparecem como .schedule-item na página do evento, com intervalo de
+    datas sem ano (ex: "25 Aug - 08 Sep 18:00") — usa o ano do evento
+    (já resolvido via JSON-LD) pra montar a data completa. Quando há mais
+    de uma fase, o prazo final de inscrição é o fim da fase mais tardia
+    (normalmente "Late registration"). Sem ano do evento, não dá pra
+    montar a data com segurança (o intervalo pode virar o ano)."""
+    if not ano_evento:
+        return None
+    prazos = []
+    for item in soup.select(".schedule-item"):
+        titulo_el = item.select_one(".title")
+        info_el = item.select_one(".info")
+        if not titulo_el or not info_el:
+            continue
+        if "registration" not in titulo_el.get_text(strip=True).lower():
+            continue
+        m = _SCHEDULE_ITEM_INTERVALO.search(info_el.get_text(" ", strip=True))
+        if not m:
+            continue
+        _dia_ini, _mes_ini, dia_fim, mes_fim_txt = m.groups()
+        mes_fim = _MESES_EN.get(mes_fim_txt.strip().lower()[:3])
+        if not mes_fim:
+            continue
+        try:
+            prazos.append(date(ano_evento, mes_fim, int(dia_fim)))
+        except ValueError:
+            continue
+    return max(prazos) if prazos else None
 
 
 _TABELA_IDADE_COORTE = re.compile(r"^(\d{4})\s+and\s+(\d{4})\s*/\s*([^/]+?)\s*/\s*.+$", re.I)
@@ -196,12 +239,15 @@ def parse_evento_html(html):
             "não encontrei o ID do evento nessa página (procurei um link tipo "
             "smoothcomp.com/.../event/12345) — confirma que essa é a página do evento?"
         )
+    data_inicio = _data_inicio_json_ld(soup)
+    prazo_inscricao = _extrair_prazo_inscricao(soup, data_inicio.year if data_inicio else None)
     return {
         "id": f"ajp-{evento_id}",
         "nome": _extrair_nome(soup),
-        "data": _extrair_data(soup),
+        "data": _extrair_data(soup, data_inicio),
         "local": _extrair_local(soup),
         "tabela_idade": _extrair_tabela_idade(soup),
+        "prazo_inscricao": prazo_inscricao.isoformat() if prazo_inscricao else None,
     }
 
 
