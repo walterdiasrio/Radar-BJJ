@@ -596,7 +596,7 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
 
 .destaques-home .destaque-manchete {
   padding: 16px 18px;
-  font-size: 1.2rem;
+  font-size: 1.5rem;
 }
 
 @media (max-width: 900px) {
@@ -638,7 +638,7 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
 .destaque-manchete {
   padding: 12px 14px;
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 1.2rem;
   color: var(--texto);
   font-family: "Times New Roman", Times, serif;
 }
@@ -666,6 +666,7 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
   flex: 1;
   font-weight: 600;
   font-family: "Times New Roman", Times, serif;
+  font-size: 1.1rem;
 }
 
 .destaque-card, .noticia-card {
@@ -707,7 +708,7 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
 
 .noticia-modal-manchete {
   padding: 18px 22px 4px;
-  font-size: 1.2rem;
+  font-size: 1.7rem;
   font-weight: 700;
   color: var(--azul);
   font-family: "Times New Roman", Times, serif;
@@ -720,6 +721,7 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
   line-height: 1.5;
   color: var(--texto);
   font-family: "Times New Roman", Times, serif;
+  font-size: 1.05rem;
 }
 
 .noticia-modal-fechar {
