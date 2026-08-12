@@ -15,7 +15,7 @@ import carreira
 import contato
 import noticias
 import pagamentos
-from connectors import FEDERACOES, TODAS, listar_eventos, buscar_atletas_agregado, listar_competicoes
+from connectors import FEDERACOES, TODAS, listar_eventos, buscar_atletas_agregado, listar_competicoes, evento_sem_kimono
 from connectors import adcc
 from connectors import ajp
 from connectors import FEDERACOES_SMOOTHCOMP, FEDERACOES_SMOOTHCOMP_SEM_KIMONO
@@ -657,13 +657,20 @@ def _categoria_completa(federacao, ano_nascimento, peso_kg, genero, data_nascime
 
     idade_categoria = idade_mod.categoria_para(federacao, ano_nascimento)
     resultado = {"categoria_idade": idade_categoria}
-    if peso_kg is not None:
+
+    peso_bruto = peso_kg
+    if evento_id and evento_id != TODAS:
+        evento = next((e for e in listar_eventos(federacao) if e["id"] == evento_id), None)
+        if evento and evento_sem_kimono(evento.get("nome", "")):
+            peso_bruto = peso_sem_kimono
+
+    if peso_bruto is not None:
         idade = idade_mod.idade_a_partir_do_ano(ano_nascimento)
         if idade >= 16 and not genero:
             resultado["peso_categoria"] = None
             resultado["aviso_peso"] = "selecione o gênero"
         else:
-            resultado["peso_categoria"] = peso_mod.categoria_peso_para(federacao, idade, peso_kg, genero)
+            resultado["peso_categoria"] = peso_mod.categoria_peso_para(federacao, idade, peso_bruto, genero)
     return resultado
 
 

@@ -41,6 +41,20 @@ FEDERACOES_SMOOTHCOMP_SEM_KIMONO = {"adcc"}
 
 TODAS = "todas"
 
+# Federações "tradicionais" (não-Smoothcomp) têm uma tabela de peso única
+# por federação/idade, mas algumas delas também organizam eventos
+# específicos de No-Gi dentro do mesmo calendário (ex: "Campeonato
+# Brasileiro de Jiu-Jitsu Sem Kimono", "... No-Gi Championship"). Quando o
+# nome do evento menciona isso, usamos o peso sem kimono do atleta em vez
+# do peso com kimono pra calcular a categoria de peso desse evento
+# específico. A AJP é exceção: é sempre Gi, mesmo participando da
+# Smoothcomp (ver FEDERACOES_SMOOTHCOMP_SEM_KIMONO).
+_PADRAO_EVENTO_SEM_KIMONO = re.compile(r"sem\s+kimono|\bno[\s-]?gi\b", re.I)
+
+
+def evento_sem_kimono(nome_evento):
+    return bool(nome_evento and _PADRAO_EVENTO_SEM_KIMONO.search(nome_evento))
+
 
 def _combina(texto, termo):
     if not termo:
@@ -177,7 +191,7 @@ def buscar_atletas(federacao, evento_id, filtros):
     return modulo.buscar_atletas(evento_id, filtros)
 
 
-def _filtros_para_federacao(fed, filtros, evento_id=None):
+def _filtros_para_federacao(fed, filtros, evento_id=None, evento_nome=None):
     """Calcula, para essa federação específica, a categoria etária exata e a
     categoria de peso exata. A maioria das federações usa ano de nascimento
     (tabela própria por federação); o ADCC é diferente — categoriza pela
@@ -248,15 +262,16 @@ def _filtros_para_federacao(fed, filtros, evento_id=None):
         else:
             avisos.append(f"{FEDERACOES[fed]['label']}: não há categoria para esse ano de nascimento")
 
-    peso_kg = filtros.get("peso_kg")
-    if peso_kg:
+    sem_kimono = evento_sem_kimono(evento_nome)
+    peso_bruto = filtros.get("peso_sem_kimono") if sem_kimono else filtros.get("peso_kg")
+    if peso_bruto:
         try:
-            peso_kg = float(str(peso_kg).replace(",", "."))
+            peso_bruto = float(str(peso_bruto).replace(",", "."))
         except (TypeError, ValueError):
             avisos.append(f"{FEDERACOES[fed]['label']}: peso inválido")
-            peso_kg = None
+            peso_bruto = None
 
-        if peso_kg is not None:
+        if peso_bruto is not None:
             if idade is None:
                 avisos.append(
                     f"{FEDERACOES[fed]['label']}: informe também o ano de nascimento para calcular a categoria de peso"
@@ -267,7 +282,7 @@ def _filtros_para_federacao(fed, filtros, evento_id=None):
                     "(a partir do Juvenil, o limite de peso muda entre masculino e feminino)"
                 )
             else:
-                categoria_peso = peso_mod.categoria_peso_para(fed, idade, peso_kg, filtros.get("genero", ""))
+                categoria_peso = peso_mod.categoria_peso_para(fed, idade, peso_bruto, filtros.get("genero", ""))
                 if categoria_peso:
                     filtros_fed["peso_categoria"] = categoria_peso
                 else:
@@ -307,9 +322,9 @@ def buscar_atletas_agregado(federacao, evento_id, filtros):
             # A categoria dessas federações depende da data de CADA
             # competição (idade exata no dia do evento), então precisa
             # calcular por evento — diferente das outras federações, onde a
-            # categoria não muda conforme a competição escolhida.
+            # categoria etária não muda conforme a competição escolhida.
             for evento in eventos:
-                filtros_fed, avisos = _filtros_para_federacao(fed, filtros, evento["id"])
+                filtros_fed, avisos = _filtros_para_federacao(fed, filtros, evento_id=evento["id"])
                 for aviso in avisos:
                     if aviso not in avisos_ja_mostrados:
                         avisos_ja_mostrados.add(aviso)
@@ -317,9 +332,16 @@ def buscar_atletas_agregado(federacao, evento_id, filtros):
                 tarefas.append((fed, evento, filtros_fed))
             continue
 
-        filtros_fed, avisos = _filtros_para_federacao(fed, filtros)
-        erros.extend(avisos)
+        # A categoria de peso também é calculada por evento aqui: algumas
+        # competições dessas federações são especificamente Sem Kimono (o
+        # nome do evento avisa), e nesses casos o peso usado é o sem
+        # kimono do atleta em vez do peso com kimono.
         for evento in eventos:
+            filtros_fed, avisos = _filtros_para_federacao(fed, filtros, evento_nome=evento.get("nome"))
+            for aviso in avisos:
+                if aviso not in avisos_ja_mostrados:
+                    avisos_ja_mostrados.add(aviso)
+                    erros.append(aviso)
             tarefas.append((fed, evento, filtros_fed))
 
     resultados = []
