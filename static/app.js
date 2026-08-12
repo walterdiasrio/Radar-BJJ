@@ -152,7 +152,7 @@ async function atualizarCategoriaCalculada() {
       return;
     }
 
-    if (typeof federacao !== "string") {
+    if (federacao === TODAS || Array.isArray(federacao)) {
       const linhasIdade = Object.entries(dados.categorias || {})
         .map(([fid, info]) => FEDERACOES_SMOOTHCOMP.includes(fid) ? _linhaCategoriaSmoothcomp(fid, info) : `${LABEL_FEDERACAO[fid] || fid}: ${info.categoria_idade || "sem categoria"}`);
       elCategoriaCalculada.textContent = linhasIdade.join(" · ");
