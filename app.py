@@ -15,6 +15,7 @@ import carreira
 import contato
 import noticias
 import pagamentos
+import turmas
 from connectors import FEDERACOES, TODAS, listar_eventos, buscar_atletas_agregado, listar_competicoes, evento_sem_kimono
 from connectors import adcc
 from connectors import ajp
@@ -45,6 +46,7 @@ noticias.init_db()
 pagamentos.init_db()
 carreira.init_db()
 contato.init_db()
+turmas.init_db()
 noticias.remover_noticias_expiradas()  # limpa logo na subida, não só no próximo ciclo
 
 
@@ -1025,6 +1027,88 @@ def api_aluno_detalhe(aluno_id):
         "competicoes": carreira.listar_competicoes(aluno_id),
         "estatisticas": carreira.calcular_estatisticas(aluno_id),
     })
+
+
+@app.get("/turmas")
+@assinatura_necessaria
+def pagina_turmas():
+    if not _usuario_atual_eh_mestre():
+        return "Página não encontrada", 404
+    return send_from_directory("static", "turmas.html")
+
+
+def _turma_com_alunos(turma):
+    turma = dict(turma)
+    turma["alunos"] = [_perfil_publico_vinculo(aid) for aid in turma.pop("aluno_ids")]
+    return turma
+
+
+@app.get("/api/turmas")
+@api_assinatura_necessaria
+def api_listar_turmas():
+    if not _usuario_atual_eh_mestre():
+        return jsonify({"erro": "exclusivo do perfil Mestre"}), 403
+    return jsonify([_turma_com_alunos(t) for t in turmas.listar_turmas(session["usuario_id"])])
+
+
+@app.post("/api/turmas")
+@api_assinatura_necessaria
+def api_criar_turma():
+    if not _usuario_atual_eh_mestre():
+        return jsonify({"erro": "exclusivo do perfil Mestre"}), 403
+    dados = request.get_json(silent=True) or {}
+    turma_id, erro = turmas.criar_turma(session["usuario_id"], dados)
+    if erro:
+        return jsonify({"erro": erro}), 400
+    return jsonify({"ok": True, "id": turma_id})
+
+
+@app.put("/api/turmas/<int:turma_id>")
+@api_assinatura_necessaria
+def api_atualizar_turma(turma_id):
+    if not _usuario_atual_eh_mestre():
+        return jsonify({"erro": "exclusivo do perfil Mestre"}), 403
+    dados = request.get_json(silent=True) or {}
+    ok, erro = turmas.atualizar_turma(session["usuario_id"], turma_id, dados)
+    if not ok:
+        return jsonify({"erro": erro}), 400
+    return jsonify({"ok": True})
+
+
+@app.delete("/api/turmas/<int:turma_id>")
+@api_assinatura_necessaria
+def api_remover_turma(turma_id):
+    if not _usuario_atual_eh_mestre():
+        return jsonify({"erro": "exclusivo do perfil Mestre"}), 403
+    turmas.remover_turma(session["usuario_id"], turma_id)
+    return jsonify({"ok": True})
+
+
+@app.post("/api/turmas/<int:turma_id>/alunos")
+@api_assinatura_necessaria
+def api_turma_adicionar_aluno(turma_id):
+    if not _usuario_atual_eh_mestre():
+        return jsonify({"erro": "exclusivo do perfil Mestre"}), 403
+    dados = request.get_json(silent=True) or {}
+    try:
+        aluno_id = int(dados.get("aluno_id"))
+    except (TypeError, ValueError):
+        return jsonify({"erro": "aluno_id inválido"}), 400
+    if not carreira.vinculo_existe(mestre_id=session["usuario_id"], aluno_id=aluno_id):
+        return jsonify({"erro": "esse aluno não está na sua lista de Meus Alunos"}), 400
+    ok, erro = turmas.adicionar_aluno(session["usuario_id"], turma_id, aluno_id)
+    if not ok:
+        return jsonify({"erro": erro}), 404
+    return jsonify({"ok": True})
+
+
+@app.delete("/api/turmas/<int:turma_id>/alunos/<int:aluno_id>")
+@api_assinatura_necessaria
+def api_turma_remover_aluno(turma_id, aluno_id):
+    if not _usuario_atual_eh_mestre():
+        return jsonify({"erro": "exclusivo do perfil Mestre"}), 403
+    turmas.remover_aluno(session["usuario_id"], turma_id, aluno_id)
+    return jsonify({"ok": True})
 
 
 @app.get("/api/carreira/meu-mestre")
