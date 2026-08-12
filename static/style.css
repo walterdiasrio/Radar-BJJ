@@ -621,6 +621,22 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
   gap: 16px;
 }
 
+.destaques:not(.destaques-home) .destaques-grade {
+  grid-template-columns: repeat(2, 1fr);
+  gap: 28px;
+}
+
+.destaques:not(.destaques-home) .destaque-manchete {
+  padding: 16px 18px;
+  font-size: 1.5rem;
+}
+
+@media (max-width: 640px) {
+  .destaques:not(.destaques-home) .destaques-grade {
+    grid-template-columns: 1fr;
+  }
+}
+
 .destaque-card {
   background: white;
   border: 1px solid var(--borda);
