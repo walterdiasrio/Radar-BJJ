@@ -26,6 +26,8 @@ services:
         sync: false
       - key: STRIPE_PRICE_MESTRE_ANUAL
         sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
     disk:
       name: radar-bjj-data
       mountPath: /var/data

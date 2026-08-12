@@ -36,7 +36,7 @@ POSICOES = {
         "Raspagem Hip Bump", "Raspagem De La Riva",
     ],
     "Quedas": [
-        "Dupla Queda de Perna", "Simples Queda de Perna", "Queda de Judô",
+        "Double Leg", "Single Leg", "Queda de Judô",
     ],
     "Finalizações — Chaves de Braço": [
         "Armlock", "Kimura", "Americana", "Omoplata",
@@ -343,3 +343,113 @@ def sugerir_plano_mensal(mestre_id, turma_id, foco, posicoes_por_aula=2):
         sugestao.append({"data": dia.isoformat(), "posicoes": escolhidas})
 
     return {"foco": foco, "categoria": turma["categoria"], "aulas": sugestao}, None
+
+
+def _chamar_claude_plano(turma, foco, resumo, pool, datas):
+    import anthropic
+
+    with _conn() as conn:
+        historico = conn.execute(
+            "SELECT data, posicoes FROM planos_aula WHERE turma_id = ? ORDER BY data DESC LIMIT 30", (turma["id"],)
+        ).fetchall()
+    historico_texto = "\n".join(
+        f"- {linha['data']}: {', '.join(json.loads(linha['posicoes']))}" for linha in historico
+    ) or "(nenhuma aula registrada ainda)"
+
+    prompt = f"""Você é um assistente de um professor (Mestre) de Jiu-Jitsu montando o plano de aulas do próximo mês para uma turma.
+
+Dados da turma:
+- Categoria: {turma['categoria']}
+- Dias de aula na semana: {', '.join(turma['dias_semana']) or '(não definido)'}
+- Datas das próximas aulas no mês: {', '.join(d.isoformat() for d in datas)}
+
+Histórico de aulas já dadas (mais recentes primeiro, até 30):
+{historico_texto}
+
+Posições/técnicas permitidas para escolher (use exatamente esses nomes, não invente outros):
+{', '.join(pool)}
+
+{"Foco solicitado pelo Mestre: " + foco if foco else "Nenhum foco específico foi escolhido — distribua entre as posições permitidas."}
+{("O que o Mestre quer para esse plano: " + resumo) if resumo else ""}
+
+Monte uma sugestão de plano de aula, uma entrada para cada uma das datas acima, escolhendo 2 posições por aula
+(sempre da lista permitida), priorizando o que essa turma menos treinou e o que o Mestre pediu no resumo. Se a
+categoria for Baby ou Kids, nunca sugira Chave de Calcanhar nem Toe Hold.
+
+Responda APENAS com um JSON válido, sem nenhum texto antes ou depois, exatamente neste formato:
+{{"aulas": [{{"data": "YYYY-MM-DD", "posicoes": ["posição 1", "posição 2"], "observacao": "breve explicação de 1 frase do porquê dessa escolha"}}]}}"""
+
+    client = anthropic.Anthropic()
+    response = client.messages.create(
+        model="claude-opus-5",
+        max_tokens=2000,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    texto = "".join(bloco.text for bloco in response.content if bloco.type == "text").strip()
+    if texto.startswith("```"):
+        texto = texto.strip("`")
+        if texto.startswith("json"):
+            texto = texto[4:]
+    dados = json.loads(texto)
+
+    validas = []
+    for aula in dados.get("aulas") or []:
+        data = aula.get("data")
+        posicoes = [p for p in (aula.get("posicoes") or []) if p in pool]
+        if turma["categoria"] in ("Baby", "Kids"):
+            posicoes = [p for p in posicoes if p not in POSICOES_ADULTO_APENAS]
+        if not data or not posicoes:
+            continue
+        validas.append({"data": data, "posicoes": posicoes, "observacao": aula.get("observacao", "")})
+
+    if not validas:
+        raise ValueError("resposta da IA sem aulas válidas")
+    return {"foco": foco or "Geral", "categoria": turma["categoria"], "aulas": validas}
+
+
+def gerar_plano_ia(mestre_id, turma_id, foco, resumo, posicoes_por_aula=2):
+    """Sugestão de plano de aula pro próximo mês usando IA (Claude), levando em
+    conta o resumo em texto livre do Mestre. Se a API não estiver configurada
+    (sem ANTHROPIC_API_KEY) ou a chamada falhar, cai pra sugestão determinística
+    (sugerir_plano_mensal). Retorna (resultado, erro); resultado tem uma chave
+    'ia' indicando se veio da IA de fato ou do fallback."""
+    if foco and foco not in POSICOES:
+        return None, f"foco inválido (use: {', '.join(POSICOES.keys())})"
+
+    with _conn() as conn:
+        turma = conn.execute(
+            "SELECT * FROM turmas WHERE id = ? AND mestre_id = ?", (turma_id, mestre_id)
+        ).fetchone()
+        if not turma:
+            return None, "turma não encontrada"
+        turma = dict(turma)
+        turma["dias_semana"] = json.loads(turma["dias_semana"]) if turma["dias_semana"] else []
+
+    pool = list(POSICOES[foco]) if foco else list(_TODAS_POSICOES)
+    if turma["categoria"] in ("Baby", "Kids"):
+        pool = [p for p in pool if p not in POSICOES_ADULTO_APENAS]
+    if not pool:
+        return None, "não há posições liberadas pra essa categoria dentro desse foco"
+
+    datas = _proximas_datas_do_mes(turma["dias_semana"])
+    if not datas:
+        return None, "não consegui calcular datas pro próximo mês"
+
+    def _fallback():
+        resultado, erro = sugerir_plano_mensal(
+            mestre_id, turma_id, foco or next(iter(POSICOES)), posicoes_por_aula
+        )
+        if erro:
+            return None, erro
+        resultado["ia"] = False
+        return resultado, None
+
+    if not os.environ.get("ANTHROPIC_API_KEY"):
+        return _fallback()
+
+    try:
+        resultado = _chamar_claude_plano(turma, foco, (resumo or "").strip(), pool, datas)
+        resultado["ia"] = True
+        return resultado, None
+    except Exception:
+        return _fallback()

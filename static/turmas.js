@@ -120,26 +120,35 @@ function renderizarPlanoIA(turma) {
       ${expandido ? `
         <div style="margin-top:12px;">
           <p style="color:#7c8894; font-size:0.85rem; margin-top:0;">
-            Escolha um foco e receba uma sugestão de aulas pro próximo mês, priorizando o que essa turma
-            menos treinou (e já sem posições de adulto, se a turma for Baby/Kids).
+            A IA monta uma sugestão de aulas pro próximo mês, priorizando o que essa turma menos treinou
+            (e já sem posições de adulto, se a turma for Baby/Kids). Foco e resumo são opcionais, mas ajudam a IA.
           </p>
-          <div style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap;">
-            <div class="campo" style="max-width:320px; margin-bottom:0;">
-              <label>Foco</label>
-              <select class="plano_ia_foco" data-turma-id="${turma.id}">
-                <option value="">Selecione</option>
-                ${grupos.map(g => `<option value="${g}" ${estado.foco === g ? "selected" : ""}>${g}</option>`).join("")}
-              </select>
-            </div>
-            <button type="button" class="btn-gerar-plano-ia" data-id="${turma.id}" ${estado.carregando ? "disabled" : ""}>
-              ${estado.carregando ? "Gerando..." : "Gerar sugestão"}
-            </button>
+          <div class="campo" style="max-width:420px;">
+            <label>Foco (opcional)</label>
+            <select class="plano_ia_foco" data-turma-id="${turma.id}">
+              <option value="">Sem foco específico</option>
+              ${grupos.map(g => `<option value="${g}" ${estado.foco === g ? "selected" : ""}>${g}</option>`).join("")}
+            </select>
           </div>
+          <div class="campo" style="max-width:420px;">
+            <label>O que você quer nesse plano? (opcional)</label>
+            <textarea class="plano_ia_resumo" data-turma-id="${turma.id}" rows="3"
+              placeholder="ex: turma está fraca na defesa, quero reforçar escapes e fundamentos essa semana"
+              maxlength="600">${estado.resumo || ""}</textarea>
+          </div>
+          <button type="button" class="btn-gerar-plano-ia" data-id="${turma.id}" ${estado.carregando ? "disabled" : ""}>
+            ${estado.carregando ? "Gerando..." : "Gerar sugestão com IA"}
+          </button>
 
           ${estado.erro ? `<div class="status-importacao erro" style="margin-top:8px;">${estado.erro}</div>` : ""}
 
           ${estado.resultado ? `
             <div style="margin-top:14px;">
+              ${estado.resultado.ia === false ? `
+                <div class="status-importacao" style="margin-bottom:8px;">
+                  IA indisponível no momento — mostrando sugestão automática (sem IA).
+                </div>
+              ` : ""}
               ${estado.resultado.aulas.map((a, i) => `
                 <div class="cartao-alerta" style="margin-top:8px; padding:12px 14px;">
                   <div class="cartao-alerta-topo">
@@ -151,6 +160,7 @@ function renderizarPlanoIA(turma) {
                   <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;">
                     ${a.posicoes.map(p => `<span style="background:#eef2f6; border-radius:20px; padding:3px 10px; font-size:0.8rem;">${p}</span>`).join("")}
                   </div>
+                  ${a.observacao ? `<div style="color:#7c8894; font-size:0.82rem; margin-top:6px;">${a.observacao}</div>` : ""}
                 </div>
               `).join("")}
               ${estado.resultado.aulas.some(a => !a.salvo) ? `
@@ -173,10 +183,11 @@ function renderizarTurmas(turmas) {
   }
 
   mostrarStatus(`${turmas.length} turma(s).`);
+  const idParaDestacar = new URLSearchParams(window.location.search).get("turma");
   elLista.innerHTML = turmas.map(t => {
     const disponiveis = opcoesAlunosDisponiveis(t);
     return `
-      <div class="cartao-alerta" data-turma-id="${t.id}">
+      <div class="cartao-alerta" data-turma-id="${t.id}" id="turma-${t.id}" style="${idParaDestacar == t.id ? 'outline: 2px solid var(--azul-claro);' : ''}">
         <div class="cartao-alerta-topo">
           <div>
             <h3>${t.nome ? t.nome + " — " : ""}${t.categoria}</h3>
@@ -261,6 +272,12 @@ function renderizarTurmas(turmas) {
       planoIaEstado[turmaId] = { ...(planoIaEstado[turmaId] || {}), foco: select.value };
     });
   });
+  elLista.querySelectorAll(".plano_ia_resumo").forEach(textarea => {
+    textarea.addEventListener("input", () => {
+      const turmaId = Number(textarea.dataset.turmaId);
+      planoIaEstado[turmaId] = { ...(planoIaEstado[turmaId] || {}), resumo: textarea.value };
+    });
+  });
   elLista.querySelectorAll(".btn-gerar-plano-ia").forEach(btn => {
     btn.addEventListener("click", () => gerarPlanoIA(Number(btn.dataset.id)));
   });
@@ -279,9 +296,17 @@ async function carregarTurmas() {
     const turmas = await resp.json();
     if (!resp.ok) throw new Error(turmas.erro || "erro ao carregar turmas");
     renderizarTurmas(turmas);
+    rolarAteTurmaDestacada();
   } catch (err) {
     mostrarStatus(`Erro: ${err.message}`, true);
   }
+}
+
+function rolarAteTurmaDestacada() {
+  const id = new URLSearchParams(window.location.search).get("turma");
+  if (!id) return;
+  const el = document.getElementById(`turma-${id}`);
+  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 async function alternarPlanoAula(turmaId) {
@@ -353,21 +378,20 @@ async function alternarPlanoIA(turmaId) {
 
 async function gerarPlanoIA(turmaId) {
   const estado = planoIaEstado[turmaId] || {};
-  if (!estado.foco) {
-    planoIaEstado[turmaId] = { ...estado, erro: "selecione um foco primeiro" };
-    renderizarTurmas(turmasAtuais);
-    return;
-  }
   planoIaEstado[turmaId] = { ...estado, carregando: true, erro: null };
   renderizarTurmas(turmasAtuais);
 
   try {
-    const resp = await fetchAutenticado(`/api/turmas/${turmaId}/plano-ia?foco=${encodeURIComponent(estado.foco)}`);
+    const resp = await fetchAutenticado(`/api/turmas/${turmaId}/plano-ia`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ foco: estado.foco || "", resumo: estado.resumo || "" }),
+    });
     const dados = await resp.json();
     if (!resp.ok) throw new Error(dados.erro || "não consegui gerar a sugestão");
-    planoIaEstado[turmaId] = { foco: estado.foco, carregando: false, erro: null, resultado: dados };
+    planoIaEstado[turmaId] = { ...estado, carregando: false, erro: null, resultado: dados };
   } catch (err) {
-    planoIaEstado[turmaId] = { foco: estado.foco, carregando: false, erro: err.message };
+    planoIaEstado[turmaId] = { ...estado, carregando: false, erro: err.message };
   }
   renderizarTurmas(turmasAtuais);
 }

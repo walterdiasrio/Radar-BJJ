@@ -36,6 +36,7 @@ async function carregarSessaoNoMenu() {
       if (elMeusAlunos) elMeusAlunos.style.display = dados.mestre ? "" : "none";
       if (elTurmas) elTurmas.style.display = dados.mestre ? "" : "none";
       if (elAssinatura) elAssinatura.style.display = "";
+      if (dados.mestre) carregarSubmenuTurmas();
       aplicarSessao({ logado: true, mestre: !!dados.mestre, admin: !!dados.admin, email: dados.email });
     } else {
       el.innerHTML = `<a href="/login">${ICONE_LOGIN}<span>Entrar</span></a><a href="/cadastro">${ICONE_CADASTRO}<span>Cadastrar</span></a>`;
@@ -56,6 +57,23 @@ async function carregarSessaoNoMenu() {
 }
 
 carregarSessaoNoMenu();
+
+// Submenu "Turmas": lista as turmas já criadas pelo Mestre, com link direto
+// pra cada uma dentro de /turmas.
+async function carregarSubmenuTurmas() {
+  const elSubmenu = document.getElementById("nav-turmas-submenu");
+  if (!elSubmenu) return;
+  try {
+    const resp = await fetch("/api/turmas");
+    if (!resp.ok) return;
+    const turmas = await resp.json();
+    elSubmenu.innerHTML = turmas.length
+      ? turmas.map(t => `<a href="/turmas?turma=${t.id}">${t.nome ? t.nome + " — " : ""}${t.categoria}</a>`).join("")
+      : `<a href="/turmas">Nenhuma turma ainda</a>`;
+  } catch {
+    // silencioso — submenu só é um atalho, a página /turmas continua acessível
+  }
+}
 
 // Submenu "Admin": abre com hover no desktop (via CSS), e com clique/toque
 // em qualquer dispositivo (essencial no celular, que não tem hover) —
