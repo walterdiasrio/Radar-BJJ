@@ -132,6 +132,62 @@ def _extrair_data(soup):
     return f"{int(dia):02d}/{mes:02d}/{ano_mais_comum}"
 
 
+_TABELA_IDADE_COORTE = re.compile(r"^(\d{4})\s+and\s+(\d{4})\s*/\s*([^/]+?)\s*/\s*.+$", re.I)
+_TABELA_IDADE_CORTE = re.compile(r"^(\d{4})\s+and\s+before\s*/\s*([^/]+?)\s*/\s*.+$", re.I)
+_DIVISOES_SEM_IDADE_PROPRIA = {"amateur", "professional"}
+
+
+def _extrair_tabela_idade(soup):
+    """Cada evento AJP costuma trazer, no texto livre da própria página
+    (escrito pelo organizador, não um campo estruturado do Smoothcomp),
+    uma tabela "Year of Birth / Division / Belt" com o ano de nascimento
+    exato de cada divisão (ex: "2011 and 2012 / Teen / ...",
+    "1990 and before / Master 2 / ..."). Isso é bem mais preciso do que
+    tentar adivinhar a idade de "Master 2"/"Teen"/"Kids 1" só pelo nome —
+    esses rótulos não seguem um padrão numérico previsível (diferente do
+    ADCC, que usa "Masters 30/35/40" — aí sim o número já É a idade).
+
+    "Amateur"/"Professional" ficam de fora: não são faixa etária, são
+    nível de habilidade (nesse mesmo evento, pessoas de anos de
+    nascimento sobrepostos podem estar em qualquer um dos dois), então
+    não dá pra resolver isso a partir da data de nascimento.
+
+    Como isso vem de texto escrito à mão por cada organizador, o formato
+    pode variar ou faltar em algum evento — por isso é só uma tentativa
+    best-effort: se não achar nada, `categoria_exata_para_idade` cai de
+    volta no heurístico genérico (ver lá)."""
+    coortes = []
+    cortes = []
+    vistos = set()
+    for p in soup.find_all("p"):
+        texto = p.get_text(" ", strip=True)
+        if not texto or "/" not in texto:
+            continue
+
+        m = _TABELA_IDADE_COORTE.match(texto)
+        if m:
+            ano1, ano2, divisao = int(m.group(1)), int(m.group(2)), m.group(3).strip()
+            if divisao.lower() in _DIVISOES_SEM_IDADE_PROPRIA:
+                continue
+            chave = ("coorte", divisao, ano1, ano2)
+            if chave not in vistos:
+                vistos.add(chave)
+                coortes.append({"divisao": divisao, "ano_min": min(ano1, ano2), "ano_max": max(ano1, ano2)})
+            continue
+
+        m = _TABELA_IDADE_CORTE.match(texto)
+        if m:
+            ano, divisao = int(m.group(1)), m.group(2).strip()
+            if divisao.lower() in _DIVISOES_SEM_IDADE_PROPRIA:
+                continue
+            chave = ("corte", divisao, ano)
+            if chave not in vistos:
+                vistos.add(chave)
+                cortes.append({"divisao": divisao, "ano_max": ano})
+
+    return {"coortes": coortes, "cortes": cortes}
+
+
 def parse_evento_html(html):
     soup = BeautifulSoup(html, "lxml")
     evento_id = _extrair_id_evento(html)
@@ -145,6 +201,7 @@ def parse_evento_html(html):
         "nome": _extrair_nome(soup),
         "data": _extrair_data(soup),
         "local": _extrair_local(soup),
+        "tabela_idade": _extrair_tabela_idade(soup),
     }
 
 
@@ -309,8 +366,50 @@ def faixa_combina(atleta, termo_busca):
     return faixa_atleta == faixa_en or faixa_atleta == termo
 
 
-def categoria_exata_para_idade(evento_id, idade):
+def _categoria_por_ano_nascimento(tabela_idade, ano_nascimento):
+    """Resolve a divisão certa usando a tabela "ano de nascimento -> divisão"
+    extraída da página do evento (ver _extrair_tabela_idade). Coortes
+    (2 anos exatos, tipo kids/teen/youth) são checadas primeiro, por
+    serem mais específicas; cortes tipo "Master N: X e antes" são
+    cumulativos — o corte mais recente (maior ano) que ainda contém o
+    ano de nascimento é o mais específico (ex: nascido em 1988: bate em
+    "1990 and before" E "1996 and before", mas 1990 é o mais restrito
+    dos dois que ainda vale, então é esse)."""
+    if not tabela_idade:
+        return None
+
+    for coorte in tabela_idade.get("coortes", []):
+        if coorte["ano_min"] <= ano_nascimento <= coorte["ano_max"]:
+            return coorte["divisao"]
+
+    cortes = sorted(tabela_idade.get("cortes", []), key=lambda c: c["ano_max"])
+    for corte in cortes:
+        if ano_nascimento <= corte["ano_max"]:
+            return corte["divisao"]
+
+    return None
+
+
+def categoria_exata_para_idade(evento_id, idade, data_nascimento=None):
     rotulos = {a["categoria_idade"] for a in buscar_atletas(evento_id, {}) if a.get("categoria_idade")}
+
+    if data_nascimento is not None:
+        tabela_idade = None
+        for evento in _ler_eventos():
+            if evento["id"] == evento_id:
+                tabela_idade = evento.get("tabela_idade")
+                break
+        if tabela_idade and (tabela_idade.get("coortes") or tabela_idade.get("cortes")):
+            categoria = _categoria_por_ano_nascimento(tabela_idade, data_nascimento.year)
+            if categoria:
+                return categoria
+            # não bateu com nenhuma divisão específica da tabela (kids,
+            # teen, master...) — é um adulto "comum" (não master). NÃO
+            # cai no heurístico genérico abaixo pra esse caso: ele trata
+            # o número de "Master N" como se fosse idade, o que daria
+            # resposta errada aqui (ex: classificaria um adulto de 26
+            # anos como "Master 4").
+            return "Adult" if "adult" in {r.strip().lower() for r in rotulos} else None
 
     kids = []
     masters = []

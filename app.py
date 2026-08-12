@@ -642,7 +642,7 @@ def _categoria_completa(federacao, ano_nascimento, peso_kg, genero, data_nascime
             return resultado
         data_referencia = modulo.data_referencia_evento(evento_id)
         idade_exata = modulo.idade_exata(data_nascimento, data_referencia)
-        categoria = modulo.categoria_exata_para_idade(evento_id, idade_exata)
+        categoria = modulo.categoria_exata_para_idade(evento_id, idade_exata, data_nascimento)
         resultado["categoria_idade"] = categoria
         resultado["idade_exata"] = idade_exata
         resultado["data_referencia"] = data_referencia.strftime("%d/%m/%Y")

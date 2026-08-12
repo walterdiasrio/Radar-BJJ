@@ -312,12 +312,17 @@ def faixa_combina(atleta, termo_busca):
     return False
 
 
-def categoria_exata_para_idade(evento_id, idade):
+def categoria_exata_para_idade(evento_id, idade, data_nascimento=None):
     """Descobre a categoria etária certa pra essa idade dentro das
     categorias que JÁ EXISTEM nessa competição especificamente (em vez de
     supor uma tabela fixa de regras do ADCC, que muda de evento pra
     evento) — usa os rótulos que o próprio Smoothcomp criou pros grupos
-    dessa competição na hora da importação."""
+    dessa competição na hora da importação. `data_nascimento` não é usado
+    aqui (existe só pra manter a mesma assinatura do conector AJP, que
+    precisa do ano de nascimento exato pra resolver categorias tipo
+    "Master N"/"Teen" a partir da tabela de idade da página do evento —
+    o ADCC não tem esse problema porque usa "Masters 30/35/40", onde o
+    número já é a própria idade)."""
     rotulos = {a["categoria_idade"] for a in buscar_atletas(evento_id, {}) if a.get("categoria_idade")}
 
     kids = []
