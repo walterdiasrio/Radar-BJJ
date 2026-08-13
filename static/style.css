@@ -3,6 +3,7 @@
 :root {
   --azul: #093093;
   --azul-claro: #4663ae;
+  --azul-menu: #1f4392;
   --fundo: #f4f6f8;
   --borda: #d7dde3;
   --texto: #1c2733;
@@ -41,7 +42,7 @@ header {
   display: flex;
   flex-direction: column;
   gap: 0;
-  background: var(--azul);
+  background: var(--azul-menu);
   width: 240px;
   flex-shrink: 0;
   padding: 10px 0;
