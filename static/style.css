@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&family=Montserrat:wght@600;700;800&display=swap');
 
 :root {
   --azul: #093093;
@@ -8,6 +8,7 @@
   --borda: #d7dde3;
   --texto: #1c2733;
   --fonte-menu: 'Oswald', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --fonte-menu-topo: 'Montserrat', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 * { box-sizing: border-box; }
@@ -52,6 +53,7 @@ header {
   padding: 0;
   border-bottom: 1px solid var(--borda);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+  transition: background 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .menu-lateral a {
@@ -61,11 +63,11 @@ header {
   color: #ffffff;
   text-decoration: none;
   padding: 14px 16px;
-  font-family: var(--fonte-menu);
-  font-weight: 400;
-  font-style: italic;
+  font-family: var(--fonte-menu-topo);
+  font-weight: 700;
+  font-style: normal;
   font-size: 0.85rem;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
   white-space: nowrap;
   border-bottom: 3px solid transparent;
@@ -150,10 +152,11 @@ header {
   color: #ffffff;
   text-decoration: none;
   padding: 10px 14px;
-  font-family: var(--fonte-menu);
-  font-weight: 400;
-  font-style: italic;
-  font-size: 0.8rem;
+  font-family: var(--fonte-menu-topo);
+  font-weight: 700;
+  font-style: normal;
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
 }
 
@@ -175,6 +178,28 @@ header {
   .nav-usuario a { color: #eaf2f9; }
   .nav-usuario a:hover { background: rgba(255, 255, 255, 0.06); }
   .nav-usuario .nav-email { color: #7fd4ff; }
+}
+
+@media (min-width: 901px) {
+  /* Flutua transparente sobre o banner (igual cbjj.com.br) até rolar a
+     página; a partir daí vira fixa e sólida (classe .flutuante, alternada
+     via JS em auth-nav.js) pra continuar legível sobre o conteúdo. */
+  .menu-lateral {
+    position: absolute;
+    top: 0;
+    left: 0;
+    background: transparent;
+    border-bottom: none;
+    box-shadow: none;
+    justify-content: flex-start;
+    padding: 4px 32px;
+  }
+  .menu-lateral.flutuante {
+    position: fixed;
+    background: var(--azul-menu);
+    border-bottom: 1px solid var(--borda);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+  }
 }
 
 @media (max-width: 900px) {

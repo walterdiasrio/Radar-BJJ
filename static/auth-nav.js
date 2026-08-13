@@ -58,6 +58,25 @@ async function carregarSessaoNoMenu() {
 
 carregarSessaoNoMenu();
 
+// Menu flutua transparente sobre o banner (como cbjj.com.br) até a página
+// rolar o suficiente pra cobrir onde ele "flutuaria" — a partir daí vira
+// fixo e sólido (classe .flutuante) pra continuar legível e utilizável.
+(() => {
+  const elMenu = document.querySelector(".menu-lateral");
+  const elHeader = document.querySelector("header");
+  if (!elMenu || !elHeader) return;
+
+  const aoRolar = () => {
+    // Vira sólida assim que a barra transparente (sobreposta ao banner)
+    // sairia de vista rolando — não espera o banner inteiro passar.
+    const limite = Math.max(elMenu.offsetHeight - 20, 40);
+    elMenu.classList.toggle("flutuante", window.scrollY > limite);
+  };
+  window.addEventListener("scroll", aoRolar, { passive: true });
+  window.addEventListener("resize", aoRolar);
+  aoRolar();
+})();
+
 // Submenu "Turmas": lista as turmas já criadas pelo Mestre, com link direto
 // pra cada uma dentro de /turmas.
 async function carregarSubmenuTurmas() {
