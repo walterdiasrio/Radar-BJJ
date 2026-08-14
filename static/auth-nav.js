@@ -36,7 +36,7 @@ async function carregarSessaoNoMenu() {
       if (elMeusAlunos) elMeusAlunos.style.display = dados.mestre ? "" : "none";
       if (elTurmas) elTurmas.style.display = dados.mestre ? "" : "none";
       if (elAssinatura) elAssinatura.style.display = "";
-      if (dados.mestre) carregarSubmenuTurmas();
+      if (dados.mestre) await carregarSubmenuTurmas();
       aplicarSessao({ logado: true, mestre: !!dados.mestre, admin: !!dados.admin, email: dados.email });
     } else {
       el.innerHTML = `<a href="/login">${ICONE_LOGIN}<span>Entrar</span></a><a href="/cadastro">${ICONE_CADASTRO}<span>Cadastrar</span></a>`;
@@ -55,8 +55,6 @@ async function carregarSessaoNoMenu() {
     aplicarSessao({ logado: false, mestre: false, admin: false });
   }
 }
-
-carregarSessaoNoMenu();
 
 // Submenu "Turmas": lista as turmas já criadas pelo Mestre, com link direto
 // pra cada uma dentro de /turmas.
@@ -83,31 +81,71 @@ async function carregarSubmenuTurmas() {
 // como overflow-y:auto — cortando um submenu position:absolute. Por isso o
 // submenu vira position:fixed em telas largas (ver style.css), e aqui a
 // gente calcula o top/left exatos toda vez que ele for aparecer.
-document.querySelectorAll(".nav-admin-dropdown").forEach((elDropdown) => {
-  const elToggle = elDropdown.querySelector(":scope > a");
-  const elSubmenu = elDropdown.querySelector(".nav-admin-submenu");
-  if (!elToggle || !elSubmenu) return;
+// Recebe um "escopo" (document, ou o menu clonado no rodapé) porque essa
+// função roda duas vezes: uma pro menu do topo, outra pro clone de baixo.
+function configurarDropdowns(escopo) {
+  escopo.querySelectorAll(".nav-admin-dropdown").forEach((elDropdown) => {
+    const elToggle = elDropdown.querySelector(":scope > a");
+    const elSubmenu = elDropdown.querySelector(".nav-admin-submenu");
+    if (!elToggle || !elSubmenu) return;
 
-  const posicionar = () => {
-    const r = elToggle.getBoundingClientRect();
-    elSubmenu.style.top = `${r.bottom}px`;
-    elSubmenu.style.left = `${r.left}px`;
-  };
+    // No rodapé abre pra cima (ancorado por "bottom", não "top" — assim não
+    // precisa saber a altura do submenu antes dele estar visível pra medir).
+    const posicionarParaCima = () => {
+      const r = elToggle.getBoundingClientRect();
+      elSubmenu.style.top = "auto";
+      elSubmenu.style.bottom = `${window.innerHeight - r.top}px`;
+      elSubmenu.style.left = `${r.left}px`;
+    };
+    const posicionarNormal = () => {
+      const r = elToggle.getBoundingClientRect();
+      elSubmenu.style.bottom = "auto";
+      elSubmenu.style.top = `${r.bottom}px`;
+      elSubmenu.style.left = `${r.left}px`;
+    };
+    const ehRodape = elDropdown.closest(".menu-lateral-rodape") !== null;
 
-  elDropdown.addEventListener("mouseenter", posicionar);
+    elDropdown.addEventListener("mouseenter", ehRodape ? posicionarParaCima : posicionarNormal);
 
-  if (elToggle.classList.contains("nav-admin-toggle")) {
-    elToggle.addEventListener("click", (ev) => {
+    if (elToggle.classList.contains("nav-admin-toggle")) {
+      elToggle.addEventListener("click", (ev) => {
+        ev.preventDefault();
+        (ehRodape ? posicionarParaCima : posicionarNormal)();
+        elDropdown.classList.toggle("aberto");
+      });
+    }
+
+    document.addEventListener("click", (ev) => {
+      if (!elDropdown.contains(ev.target)) elDropdown.classList.remove("aberto");
+    });
+  });
+}
+configurarDropdowns(document);
+
+// Réplica do menu principal fixa no rodapé (mesmos links, dropdowns e
+// estado de login) — clona só depois que o menu do topo está pronto de
+// verdade (sessão carregada e submenu de Turmas populado), pra não duplicar
+// um menu ainda incompleto.
+async function montarMenuRodape() {
+  const elTopo = document.querySelector(".menu-lateral:not(.menu-lateral-rodape)");
+  const elRodape = document.getElementById("menu-rodape");
+  if (!elTopo || !elRodape) return;
+  elRodape.innerHTML = elTopo.innerHTML;
+  configurarDropdowns(elRodape);
+
+  // O botão "Sair" tem um listener preso ao elemento original (não a um
+  // id) — o clone precisa do próprio, senão o botão de baixo fica morto.
+  const elSairRodape = elRodape.querySelector("#nav-sair");
+  if (elSairRodape) {
+    elSairRodape.addEventListener("click", async (ev) => {
       ev.preventDefault();
-      posicionar();
-      elDropdown.classList.toggle("aberto");
+      await fetch("/api/sair", { method: "POST" });
+      window.location.reload();
     });
   }
+}
 
-  document.addEventListener("click", (ev) => {
-    if (!elDropdown.contains(ev.target)) elDropdown.classList.remove("aberto");
-  });
-});
+carregarSessaoNoMenu().then(montarMenuRodape);
 
 // Wrapper de fetch para chamadas de API que exigem login: se a sessão
 // expirou (401), manda direto para o login em vez de mostrar erro genérico.
