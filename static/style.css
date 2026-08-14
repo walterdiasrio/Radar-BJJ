@@ -287,41 +287,11 @@ nav.menu-lateral.menu-lateral-rodape {
   position: static;
   top: auto;
   bottom: auto;
-  height: auto;
   margin-top: 40px;
   background: var(--azul-menu);
   border-bottom: none;
   border-top: 1px solid var(--borda);
   box-shadow: none;
-  justify-content: center;
-  flex-wrap: wrap;
-  overflow-x: visible;
-  padding: 14px 24px;
-}
-
-/* Barra bem mais grossa que o menu do topo, no estilo de rodapé "de
-   verdade" (tipo cbjj.com.br) — links maiores e mais espaçados, sem o
-   font-size/padding espremidos que o menu do topo precisa pra caber numa
-   linha só embaixo do banner. */
-nav.menu-lateral.menu-lateral-rodape a {
-  padding: 16px 20px;
-  font-size: 0.95rem;
-  font-weight: 400;
-}
-
-nav.menu-lateral.menu-lateral-rodape a svg {
-  width: 20px;
-  height: 20px;
-}
-
-nav.menu-lateral.menu-lateral-rodape .nav-usuario {
-  margin-left: 0;
-}
-
-nav.menu-lateral.menu-lateral-rodape .nav-usuario a,
-nav.menu-lateral.menu-lateral-rodape .nav-usuario .nav-email {
-  font-size: 0.85rem;
-  padding: 16px 16px;
 }
 
 @media (prefers-color-scheme: dark) {
