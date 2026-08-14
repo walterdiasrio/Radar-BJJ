@@ -67,9 +67,10 @@ async function carregarSubmenuTurmas() {
     const resp = await fetch("/api/turmas");
     if (!resp.ok) return;
     const turmas = await resp.json();
-    elSubmenu.innerHTML = turmas.length
+    const itemNova = `<a href="/turmas?nova=1"><strong>+ Nova turma</strong></a>`;
+    elSubmenu.innerHTML = itemNova + (turmas.length
       ? turmas.map(t => `<a href="/turmas?turma=${t.id}">${t.nome ? t.nome + " — " : ""}${t.categoria}</a>`).join("")
-      : `<a href="/turmas">Nenhuma turma ainda</a>`;
+      : "");
   } catch {
     // silencioso — submenu só é um atalho, a página /turmas continua acessível
   }

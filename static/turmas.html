@@ -47,50 +47,63 @@
     <a href="/meus-alunos">Meus Alunos</a> dentro de cada uma.
   </p>
 
-  <form id="form-turma" class="card-carreira" style="max-width: 560px;">
-    <input type="hidden" id="turma_id">
-    <div class="grade-filtros">
-      <div class="campo">
-        <label for="turma_nome">Nome da turma (opcional)</label>
-        <input type="text" id="turma_nome" placeholder="ex: Turma da manhã" maxlength="60">
-      </div>
-      <div class="campo">
-        <label for="turma_categoria">Categoria</label>
-        <select id="turma_categoria" required>
-          <option value="">Selecione</option>
-          <option value="Baby">Baby</option>
-          <option value="Kids">Kids</option>
-          <option value="Adolescente">Adolescente</option>
-          <option value="Adulto">Adulto</option>
-        </select>
-      </div>
-      <div class="campo">
-        <label for="turma_horario_inicio">Horário início</label>
-        <input type="time" id="turma_horario_inicio" required>
-      </div>
-      <div class="campo">
-        <label for="turma_horario_fim">Horário fim</label>
-        <input type="time" id="turma_horario_fim" required>
-      </div>
+  <div id="secao-form-turma">
+    <div style="display:flex; align-items:center; justify-content:space-between; max-width:560px;">
+      <h3 id="titulo-form-turma" style="color: var(--azul); margin-bottom: 8px;">Nova turma</h3>
+      <a href="/turmas" style="font-size:0.85rem;">← Voltar pra Turmas</a>
     </div>
-    <div class="campo">
-      <label>Dias da semana</label>
-      <div id="turma_dias_semana" class="opcoes-federacao">
-        <label><input type="checkbox" value="Segunda"> Segunda</label>
-        <label><input type="checkbox" value="Terça"> Terça</label>
-        <label><input type="checkbox" value="Quarta"> Quarta</label>
-        <label><input type="checkbox" value="Quinta"> Quinta</label>
-        <label><input type="checkbox" value="Sexta"> Sexta</label>
-        <label><input type="checkbox" value="Sábado"> Sábado</label>
-        <label><input type="checkbox" value="Domingo"> Domingo</label>
+    <form id="form-turma" class="card-carreira" style="max-width: 560px;">
+      <input type="hidden" id="turma_id">
+      <div class="grade-filtros">
+        <div class="campo">
+          <label for="turma_nome">Nome da turma (opcional)</label>
+          <input type="text" id="turma_nome" placeholder="ex: Turma da manhã" maxlength="60">
+        </div>
+        <div class="campo">
+          <label for="turma_categoria">Categoria</label>
+          <select id="turma_categoria" required>
+            <option value="">Selecione</option>
+            <option value="Baby">Baby</option>
+            <option value="Kids">Kids</option>
+            <option value="Adolescente">Adolescente</option>
+            <option value="Adulto">Adulto</option>
+          </select>
+        </div>
+        <div class="campo">
+          <label for="turma_horario_inicio">Horário início</label>
+          <input type="time" id="turma_horario_inicio" required>
+        </div>
+        <div class="campo">
+          <label for="turma_horario_fim">Horário fim</label>
+          <input type="time" id="turma_horario_fim" required>
+        </div>
       </div>
-    </div>
-    <button type="submit" id="btn-salvar-turma">Criar turma</button>
-    <button type="button" id="btn-cancelar-edicao" class="btn-secundario" style="display:none">Cancelar edição</button>
-  </form>
+      <div class="campo">
+        <label>Dias da semana</label>
+        <div id="turma_dias_semana" class="opcoes-federacao">
+          <label><input type="checkbox" value="Segunda"> Segunda</label>
+          <label><input type="checkbox" value="Terça"> Terça</label>
+          <label><input type="checkbox" value="Quarta"> Quarta</label>
+          <label><input type="checkbox" value="Quinta"> Quinta</label>
+          <label><input type="checkbox" value="Sexta"> Sexta</label>
+          <label><input type="checkbox" value="Sábado"> Sábado</label>
+          <label><input type="checkbox" value="Domingo"> Domingo</label>
+        </div>
+      </div>
+      <button type="submit" id="btn-salvar-turma">Criar turma</button>
+      <button type="button" id="btn-cancelar-edicao" class="btn-secundario" style="display:none">Cancelar edição</button>
+    </form>
+  </div>
 
   <div id="status" class="status-importacao"></div>
-  <div id="lista-turmas" style="margin-top: 16px;"></div>
+
+  <div id="secao-lista-turmas">
+    <div style="display:flex; align-items:center; justify-content:space-between; max-width:560px;">
+      <h3 style="color: var(--azul); margin-bottom: 8px;">Minhas turmas</h3>
+      <a href="/turmas?nova=1" class="btn-secundario" style="text-decoration:none; padding:6px 14px;">+ Nova turma</a>
+    </div>
+    <div id="lista-turmas" style="margin-top: 16px;"></div>
+  </div>
 </main>
 </div>
 

@@ -9,6 +9,28 @@ const elFim = document.getElementById("turma_horario_fim");
 const elDiasSemana = document.getElementById("turma_dias_semana");
 const elBtnSalvar = document.getElementById("btn-salvar-turma");
 const elBtnCancelar = document.getElementById("btn-cancelar-edicao");
+const elSecaoForm = document.getElementById("secao-form-turma");
+const elSecaoLista = document.getElementById("secao-lista-turmas");
+const elTituloForm = document.getElementById("titulo-form-turma");
+
+// A página tem dois modos que não se misturam: "criar" (?nova=1 — só o
+// formulário, chegou pelo submenu "Nova Turma") e "consultar" (?turma=<id>
+// — só aquela turma específica, chegou pelo submenu com o nome dela). Sem
+// parâmetro nenhum, mostra a lista completa (sem o formulário).
+const parametrosUrl = new URLSearchParams(window.location.search);
+const modoNovaTurma = parametrosUrl.get("nova") === "1";
+const turmaIdFiltro = parametrosUrl.get("turma");
+
+function aplicarModoPagina() {
+  if (modoNovaTurma) {
+    elSecaoForm.style.display = "";
+    elSecaoLista.style.display = "none";
+  } else {
+    elSecaoForm.style.display = "none";
+    elSecaoLista.style.display = "";
+  }
+}
+aplicarModoPagina();
 
 let meusAlunos = [];
 let turmasAtuais = [];
@@ -176,15 +198,27 @@ function renderizarPlanoIA(turma) {
 
 function renderizarTurmas(turmas) {
   turmasAtuais = turmas;
+
+  // Modo "consultar uma turma" (?turma=<id>, veio do submenu): mostra só
+  // ela, não a lista inteira — não mistura com as outras.
+  const turmasParaExibir = turmaIdFiltro
+    ? turmas.filter(t => String(t.id) === String(turmaIdFiltro))
+    : turmas;
+
   if (!turmas.length) {
     elLista.innerHTML = "";
-    mostrarStatus("Nenhuma turma criada ainda. Use o formulário acima.");
+    mostrarStatus("Nenhuma turma criada ainda. Clique em \"+ Nova turma\".");
+    return;
+  }
+  if (turmaIdFiltro && !turmasParaExibir.length) {
+    elLista.innerHTML = "";
+    mostrarStatus("Essa turma não existe mais.", true);
     return;
   }
 
-  mostrarStatus(`${turmas.length} turma(s).`);
-  const idParaDestacar = new URLSearchParams(window.location.search).get("turma");
-  elLista.innerHTML = turmas.map(t => {
+  mostrarStatus(turmaIdFiltro ? "" : `${turmas.length} turma(s).`);
+  const idParaDestacar = turmaIdFiltro;
+  elLista.innerHTML = turmasParaExibir.map(t => {
     const disponiveis = opcoesAlunosDisponiveis(t);
     return `
       <div class="cartao-alerta" data-turma-id="${t.id}" id="turma-${t.id}" style="${idParaDestacar == t.id ? 'outline: 2px solid var(--azul-claro);' : ''}">
@@ -441,16 +475,24 @@ function iniciarEdicao(turmaId, turmas) {
   elDiasSemana.querySelectorAll('input[type="checkbox"]').forEach(c => {
     c.checked = turma.dias_semana.includes(c.value);
   });
+  elTituloForm.textContent = "Editar turma";
   elBtnSalvar.textContent = "Salvar alterações";
   elBtnCancelar.style.display = "";
+  // Editar abre o formulário mesmo estando no modo "consultar" — as duas
+  // funcionalidades continuam sem se misturar na tela (a lista some
+  // enquanto o formulário de edição está aberto).
+  elSecaoForm.style.display = "";
+  elSecaoLista.style.display = "none";
   elForm.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function cancelarEdicao() {
   elTurmaId.value = "";
   elForm.reset();
+  elTituloForm.textContent = "Nova turma";
   elBtnSalvar.textContent = "Criar turma";
   elBtnCancelar.style.display = "none";
+  if (!modoNovaTurma) aplicarModoPagina();
 }
 
 elBtnCancelar.addEventListener("click", cancelarEdicao);
@@ -473,7 +515,13 @@ elForm.addEventListener("submit", async (ev) => {
     });
     const dadosResp = await resp.json();
     if (!resp.ok) throw new Error(dadosResp.erro || "não consegui salvar a turma");
-    mostrarStatus(editando ? "Turma atualizada!" : "Turma criada!");
+    if (!editando) {
+      // Turma nova: manda direto pra tela de consulta dela, já separada
+      // da criação (em vez de ficar preso na tela de "Nova turma").
+      window.location.href = `/turmas?turma=${dadosResp.id}`;
+      return;
+    }
+    mostrarStatus("Turma atualizada!");
     cancelarEdicao();
     carregarTurmas();
   } catch (err) {
