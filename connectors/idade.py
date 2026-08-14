@@ -47,8 +47,12 @@ _CBJJ_FJJRIO = [
 ]
 
 _CBJJD = [
-    (4, 6, "Pré-Mirim"),
-    (7, 9, "Mirim"),
+    (4, 4, "Pré-Mirim 1"),
+    (5, 5, "Pré-Mirim 2"),
+    (6, 6, "Pré-Mirim 3"),
+    (7, 7, "Mirim 1"),
+    (8, 8, "Mirim 2"),
+    (9, 9, "Mirim 3"),
     (10, 10, "Infantil 1"),
     (11, 11, "Infantil 2"),
     (12, 12, "Infantil 3"),
