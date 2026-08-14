@@ -832,6 +832,13 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
   color: var(--azul);
 }
 
+.plano-logo {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0 0 10px;
+}
+
 .plano-destaque {
   border-color: var(--azul-claro);
   box-shadow: 0 0 0 1px var(--azul-claro);
