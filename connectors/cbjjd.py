@@ -70,54 +70,51 @@ def buscar_atletas(evento_id, filtros):
     return resultados
 
 
-def _texto_normalizado(tag):
-    return " ".join(tag.get_text(" ", strip=True).split())
+_CAMPO_NOME = re.compile(r'name="m_nomeatleta"[^>]*value="([^"]*)"')
+_CAMPO_ACADEMIA = re.compile(r'name="m_nomeacademia"[^>]*value="([^"]*)"')
+_CAMPO_PESO = re.compile(r'name="m_peso"[^>]*value="([^"]*)"')
+
+
+def _texto_categoria(bloco):
+    # O texto da categoria (ex: "BRANCA - PRE-MIRIM 3 (6 anos)") vem logo no
+    # começo do bloco, antes da primeira tag </font> que fecha o cabeçalho.
+    m = re.search(r"^(.*?)</font>", bloco, re.S)
+    if not m:
+        return ""
+    bruto = re.sub(r"<[^>]+>", " ", m.group(1))
+    return " ".join(bruto.split()).lstrip("- ").strip()
 
 
 def _parsear_checagem(html, genero):
-    """A página é uma única tabela gigante (HTML antigo, sem <table> por
-    categoria): cada categoria é uma linha <tr bgcolor="#000000"> com
-    "FAIXA - <faixa> - <divisão>", seguida de uma linha de cabeçalho
-    <tr bgcolor="#FFFFFF"> com os rótulos das colunas ("Nome do Atleta",
-    "Academia", etc — a posição varia entre página geral e absoluto) e então
-    as linhas de atletas propriamente ditas. Times/idades vazios continuam
-    aparecendo como linhas "molde" sem nome (é assim que o site sinaliza que
-    ninguém fez checagem ainda nessa categoria) — por isso pulamos qualquer
-    linha sem nome em vez de tratá-la como atleta."""
-    soup = BeautifulSoup(html, "lxml")
+    """A página é HTML muito antigo, com tags nunca fechadas (ex: dezenas de
+    <font> aninhados sem par) — isso quebra qualquer parser de árvore DOM,
+    que acaba enfiando o documento inteiro dentro do primeiro <td>. Por isso
+    trabalhamos direto no texto bruto: cada categoria começa com a palavra
+    "FAIXA", então dividimos o HTML por ela; dentro de cada bloco, os dados
+    do atleta não estão em texto de célula, e sim em <input readonly
+    value="..."> (name="m_nomeatleta", "m_nomeacademia", "m_peso" — só existe
+    na página de absoluto). Categorias sem ninguém marcado continuam
+    aparecendo como linhas "molde" com o <input> vazio — por isso pulamos
+    qualquer nome vazio em vez de tratá-lo como atleta."""
     resultados = []
-    categoria_atual = ""
-    idx_nome = idx_academia = idx_peso = None
+    for bloco in html.split("FAIXA")[1:]:
+        categoria = _texto_categoria(bloco)
+        faixa, _, divisao = categoria.partition(" - ")
+        nomes = _CAMPO_NOME.findall(bloco)
+        academias = _CAMPO_ACADEMIA.findall(bloco)
+        pesos = _CAMPO_PESO.findall(bloco)
 
-    for linha in soup.find_all("tr"):
-        bg = (linha.get("bgcolor") or "").upper()
-        cols = [_texto_normalizado(c) for c in linha.find_all("td", recursive=False)]
-
-        if bg == "#000000" and cols and "FAIXA" in cols[0].upper():
-            categoria_atual = cols[0]
-            idx_nome = idx_academia = idx_peso = None
-            continue
-
-        if bg == "#FFFFFF" and "Nome do Atleta" in cols:
-            idx_nome = cols.index("Nome do Atleta")
-            idx_academia = cols.index("Academia") if "Academia" in cols else None
-            idx_peso = cols.index("Peso") if "Peso" in cols else None
-            continue
-
-        if idx_nome is None or idx_nome >= len(cols):
-            continue
-        nome = cols[idx_nome]
-        if not nome:
-            continue
-
-        m = re.match(r"FAIXA\s*-\s*([^-]+?)\s*-\s*(.+)", categoria_atual, re.I)
-        resultados.append({
-            "federacao": "CBJJD",
-            "nome": nome,
-            "equipe": cols[idx_academia] if idx_academia is not None and idx_academia < len(cols) else "",
-            "categoria_idade": m.group(2) if m else categoria_atual,
-            "genero": genero,
-            "peso": cols[idx_peso] if idx_peso is not None and idx_peso < len(cols) else "",
-            "faixa": m.group(1).strip().title() if m else "",
-        })
+        for i, nome in enumerate(nomes):
+            nome = nome.strip()
+            if not nome:
+                continue
+            resultados.append({
+                "federacao": "CBJJD",
+                "nome": nome,
+                "equipe": academias[i].strip() if i < len(academias) else "",
+                "categoria_idade": divisao or categoria,
+                "genero": genero,
+                "peso": pesos[i].strip() if i < len(pesos) else "",
+                "faixa": faixa.strip().title(),
+            })
     return resultados

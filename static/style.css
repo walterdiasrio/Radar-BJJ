@@ -181,11 +181,9 @@ header {
 }
 
 @media (min-width: 901px) {
-  /* Sempre fixo no topo (nunca some durante o scroll). No topo da página
-     fica transparente, encaixado na faixa em degradê do banner; a partir
-     daí vira sólido (classe .flutuante, alternada via JS em auth-nav.js)
-     pra continuar legível sobre o conteúdo. Altura em vw pra acompanhar
-     a faixa do banner (que escala com a largura da tela). */
+  /* Sempre fixo e transparente no topo, encaixado na faixa em degradê do
+     banner — nunca some nem muda de padrão/cor durante o scroll. Altura em
+     vw pra acompanhar a faixa do banner (que escala com a largura da tela). */
   .menu-lateral {
     position: fixed;
     top: 0;
@@ -208,21 +206,11 @@ header {
     font-size: clamp(0.6rem, 0.78vw, 0.8rem);
   }
   .menu-lateral a svg { width: 15px; height: 15px; }
-  .menu-lateral.flutuante {
-    height: 56px;
-    background: var(--azul-menu);
-    border-bottom: 1px solid var(--borda);
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
-  }
-  .menu-lateral.flutuante a { font-size: 0.8rem; padding: 8px 12px; }
-  .menu-lateral.flutuante a svg { width: 17px; height: 17px; }
 
   .nav-usuario { flex-shrink: 0; }
   .nav-usuario a { padding: 4px 8px; font-size: clamp(0.58rem, 0.72vw, 0.76rem); }
   .nav-usuario a svg { width: 14px; height: 14px; }
   .nav-usuario .nav-email { font-size: clamp(0.58rem, 0.72vw, 0.76rem); padding: 4px 8px; }
-  .menu-lateral.flutuante .nav-usuario a,
-  .menu-lateral.flutuante .nav-usuario .nav-email { font-size: 0.76rem; padding: 6px 10px; }
 }
 
 @media (max-width: 900px) {
