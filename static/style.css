@@ -115,7 +115,6 @@ header {
   min-width: 220px;
   background: #ffffff;
   border: 1px solid var(--borda);
-  box-shadow: 2px 4px 14px rgba(0, 0, 0, 0.15);
   z-index: 20;
   flex-direction: column;
   gap: 0;
@@ -463,8 +462,8 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 }
 
 .logo-federacao {
-  width: 44px;
-  height: 44px;
+  width: 75px;
+  height: 75px;
   border-radius: 8px;
   object-fit: contain;
   border: 1px solid var(--borda);
