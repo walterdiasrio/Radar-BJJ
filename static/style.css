@@ -834,7 +834,7 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
 
 .plano-logo {
   display: block;
-  max-width: 100%;
+  max-width: 33%;
   height: auto;
   margin: 0 0 10px;
 }
