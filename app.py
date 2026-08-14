@@ -59,6 +59,10 @@ def _iniciar_verificacao_periodica_de_alertas():
             except Exception:
                 traceback.print_exc()
             try:
+                alertas.verificar_todas_competicoes()
+            except Exception:
+                traceback.print_exc()
+            try:
                 noticias.remover_noticias_expiradas()
             except Exception:
                 traceback.print_exc()
@@ -803,8 +807,13 @@ def api_competicoes():
 
 
 @app.get("/alertas")
-@assinatura_necessaria
+@login_necessario
 def pagina_alertas():
+    # A página mistura dois tipos de alerta: o de atleta (exige assinatura,
+    # checado em /api/alertas) e o de competição nova (Plano Free, só
+    # exige login) — por isso aqui é só login_necessario, não
+    # assinatura_necessaria; quem não paga ainda consegue usar a parte
+    # de competição.
     return send_from_directory("static", "alertas.html")
 
 
@@ -867,6 +876,44 @@ def api_criar_alerta():
 @api_assinatura_necessaria
 def api_remover_alerta(alerta_id):
     removido = alertas.remover_alerta(session["usuario_id"], alerta_id)
+    if not removido:
+        return jsonify({"erro": "alerta não encontrado"}), 404
+    return jsonify({"ok": True})
+
+
+@app.get("/api/alertas-competicao")
+@api_login_necessario
+def api_listar_alertas_competicao():
+    return jsonify(alertas.listar_alertas_competicao(session["usuario_id"]))
+
+
+@app.post("/api/alertas-competicao")
+@api_login_necessario
+def api_criar_alerta_competicao():
+    dados = request.get_json(silent=True) or {}
+    titulo = (dados.get("titulo") or "").strip()
+    if not titulo:
+        return jsonify({"erro": "dê um nome pro alerta"}), 400
+
+    federacao_bruta = dados.get("federacao", "")
+    if _parse_federacao(federacao_bruta) is None and federacao_bruta != TODAS:
+        return jsonify({"erro": "federação inválida"}), 400
+
+    alerta_id, erro = alertas.criar_alerta_competicao(
+        usuario_id=session["usuario_id"],
+        titulo=titulo,
+        federacao=federacao_bruta or TODAS,
+        publico=dados.get("publico") or "todos",
+    )
+    if erro:
+        return jsonify({"erro": erro}), 400
+    return jsonify({"ok": True, "id": alerta_id})
+
+
+@app.delete("/api/alertas-competicao/<int:alerta_id>")
+@api_login_necessario
+def api_remover_alerta_competicao(alerta_id):
+    removido = alertas.remover_alerta_competicao(session["usuario_id"], alerta_id)
     if not removido:
         return jsonify({"erro": "alerta não encontrado"}), 404
     return jsonify({"ok": True})

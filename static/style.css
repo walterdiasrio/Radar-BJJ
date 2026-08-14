@@ -278,18 +278,21 @@ header {
   }
 }
 
-/* Réplica do menu principal, fixa no rodapé — sempre sólida (sem o estado
-   transparente-sobre-o-banner do menu do topo, que não faz sentido aqui). */
+/* Réplica do menu principal no rodapé — mas ao contrário do menu do topo,
+   NÃO fica grudada na tela (position:fixed). Fica no fluxo normal, no fim
+   de tudo (depois do <main>), igual ao rodapé de site "normal" (ex:
+   cbjj.com.br): só aparece quando rola até o fim da página. Sempre sólida
+   (sem o estado transparente-sobre-o-banner do menu do topo). */
 nav.menu-lateral.menu-lateral-rodape {
+  position: static;
   top: auto;
-  bottom: 0;
+  bottom: auto;
+  margin-top: 40px;
   background: var(--azul-menu);
   border-bottom: none;
   border-top: 1px solid var(--borda);
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.15);
+  box-shadow: none;
 }
-
-body { padding-bottom: 56px; }
 
 @media (prefers-color-scheme: dark) {
   nav.menu-lateral.menu-lateral-rodape { border-top-color: var(--borda); }

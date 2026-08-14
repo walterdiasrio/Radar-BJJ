@@ -37,6 +37,11 @@ URL_SITE = os.environ.get("URL_SITE", "http://localhost:5050")
 # de várias pessoas diferentes (cada assinatura é pensada pra um atleta só).
 LIMITE_ALERTAS_POR_USUARIO = 2
 
+# Alertas de competição nova são liberados pro Plano Free (sem exigir
+# assinatura) — limite um pouco mais folgado, mas ainda existe pra não virar
+# um jeito de configurar um monitor genérico ilimitado por conta.
+LIMITE_ALERTAS_COMPETICAO_POR_USUARIO = 5
+
 
 def _conn():
     DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -69,6 +74,29 @@ def init_db():
                 alerta_id INTEGER NOT NULL,
                 chave TEXT NOT NULL,
                 visto_em TEXT NOT NULL DEFAULT (datetime('now')),
+                PRIMARY KEY (alerta_id, chave)
+            )
+        """)
+        # Alertas de "competição nova" (ver seção mais abaixo) são um tipo
+        # separado — sem os filtros de atleta, e liberado pro Plano Free
+        # (só precisa estar logado, não precisa assinatura), então ficam em
+        # tabelas próprias em vez de reaproveitar "alertas"/"alertas_vistos".
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS alertas_competicao (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                usuario_id INTEGER NOT NULL,
+                titulo TEXT NOT NULL,
+                federacao TEXT NOT NULL,
+                publico TEXT NOT NULL DEFAULT 'todos',
+                ativo INTEGER NOT NULL DEFAULT 1,
+                criado_em TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS alertas_competicao_vistas (
+                alerta_id INTEGER NOT NULL,
+                chave TEXT NOT NULL,
+                vista_em TEXT NOT NULL DEFAULT (datetime('now')),
                 PRIMARY KEY (alerta_id, chave)
             )
         """)
@@ -192,6 +220,153 @@ def remover_alerta(usuario_id, alerta_id):
         )
         conn.execute("DELETE FROM alertas_vistos WHERE alerta_id = ?", (alerta_id,))
         return cursor.rowcount > 0
+
+
+# ---------------------------------------------------------------------------
+# Alertas de "competição nova" — criados na aba Competições, avisam por
+# e-mail quando uma competição nova aparece pra federação/público
+# escolhidos (sem filtro de atleta — é sobre o evento em si). Feature do
+# Plano Free: não exige assinatura, só login (ver api_login_necessario em
+# app.py), diferente dos alertas de atleta acima.
+# ---------------------------------------------------------------------------
+PUBLICOS_ALERTA_COMPETICAO = ("todos", "kids", "adulto")
+
+
+def _chave_competicao(c):
+    """Identifica uma competição de forma estável entre buscas (os
+    conectores não expõem um ID único de evento)."""
+    partes = [c.get("federacao", ""), c.get("nome", ""), c.get("data", "")]
+    bruto = "|".join((p or "").strip().lower() for p in partes)
+    return hashlib.sha256(bruto.encode("utf-8")).hexdigest()
+
+
+def _rodar_busca_competicoes(alerta):
+    from connectors import listar_competicoes  # import tardio: evita ciclo de import
+    federacao = _parse_federacao(alerta["federacao"])
+    competicoes, _erros = listar_competicoes(federacao)
+    publico = alerta["publico"]
+    if publico and publico != "todos":
+        competicoes = [c for c in competicoes if c.get("publico") in (publico, "ambos")]
+    return competicoes
+
+
+def _marcar_competicoes_vistas(alerta_id, competicoes):
+    if not competicoes:
+        return
+    with _conn() as conn:
+        conn.executemany(
+            "INSERT OR IGNORE INTO alertas_competicao_vistas (alerta_id, chave) VALUES (?, ?)",
+            [(alerta_id, _chave_competicao(c)) for c in competicoes],
+        )
+
+
+def criar_alerta_competicao(usuario_id, titulo, federacao, publico):
+    """Retorna (alerta_id, erro). Mesma lógica do alerta de atleta: cria
+    inativo, marca as competições de hoje como "já vistas" em background
+    (pra não gerar e-mail de coisa que já existia antes do alerta) e só
+    depois ativa."""
+    publico = publico if publico in PUBLICOS_ALERTA_COMPETICAO else "todos"
+    with _conn() as conn:
+        total = conn.execute(
+            "SELECT COUNT(*) AS total FROM alertas_competicao WHERE usuario_id = ?", (usuario_id,)
+        ).fetchone()["total"]
+        if total >= LIMITE_ALERTAS_COMPETICAO_POR_USUARIO:
+            return None, (
+                f"limite de {LIMITE_ALERTAS_COMPETICAO_POR_USUARIO} alertas de competição por conta "
+                "atingido — remova um alerta antes de criar outro"
+            )
+
+        cursor = conn.execute(
+            """INSERT INTO alertas_competicao (usuario_id, titulo, federacao, publico, ativo)
+               VALUES (?, ?, ?, ?, 0)""",
+            (usuario_id, titulo, federacao, publico),
+        )
+        alerta_id = cursor.lastrowid
+
+    alerta = {"id": alerta_id, "federacao": federacao, "publico": publico}
+
+    def _preparar():
+        try:
+            _marcar_competicoes_vistas(alerta_id, _rodar_busca_competicoes(alerta))
+        except Exception:
+            traceback.print_exc()
+        finally:
+            with _conn() as conn:
+                conn.execute("UPDATE alertas_competicao SET ativo = 1 WHERE id = ?", (alerta_id,))
+
+    threading.Thread(target=_preparar, daemon=True).start()
+    return alerta_id, None
+
+
+def listar_alertas_competicao(usuario_id):
+    with _conn() as conn:
+        linhas = conn.execute(
+            "SELECT * FROM alertas_competicao WHERE usuario_id = ? ORDER BY criado_em DESC", (usuario_id,)
+        ).fetchall()
+    return [dict(linha) for linha in linhas]
+
+
+def remover_alerta_competicao(usuario_id, alerta_id):
+    with _conn() as conn:
+        cursor = conn.execute(
+            "DELETE FROM alertas_competicao WHERE id = ? AND usuario_id = ?", (alerta_id, usuario_id)
+        )
+        conn.execute("DELETE FROM alertas_competicao_vistas WHERE alerta_id = ?", (alerta_id,))
+        return cursor.rowcount > 0
+
+
+def _enviar_email_alerta_competicao(destinatario, titulo_alerta, competicoes):
+    linhas = "".join(
+        f"<li><b>{c.get('nome', '')}</b> — {c.get('federacao', '')}, "
+        f"{c.get('data', '')} — {c.get('local', '')}</li>"
+        for c in competicoes
+    )
+    corpo = (
+        f'<p>Competição(ões) nova(s) pro seu alerta "<b>{titulo_alerta}</b>":</p>'
+        f"<ul>{linhas}</ul>"
+        f'<p><a href="{URL_SITE}/competicoes">Ver em Competições</a></p>'
+    )
+    enviar_email(destinatario, f'Radar BJJ — nova competição em "{titulo_alerta}"', corpo)
+
+
+def _verificar_alerta_competicao(alerta):
+    competicoes = _rodar_busca_competicoes(alerta)
+    if not competicoes:
+        return
+
+    with _conn() as conn:
+        vistas = {
+            row["chave"] for row in
+            conn.execute(
+                "SELECT chave FROM alertas_competicao_vistas WHERE alerta_id = ?", (alerta["id"],)
+            )
+        }
+
+    novas = [c for c in competicoes if _chave_competicao(c) not in vistas]
+    _marcar_competicoes_vistas(alerta["id"], competicoes)
+
+    if not novas:
+        return
+
+    usuario = auth.buscar_por_id(alerta["usuario_id"])
+    if usuario:
+        _enviar_email_alerta_competicao(usuario["email"], alerta["titulo"], novas)
+
+
+def verificar_todas_competicoes():
+    """Chamada periodicamente (mesma thread de fundo dos alertas de atleta,
+    ver app.py) pra checar todos os alertas de competição ativos."""
+    with _conn() as conn:
+        alertas = [
+            dict(linha) for linha in
+            conn.execute("SELECT * FROM alertas_competicao WHERE ativo = 1")
+        ]
+
+    for alerta in alertas:
+        try:
+            _verificar_alerta_competicao(alerta)
+        except Exception:
+            traceback.print_exc()
 
 
 def enviar_email(destinatario, assunto, corpo_html):

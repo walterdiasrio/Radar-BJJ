@@ -203,6 +203,49 @@ elForm.addEventListener("submit", (ev) => {
   carregar();
 });
 
+const elBtnCriarAlertaCompeticao = document.getElementById("btn-criar-alerta-competicao");
+const elStatusAlertaCompeticao = document.getElementById("status-alerta-competicao");
+
+elBtnCriarAlertaCompeticao.addEventListener("click", async () => {
+  const federacao = federacaoSelecionada(elFederacaoOpcoes);
+  if (federacao === null) {
+    elStatusAlertaCompeticao.textContent = "Selecione ao menos uma federação antes de criar o alerta.";
+    elStatusAlertaCompeticao.className = "erro";
+    return;
+  }
+  let publico = "todos";
+  if (elPublicoAdulto.checked && !elPublicoKids.checked) publico = "adulto";
+  else if (elPublicoKids.checked && !elPublicoAdulto.checked) publico = "kids";
+  else if (!elPublicoAdulto.checked && !elPublicoKids.checked) {
+    elStatusAlertaCompeticao.textContent = "Selecione ao menos um público (Adulto ou Kids) antes de criar o alerta.";
+    elStatusAlertaCompeticao.className = "erro";
+    return;
+  }
+
+  const titulo = prompt('Nome para esse alerta (ex: "Competições CBJJ Kids"):');
+  if (!titulo) return;
+
+  elBtnCriarAlertaCompeticao.disabled = true;
+  elStatusAlertaCompeticao.textContent = "Criando alerta...";
+  elStatusAlertaCompeticao.className = "";
+
+  try {
+    const resp = await fetchAutenticado("/api/alertas-competicao", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ titulo, federacao: federacaoParaParametro(federacao), publico }),
+    });
+    const dados = await resp.json();
+    if (!resp.ok) throw new Error(dados.erro || "erro ao criar alerta");
+    elStatusAlertaCompeticao.textContent = `Alerta "${titulo}" criado! Veja em "Meus Alertas".`;
+  } catch (err) {
+    elStatusAlertaCompeticao.textContent = `Erro ao criar alerta: ${err.message}`;
+    elStatusAlertaCompeticao.className = "erro";
+  } finally {
+    elBtnCriarAlertaCompeticao.disabled = false;
+  }
+});
+
 elPublicoAdulto.addEventListener("change", aplicarFiltroPublico);
 elPublicoKids.addEventListener("change", aplicarFiltroPublico);
 elEstadoOpcoes.addEventListener("change", aplicarFiltroPublico);
