@@ -224,6 +224,17 @@ header {
   .nav-usuario a { padding: 4px 8px; font-size: clamp(0.58rem, 0.72vw, 0.76rem); }
   .nav-usuario a svg { width: 14px; height: 14px; }
   .nav-usuario .nav-email { font-size: clamp(0.58rem, 0.72vw, 0.76rem); padding: 4px 8px; }
+
+  /* O menu tem overflow-x:auto (pra caber numa linha só), o que o navegador
+     trata como overflow-y:auto também — cortando qualquer submenu
+     position:absolute que abrisse pra baixo dele. position:fixed escapa
+     desse corte; o top/left exatos são calculados via JS (auth-nav.js) no
+     hover/clique, porque fixed não sabe a posição do item sozinho. */
+  .nav-admin-submenu {
+    position: fixed;
+    top: 0;
+    left: 0;
+  }
 }
 
 @media (max-width: 900px) {

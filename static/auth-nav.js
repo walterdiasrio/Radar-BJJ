@@ -75,23 +75,38 @@ async function carregarSubmenuTurmas() {
   }
 }
 
-// Submenu "Admin": abre com hover no desktop (via CSS), e com clique/toque
-// em qualquer dispositivo (essencial no celular, que não tem hover) —
-// fecha ao clicar fora.
-(() => {
-  const elDropdown = document.getElementById("nav-admin");
-  const elToggle = elDropdown ? elDropdown.querySelector(".nav-admin-toggle") : null;
-  if (!elToggle) return;
+// Submenus "Admin" e "Turmas": abrem com hover no desktop (via CSS), e com
+// clique/toque em qualquer dispositivo (essencial no celular, que não tem
+// hover) — fecham ao clicar fora. No desktop o menu principal tem
+// overflow-x:auto (pra caber numa linha só), o que o navegador também trata
+// como overflow-y:auto — cortando um submenu position:absolute. Por isso o
+// submenu vira position:fixed em telas largas (ver style.css), e aqui a
+// gente calcula o top/left exatos toda vez que ele for aparecer.
+document.querySelectorAll(".nav-admin-dropdown").forEach((elDropdown) => {
+  const elToggle = elDropdown.querySelector(":scope > a");
+  const elSubmenu = elDropdown.querySelector(".nav-admin-submenu");
+  if (!elToggle || !elSubmenu) return;
 
-  elToggle.addEventListener("click", (ev) => {
-    ev.preventDefault();
-    elDropdown.classList.toggle("aberto");
-  });
+  const posicionar = () => {
+    const r = elToggle.getBoundingClientRect();
+    elSubmenu.style.top = `${r.bottom}px`;
+    elSubmenu.style.left = `${r.left}px`;
+  };
+
+  elDropdown.addEventListener("mouseenter", posicionar);
+
+  if (elToggle.classList.contains("nav-admin-toggle")) {
+    elToggle.addEventListener("click", (ev) => {
+      ev.preventDefault();
+      posicionar();
+      elDropdown.classList.toggle("aberto");
+    });
+  }
 
   document.addEventListener("click", (ev) => {
     if (!elDropdown.contains(ev.target)) elDropdown.classList.remove("aberto");
   });
-})();
+});
 
 // Wrapper de fetch para chamadas de API que exigem login: se a sessão
 // expirou (401), manda direto para o login em vez de mostrar erro genérico.
