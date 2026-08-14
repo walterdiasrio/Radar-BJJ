@@ -6,8 +6,12 @@ site redireciona para "checagem_abrir_invalida.asp". Quando aberta, cada
 categoria (masculino/feminino gi) tem sua própria página de checagem.
 """
 import re
+from datetime import date
+
 from bs4 import BeautifulSoup
 
+from . import idade as idade_mod
+from . import peso as peso_mod
 from .http import get
 
 CBJJD_SITE = "https://cbjjd.com.br"
@@ -73,6 +77,10 @@ def buscar_atletas(evento_id, filtros):
 _CAMPO_NOME = re.compile(r'name="m_nomeatleta"[^>]*value="([^"]*)"')
 _CAMPO_ACADEMIA = re.compile(r'name="m_nomeacademia"[^>]*value="([^"]*)"')
 _CAMPO_PESO = re.compile(r'name="m_peso"[^>]*value="([^"]*)"')
+# Só existe na página "geral" (não na "absoluto"): logo abaixo do título da
+# categoria vem uma segunda linha preta só com a faixa de peso, tipo
+# "- 22,000" ou "+ 45,300" — vale pra turma inteira daquela categoria.
+_PESO_CABECALHO = re.compile(r">([+-]\s*[\d.,]+)</font>")
 
 
 def _texto_categoria(bloco):
@@ -83,6 +91,47 @@ def _texto_categoria(bloco):
         return ""
     bruto = re.sub(r"<[^>]+>", " ", m.group(1))
     return " ".join(bruto.split()).lstrip("- ").strip()
+
+
+def _idade_da_divisao(divisao):
+    m = re.search(r"\((\d+)", divisao)
+    return int(m.group(1)) if m else None
+
+
+def _categoria_idade_padrao(idade):
+    """O texto da divisão raspado da página (ex: "PRE-MIRIM 3 (6 anos)",
+    "INFANTO-JUVENIL 1 (13 anos)") é bem mais granular do que a categoria
+    etária que o filtro de busca calcula pra CBJJD (connectors/idade.py usa
+    faixas mais largas, tipo "Pré-Mirim" pra 4-6 anos, "Mirim" pra 7-9). Sem
+    converter pro mesmo rótulo, o filtro por idade nunca bate com o que a
+    gente devolve aqui — por isso usamos a idade extraída da divisão pra
+    calcular o mesmo rótulo que o filtro usaria."""
+    if idade is None:
+        return ""
+    ano_referencia = date.today().year
+    return idade_mod.categoria_para("cbjjd", ano_referencia - idade, ano_referencia) or ""
+
+
+def _nome_peso(divisao, genero, bruto):
+    """Converte o peso bruto raspado da página (ex: "- 22,000" ou "+ 45,300")
+    pro nome oficial da categoria de peso (ex: "Pena"), usando a mesma tabela
+    oficial CBJJD que o filtro de busca usa (connectors/peso.py) — sem isso,
+    o filtro por peso nunca bate com o que a gente devolve aqui, porque o
+    filtro compara pelo nome da categoria, não pelo número em kg."""
+    m = re.match(r"([+-])\s*([\d.,]+)", (bruto or "").strip())
+    if not m:
+        return ""
+    sinal, numero_str = m.groups()
+    idade = _idade_da_divisao(divisao)
+    if idade is None:
+        return ""
+    try:
+        numero = float(numero_str.replace(",", "."))
+    except ValueError:
+        return ""
+    if sinal == "+":
+        numero += 0.05  # "acima de X" — empurra pra categoria seguinte da tabela
+    return peso_mod.categoria_peso_para("cbjjd", idade, numero, genero) or ""
 
 
 def _parsear_checagem(html, genero):
@@ -100,21 +149,25 @@ def _parsear_checagem(html, genero):
     for bloco in html.split("FAIXA")[1:]:
         categoria = _texto_categoria(bloco)
         faixa, _, divisao = categoria.partition(" - ")
+        idade = _idade_da_divisao(divisao or categoria)
         nomes = _CAMPO_NOME.findall(bloco)
         academias = _CAMPO_ACADEMIA.findall(bloco)
-        pesos = _CAMPO_PESO.findall(bloco)
+        pesos_atleta = _CAMPO_PESO.findall(bloco)
+        m_cabecalho = _PESO_CABECALHO.search(bloco)
+        peso_cabecalho = m_cabecalho.group(1) if m_cabecalho else ""
 
         for i, nome in enumerate(nomes):
             nome = nome.strip()
             if not nome:
                 continue
+            peso_bruto = pesos_atleta[i].strip() if i < len(pesos_atleta) and pesos_atleta[i].strip() else peso_cabecalho
             resultados.append({
                 "federacao": "CBJJD",
                 "nome": nome,
                 "equipe": academias[i].strip() if i < len(academias) else "",
-                "categoria_idade": divisao or categoria,
+                "categoria_idade": _categoria_idade_padrao(idade) or divisao or categoria,
                 "genero": genero,
-                "peso": pesos[i].strip() if i < len(pesos) else "",
+                "peso": _nome_peso(divisao or categoria, genero, peso_bruto),
                 "faixa": faixa.strip().title(),
             })
     return resultados
