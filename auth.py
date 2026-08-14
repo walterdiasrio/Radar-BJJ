@@ -4,6 +4,7 @@ Guardado num SQLite local (usuarios.db). O cadastro só é efetivado depois
 que o usuário confirma o e-mail (link com token, enviado via Resend —
 ver criar_token_verificacao/confirmar_email); até lá, o login fica
 bloqueado (ver campo email_verificado, checado em app.py)."""
+import json
 import os
 import re
 import secrets
