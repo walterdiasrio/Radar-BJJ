@@ -14,10 +14,10 @@ CBJJD_SITE = "https://cbjjd.com.br"
 ISBJJ = "https://isbjj.com"
 
 PAGINAS_CHECAGEM = [
-    "checagem_geral_masculino_gi.asp",
-    "checagem_geral_feminino_gi.asp",
-    "checagem_absoluto_masculino_gi.asp",
-    "checagem_absoluto_feminino_gi.asp",
+    ("checagem_geral_masculino_gi.asp", "MASCULINO"),
+    ("checagem_geral_feminino_gi.asp", "FEMININO"),
+    ("checagem_absoluto_masculino_gi.asp", "MASCULINO"),
+    ("checagem_absoluto_feminino_gi.asp", "FEMININO"),
 ]
 
 
@@ -60,49 +60,64 @@ def buscar_atletas(evento_id, filtros):
         return []
 
     resultados = []
-    for pagina in PAGINAS_CHECAGEM:
+    for pagina, genero in PAGINAS_CHECAGEM:
         url = f"{ISBJJ}/{evento_id}/{pagina}"
         resp = get(url, headers={"Referer": menu_url}, allow_redirects=True)
         if not _checagem_aberta(resp.text):
             continue
-        resultados.extend(_parsear_checagem(resp.text))
+        resultados.extend(_parsear_checagem(resp.text, genero))
 
-    if not resultados:
-        # Sinaliza para a camada de busca que a checagem não está aberta agora
-        return []
     return resultados
 
 
-def _parsear_checagem(html):
+def _texto_normalizado(tag):
+    return " ".join(tag.get_text(" ", strip=True).split())
+
+
+def _parsear_checagem(html, genero):
+    """A página é uma única tabela gigante (HTML antigo, sem <table> por
+    categoria): cada categoria é uma linha <tr bgcolor="#000000"> com
+    "FAIXA - <faixa> - <divisão>", seguida de uma linha de cabeçalho
+    <tr bgcolor="#FFFFFF"> com os rótulos das colunas ("Nome do Atleta",
+    "Academia", etc — a posição varia entre página geral e absoluto) e então
+    as linhas de atletas propriamente ditas. Times/idades vazios continuam
+    aparecendo como linhas "molde" sem nome (é assim que o site sinaliza que
+    ninguém fez checagem ainda nessa categoria) — por isso pulamos qualquer
+    linha sem nome em vez de tratá-la como atleta."""
     soup = BeautifulSoup(html, "lxml")
     resultados = []
+    categoria_atual = ""
+    idx_nome = idx_academia = idx_peso = None
 
-    # A checagem costuma ter um cabeçalho de categoria seguido de uma tabela
-    # de atletas (mesmo padrão usado pela CBJJ/CBJJO). Procuramos qualquer
-    # elemento que pareça um título de categoria e a tabela mais próxima depois dele.
-    candidatos_categoria = soup.find_all(
-        lambda tag: tag.name in ("h3", "h4", "div", "strong")
-        and tag.get_text(strip=True)
-        and re.search(r"MASCULINO|FEMININO", tag.get_text(strip=True).upper())
-    )
+    for linha in soup.find_all("tr"):
+        bg = (linha.get("bgcolor") or "").upper()
+        cols = [_texto_normalizado(c) for c in linha.find_all("td", recursive=False)]
 
-    for header in candidatos_categoria:
-        categoria_texto = header.get_text(strip=True)
-        tabela = header.find_next("table")
-        if not tabela:
+        if bg == "#000000" and cols and "FAIXA" in cols[0].upper():
+            categoria_atual = cols[0]
+            idx_nome = idx_academia = idx_peso = None
             continue
-        linhas = tabela.find_all("tr")
-        for linha in linhas:
-            cols = [c.get_text(strip=True) for c in linha.find_all("td")]
-            if len(cols) < 2:
-                continue
-            resultados.append({
-                "federacao": "CBJJD",
-                "nome": cols[1] if len(cols) > 1 else cols[0],
-                "equipe": cols[2] if len(cols) > 2 else "",
-                "categoria_idade": categoria_texto,
-                "genero": "MASCULINO" if "MASCULINO" in categoria_texto.upper() else "FEMININO",
-                "peso": "",
-                "faixa": "",
-            })
+
+        if bg == "#FFFFFF" and "Nome do Atleta" in cols:
+            idx_nome = cols.index("Nome do Atleta")
+            idx_academia = cols.index("Academia") if "Academia" in cols else None
+            idx_peso = cols.index("Peso") if "Peso" in cols else None
+            continue
+
+        if idx_nome is None or idx_nome >= len(cols):
+            continue
+        nome = cols[idx_nome]
+        if not nome:
+            continue
+
+        m = re.match(r"FAIXA\s*-\s*([^-]+?)\s*-\s*(.+)", categoria_atual, re.I)
+        resultados.append({
+            "federacao": "CBJJD",
+            "nome": nome,
+            "equipe": cols[idx_academia] if idx_academia is not None and idx_academia < len(cols) else "",
+            "categoria_idade": m.group(2) if m else categoria_atual,
+            "genero": genero,
+            "peso": cols[idx_peso] if idx_peso is not None and idx_peso < len(cols) else "",
+            "faixa": m.group(1).strip().title() if m else "",
+        })
     return resultados
