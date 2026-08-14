@@ -453,10 +453,27 @@ function carregarImagem(src) {
   });
 }
 
+function cartaoComGlow(ctx, x, y, w, h, r, corBorda) {
+  ctx.fillStyle = "rgba(255,255,255,0.05)";
+  roundRect(ctx, x, y, w, h, r);
+  ctx.fill();
+
+  ctx.save();
+  ctx.shadowColor = corBorda;
+  ctx.shadowBlur = 16;
+  ctx.strokeStyle = corBorda;
+  ctx.lineWidth = 2;
+  roundRect(ctx, x, y, w, h, r);
+  ctx.stroke();
+  ctx.restore();
+}
+
 async function gerarImagemStory() {
   const canvas = document.getElementById("canvas-story");
   const ctx = canvas.getContext("2d");
   const W = canvas.width, H = canvas.height;
+  const CIANO = "#7fd4ff";
+  const CINZA_AZULADO = "#b7cbdc";
 
   mostrarStatus("status-story", "Gerando imagem...");
 
@@ -479,116 +496,191 @@ async function gerarImagemStory() {
     return;
   }
 
-  // Fundo em gradiente
+  // Fundo em gradiente, com um brilho difuso atrás do cabeçalho pra dar
+  // profundidade (parecido com o fundo "tech" do template de referência).
   const grad = ctx.createLinearGradient(0, 0, W, H);
   grad.addColorStop(0, "#0b3d63");
-  grad.addColorStop(1, "#060a12");
+  grad.addColorStop(1, "#050810");
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, W, H);
+
+  const brilho = ctx.createRadialGradient(W / 2, 260, 40, W / 2, 260, 520);
+  brilho.addColorStop(0, "rgba(127, 212, 255, 0.22)");
+  brilho.addColorStop(1, "rgba(127, 212, 255, 0)");
+  ctx.fillStyle = brilho;
+  ctx.fillRect(0, 0, W, H);
+
   ctx.textAlign = "center";
 
   // Banner do site, no topo
-  let yAposBanner = 140;
+  let yBanner = 90;
+  let yAposBanner = 320;
   try {
-    const banner = await carregarImagem("img/banner.png");
-    const larguraBanner = 780;
+    const banner = await carregarImagem("img/logo-carreira.png");
+    const larguraBanner = 640;
     const alturaBanner = larguraBanner * (banner.height / banner.width);
-    ctx.drawImage(banner, W / 2 - larguraBanner / 2, 60, larguraBanner, alturaBanner);
-    yAposBanner = 60 + alturaBanner + 50;
+    ctx.save();
+    ctx.shadowColor = "rgba(127, 212, 255, 0.5)";
+    ctx.shadowBlur = 30;
+    ctx.drawImage(banner, W / 2 - larguraBanner / 2, yBanner, larguraBanner, alturaBanner);
+    ctx.restore();
+    yAposBanner = yBanner + alturaBanner + 55;
   } catch (err) {
     // segue sem o banner se não conseguir carregar
   }
 
+  // "RESUMO DE CARREIRA" com dois tracinhos decorativos ao lado
   ctx.font = "26px -apple-system, Arial, sans-serif";
-  ctx.fillStyle = "#b7cbdc";
-  ctx.fillText("RESUMO DE CARREIRA", W / 2, yAposBanner);
+  ctx.letterSpacing = "4px";
+  ctx.fillStyle = CINZA_AZULADO;
+  const rotuloResumo = "RESUMO DE CARREIRA";
+  const larguraResumo = ctx.measureText(rotuloResumo).width;
+  ctx.fillText(rotuloResumo, W / 2, yAposBanner);
+  ctx.letterSpacing = "0px";
+  ctx.strokeStyle = "rgba(127, 212, 255, 0.7)";
+  ctx.lineWidth = 2;
+  const xResumoEsq = W / 2 - larguraResumo / 2 - 40;
+  const xResumoDir = W / 2 + larguraResumo / 2 + 40;
+  ctx.beginPath();
+  ctx.moveTo(xResumoEsq - 26, yAposBanner - 8);
+  ctx.lineTo(xResumoEsq, yAposBanner - 8);
+  ctx.moveTo(xResumoDir, yAposBanner - 8);
+  ctx.lineTo(xResumoDir + 26, yAposBanner - 8);
+  ctx.stroke();
 
   // Nome do atleta
-  ctx.font = "bold 72px -apple-system, Arial, sans-serif";
-  ctx.fillStyle = "#ffffff";
   const nome = perfil.nome || "Atleta Radar BJJ";
-  ctx.fillText(nome, W / 2, yAposBanner + 90);
+  let tamanhoNome = 68;
+  ctx.font = `bold ${tamanhoNome}px -apple-system, Arial, sans-serif`;
+  while (ctx.measureText(nome).width > W - 120 && tamanhoNome > 36) {
+    tamanhoNome -= 4;
+    ctx.font = `bold ${tamanhoNome}px -apple-system, Arial, sans-serif`;
+  }
+  ctx.fillStyle = "#ffffff";
+  const yNome = yAposBanner + 75;
+  ctx.fillText(nome, W / 2, yNome);
 
   // Faixa (badge)
   const faixa = perfil.faixa || "Branca";
   const grau = Number(perfil.grau || 0);
   const faixaTexto = `Faixa ${faixa}${grau > 0 ? " · " + grau + "º grau" : ""}`;
-  ctx.font = "bold 32px -apple-system, Arial, sans-serif";
+  ctx.font = "bold 30px -apple-system, Arial, sans-serif";
   const larguraBadge = ctx.measureText(faixaTexto).width + 70;
   const xBadge = W / 2 - larguraBadge / 2;
-  const yBadge = yAposBanner + 130;
+  const yBadge = yNome + 45;
   ctx.fillStyle = corDaFaixa(faixa);
-  roundRect(ctx, xBadge, yBadge, larguraBadge, 60, 30);
+  roundRect(ctx, xBadge, yBadge, larguraBadge, 58, 29);
   ctx.fill();
   ctx.fillStyle = ["preta", "azul", "roxa", "marrom", "verde", "verde-preta", "cinza-preta", "laranja-preta", "amarela-preta"].includes(faixa.toLowerCase()) ? "#ffffff" : "#1c2733";
-  ctx.fillText(faixaTexto, W / 2, yBadge + 41);
+  ctx.fillText(faixaTexto, W / 2, yBadge + 39);
 
-  let yAcademia = yBadge + 60;
+  let yAcademia = yBadge + 58 + 55;
   if (perfil.academia) {
-    yAcademia = yBadge + 110;
-    ctx.font = "28px -apple-system, Arial, sans-serif";
-    ctx.fillStyle = "#b7cbdc";
-    ctx.fillText(perfil.academia, W / 2, yAcademia);
+    ctx.font = "30px -apple-system, Arial, sans-serif";
+    ctx.fillStyle = CINZA_AZULADO;
+    ctx.fillText(`🦁 ${perfil.academia}`, W / 2, yAcademia);
+  } else {
+    yAcademia -= 30;
   }
 
-  // Grade de estatísticas (3 linhas x 2 colunas)
+  // Grade de estatísticas — 3 linhas x 2 colunas, ícone + número + rótulo
+  // lado a lado dentro de cada cartão com borda brilhante.
   const statsPrincipais = [
-    { valor: stats.competicoes || 0, label: "Competições" },
-    { valor: stats.vitorias || 0, label: "Vitórias" },
-    { valor: (stats.taxa_vitoria || 0) + "%", label: "Taxa de vitória" },
-    { valor: stats.melhor_sequencia || 0, label: "Melhor sequência" },
-    { valor: stats.finalizacoes || 0, label: "Finalizações" },
-    { valor: stats.campeonatos_diferentes || 0, label: "Campeonatos" },
+    { icone: "🏆", valor: stats.competicoes || 0, label: "COMPETIÇÕES" },
+    { icone: "🎖️", valor: stats.vitorias || 0, label: "VITÓRIAS" },
+    { icone: "🎯", valor: (stats.taxa_vitoria || 0) + "%", label: "TAXA DE VITÓRIA" },
+    { icone: "📈", valor: stats.sequencia_atual || 0, label: "SEQUÊNCIA ATUAL" },
+    { icone: "⚡", valor: stats.melhor_sequencia || 0, label: "MELHOR SEQUÊNCIA" },
+    { icone: "🥋", valor: stats.finalizacoes || 0, label: "FINALIZAÇÕES" },
   ];
 
-  const gridTopo = yAcademia + 100;
-  const gridAltura = 210;
-  const colW = W / 2;
+  const margem = 60;
+  const gapGrid = 24;
+  const colW = (W - margem * 2 - gapGrid) / 2;
+  const linhaAltura = 190;
+  const gridTopo = yAcademia + 55;
+
   statsPrincipais.forEach((item, i) => {
     const col = i % 2;
     const linha = Math.floor(i / 2);
-    const cx = colW * col + colW / 2;
-    const cy = gridTopo + linha * gridAltura;
+    const x = margem + col * (colW + gapGrid);
+    const y = gridTopo + linha * (linhaAltura + gapGrid);
 
-    ctx.fillStyle = "rgba(255,255,255,0.06)";
-    roundRect(ctx, cx - colW / 2 + 24, cy - 75, colW - 48, gridAltura - 40, 20);
-    ctx.fill();
+    cartaoComGlow(ctx, x, y, colW, linhaAltura, 22, "rgba(127, 212, 255, 0.4)");
 
-    ctx.font = "bold 60px -apple-system, Arial, sans-serif";
-    ctx.fillStyle = "#7fd4ff";
-    ctx.fillText(String(item.valor), cx, cy);
-
-    ctx.font = "24px -apple-system, Arial, sans-serif";
-    ctx.fillStyle = "#b7cbdc";
-    ctx.fillText(item.label, cx, cy + 46);
-  });
-
-  // Medalhas
-  const medalhas = [
-    { valor: stats.ouros || 0, icone: "🥇" },
-    { valor: stats.pratas || 0, icone: "🥈" },
-    { valor: stats.bronzes || 0, icone: "🥉" },
-  ];
-  const yMedalhas = gridTopo + 3 * gridAltura + 20;
-  ctx.font = "44px -apple-system, Arial, sans-serif";
-  const larguraTotal = 340 * medalhas.length;
-  let xMedalha = W / 2 - larguraTotal / 2 + 170;
-  medalhas.forEach(m => {
+    const cy = y + linhaAltura / 2;
+    ctx.textAlign = "center";
+    ctx.font = "56px -apple-system, Arial, sans-serif";
     ctx.fillStyle = "#ffffff";
-    ctx.fillText(`${m.icone} ${m.valor}`, xMedalha, yMedalhas);
-    xMedalha += 340;
+    ctx.fillText(item.icone, x + 90, cy + 20);
+
+    ctx.textAlign = "left";
+    ctx.font = "bold 52px -apple-system, Arial, sans-serif";
+    ctx.fillStyle = CIANO;
+    ctx.fillText(String(item.valor), x + 155, cy - 6);
+
+    ctx.font = "21px -apple-system, Arial, sans-serif";
+    ctx.letterSpacing = "1px";
+    ctx.fillStyle = CINZA_AZULADO;
+    ctx.fillText(item.label, x + 155, cy + 34);
+    ctx.letterSpacing = "0px";
+  });
+  ctx.textAlign = "center";
+
+  const gridFim = gridTopo + 3 * linhaAltura + 2 * gapGrid;
+
+  // Pódio — barras com altura proporcional ao lugar (ouro no centro, mais
+  // alta), medalha fixa no topo do painel e a contagem dentro de cada barra.
+  const painelY = gridFim + 40;
+  const painelAltura = 380;
+  cartaoComGlow(ctx, margem, painelY, W - margem * 2, painelAltura, 24, "rgba(127, 212, 255, 0.3)");
+
+  const medalhas = [
+    { icone: "🥈", valor: stats.pratas || 0, alturaBarra: 110, cor: "rgba(200, 210, 220, 0.35)" },
+    { icone: "🥇", valor: stats.ouros || 0, alturaBarra: 170, cor: "rgba(255, 215, 90, 0.4)" },
+    { icone: "🥉", valor: stats.bronzes || 0, alturaBarra: 80, cor: "rgba(205, 140, 90, 0.4)" },
+  ];
+  const larguraBarra = 200;
+  const gapBarra = 40;
+  const larguraTotalBarras = larguraBarra * 3 + gapBarra * 2;
+  const xInicioBarras = margem + (W - margem * 2 - larguraTotalBarras) / 2;
+  const baseBarras = painelY + painelAltura - 50;
+  const yMedalha = painelY + 100;
+
+  medalhas.forEach((m, i) => {
+    const x = xInicioBarras + i * (larguraBarra + gapBarra);
+    const yBarra = baseBarras - m.alturaBarra;
+
+    ctx.fillStyle = m.cor;
+    roundRect(ctx, x, yBarra, larguraBarra, m.alturaBarra, 14);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,0.5)";
+    ctx.lineWidth = 1.5;
+    roundRect(ctx, x, yBarra, larguraBarra, m.alturaBarra, 14);
+    ctx.stroke();
+
+    ctx.font = "58px -apple-system, Arial, sans-serif";
+    ctx.fillText(m.icone, x + larguraBarra / 2, yMedalha);
+
+    ctx.font = "bold 48px -apple-system, Arial, sans-serif";
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText(String(m.valor), x + larguraBarra / 2, yBarra + m.alturaBarra / 2 + 17);
   });
 
   // Rodapé — link em destaque, com fundo para chamar atenção no Stories
   const urlSite = "www.radarbjj.com";
-  ctx.font = "bold 44px -apple-system, Arial, sans-serif";
-  const larguraUrl = ctx.measureText(urlSite).width + 60;
-  const yUrl = H - 90;
+  ctx.font = "bold 40px -apple-system, Arial, sans-serif";
+  const larguraUrl = ctx.measureText(urlSite).width + 90;
+  const yUrl = painelY + painelAltura + 90;
   ctx.fillStyle = "rgba(127, 212, 255, 0.15)";
-  roundRect(ctx, W / 2 - larguraUrl / 2, yUrl - 46, larguraUrl, 66, 33);
+  roundRect(ctx, W / 2 - larguraUrl / 2, yUrl - 44, larguraUrl, 64, 32);
   ctx.fill();
-  ctx.fillStyle = "#7fd4ff";
-  ctx.fillText(urlSite, W / 2, yUrl);
+  ctx.strokeStyle = "rgba(127, 212, 255, 0.5)";
+  ctx.lineWidth = 1.5;
+  roundRect(ctx, W / 2 - larguraUrl / 2, yUrl - 44, larguraUrl, 64, 32);
+  ctx.stroke();
+  ctx.fillStyle = CIANO;
+  ctx.fillText(`🌐 ${urlSite}`, W / 2, yUrl);
 
   canvas.toBlob(blob => {
     ultimoBlobStory = blob;
