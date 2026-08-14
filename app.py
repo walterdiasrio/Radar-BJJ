@@ -218,6 +218,11 @@ def pagina_login():
     return send_from_directory("static", "login.html")
 
 
+@app.get("/planos")
+def pagina_planos():
+    return send_from_directory("static", "planos.html")
+
+
 @app.get("/esqueci-senha")
 def pagina_esqueci_senha():
     return send_from_directory("static", "esqueci-senha.html")

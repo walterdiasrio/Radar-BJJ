@@ -7,6 +7,7 @@ async function carregarSessaoNoMenu() {
   const elMeusAlunos = document.getElementById("nav-meus-alunos");
   const elTurmas = document.getElementById("nav-turmas");
   const elAssinatura = document.getElementById("nav-assinatura");
+  const elPlanos = document.getElementById("nav-planos");
 
   const ICONE_LOGOUT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>';
   const ICONE_LOGIN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>';
@@ -36,6 +37,7 @@ async function carregarSessaoNoMenu() {
       if (elMeusAlunos) elMeusAlunos.style.display = dados.mestre ? "" : "none";
       if (elTurmas) elTurmas.style.display = dados.mestre ? "" : "none";
       if (elAssinatura) elAssinatura.style.display = "";
+      if (elPlanos) elPlanos.style.display = "none";
       if (dados.mestre) await carregarSubmenuTurmas();
       aplicarSessao({ logado: true, mestre: !!dados.mestre, admin: !!dados.admin, email: dados.email });
     } else {
@@ -44,6 +46,7 @@ async function carregarSessaoNoMenu() {
       if (elMeusAlunos) elMeusAlunos.style.display = "none";
       if (elTurmas) elTurmas.style.display = "none";
       if (elAssinatura) elAssinatura.style.display = "none";
+      if (elPlanos) elPlanos.style.display = "";
       aplicarSessao({ logado: false, mestre: false, admin: false });
     }
   } catch (err) {
@@ -52,6 +55,7 @@ async function carregarSessaoNoMenu() {
     if (elMeusAlunos) elMeusAlunos.style.display = "none";
     if (elTurmas) elTurmas.style.display = "none";
     if (elAssinatura) elAssinatura.style.display = "none";
+    if (elPlanos) elPlanos.style.display = "";
     aplicarSessao({ logado: false, mestre: false, admin: false });
   }
 }
