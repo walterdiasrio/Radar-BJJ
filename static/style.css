@@ -130,6 +130,7 @@ header {
   white-space: nowrap;
   color: var(--azul);
   border-bottom-color: var(--borda);
+  text-shadow: none;
 }
 
 .nav-admin-submenu a:hover { background: #eef4fa; }
@@ -263,6 +264,7 @@ header {
   .nav-admin-submenu a {
     border-left: 1px solid rgba(255, 255, 255, 0.12);
     color: #ffffff;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85), 0 0 6px rgba(0, 0, 0, 0.5);
   }
   .nav-usuario {
     flex-shrink: 0;
