@@ -192,6 +192,10 @@ function renderizarPlanoIA(turma) {
               ${estado.resultado.aulas.some(a => !a.salvo) ? `
                 <button type="button" class="btn-salvar-tudo-ia" data-id="${turma.id}" style="margin-top:10px;">Salvar plano inteiro no histórico</button>
               ` : ""}
+
+              <div style="margin-top:16px; border-top:1px solid var(--borda); padding-top:12px;">
+                ${renderizarPlanner(turma)}
+              </div>
             </div>
           ` : ""}
         </div>
@@ -200,8 +204,10 @@ function renderizarPlanoIA(turma) {
   `;
 }
 
-function mesAnoPadrao() {
-  return new Date().toISOString().slice(0, 7); // "YYYY-MM"
+function proximoMesAno() {
+  const d = new Date();
+  d.setMonth(d.getMonth() + 1);
+  return d.toISOString().slice(0, 7); // "YYYY-MM"
 }
 
 function formatarDataDiaSemana(iso) {
@@ -209,50 +215,39 @@ function formatarDataDiaSemana(iso) {
   return `${NOMES_DIA_SEMANA[data.getDay()]}, ${formatarDataBr(iso)}`;
 }
 
+// Opção que aparece DEPOIS de gerar uma sugestão em "Plano de Aula IA"
+// (ver renderizarPlanoIA) — transforma aquela mesma sugestão (foco/resumo)
+// num planner do mês em PDF, pronto pra baixar/enviar por e-mail.
 function renderizarPlanner(turma) {
   const expandido = plannerExpandidos.has(turma.id);
-  const estado = plannerEstado[turma.id] || { mesAno: mesAnoPadrao() };
-  const grupos = Object.keys(posicoesPorGrupo);
+  const estado = plannerEstado[turma.id] || { mesAno: proximoMesAno() };
+  const iaEstado = planoIaEstado[turma.id] || {};
   const planner = estado.planner;
 
   return `
-    <div style="margin-top:12px;">
+    <div>
       <button type="button" class="btn-secundario btn-planner" data-id="${turma.id}">
-        ${expandido ? "Esconder Planner de Aulas" : "Gerar Planner de Aulas"}
+        ${expandido ? "Esconder Planner de Aulas" : "Gerar Planner de Aulas (PDF) a partir dessa sugestão"}
       </button>
 
       ${expandido ? `
         <div style="margin-top:12px;">
           <p style="color:#7c8894; font-size:0.85rem; margin-top:0;">
-            Gera o planner do mês inteiro (um plano de aula curto pra cada dia de aula da turma, com IA),
-            no formato pra baixar em PDF ou mandar por e-mail. Depois de gerado, edite o conteúdo de
-            qualquer dia à vontade.
+            Gera o planner do mês inteiro (um plano de aula curto pra cada dia de aula da turma, com o
+            mesmo foco/resumo usados acima), no formato pra baixar em PDF ou mandar por e-mail. Depois de
+            gerado, edite o conteúdo de qualquer dia à vontade.
           </p>
 
-          <div class="grade-filtros" style="max-width:640px;">
-            <div class="campo">
-              <label>Mês do planner</label>
-              <input type="month" class="planner_mes_ano" data-turma-id="${turma.id}" value="${estado.mesAno}">
-            </div>
-            <div class="campo">
-              <label>Foco (opcional)</label>
-              <select class="planner_foco" data-turma-id="${turma.id}">
-                <option value="">Sem foco específico</option>
-                ${grupos.map(g => `<option value="${g}" ${estado.foco === g ? "selected" : ""}>${g}</option>`).join("")}
-              </select>
-            </div>
-          </div>
-          <div class="campo" style="max-width:640px;">
-            <label>O que você quer nesse mês? (opcional, máx. 200 caracteres)</label>
-            <textarea class="planner_resumo" data-turma-id="${turma.id}" rows="2"
-              placeholder="ex: preparar a turma pro campeonato estadual de setembro"
-              maxlength="200">${estado.resumo || ""}</textarea>
+          <div class="campo" style="max-width:220px;">
+            <label>Mês do planner</label>
+            <input type="month" class="planner_mes_ano" data-turma-id="${turma.id}" value="${estado.mesAno}">
           </div>
           <button type="button" class="btn-gerar-planner" data-id="${turma.id}" ${estado.carregando ? "disabled" : ""}>
             ${estado.carregando ? "Gerando..." : (planner ? "Gerar de novo (substitui os dias)" : "Gerar planner")}
           </button>
           <div style="color:#7c8894; font-size:0.78rem; margin-top:4px;">
             Compartilha o mesmo limite do Plano de Aula IA: 1 geração por dia.
+            ${iaEstado.foco ? ` Foco: ${iaEstado.foco}.` : ""}
           </div>
 
           ${estado.erro ? `<div class="status-importacao erro" style="margin-top:8px;">${estado.erro}</div>` : ""}
@@ -369,7 +364,6 @@ function renderizarTurmas(turmas) {
 
         ${renderizarPlanoAula(t)}
         ${renderizarPlanoIA(t)}
-        ${renderizarPlanner(t)}
       </div>
     `;
   }).join("");
@@ -435,16 +429,6 @@ function renderizarTurmas(turmas) {
       const turmaId = Number(input.dataset.turmaId);
       atualizarEstadoPlanner(turmaId, { mesAno: input.value, planner: null, erro: null, mensagem: null });
       carregarPlannerExistente(turmaId);
-    });
-  });
-  elLista.querySelectorAll(".planner_foco").forEach(select => {
-    select.addEventListener("change", () => {
-      atualizarEstadoPlanner(Number(select.dataset.turmaId), { foco: select.value });
-    });
-  });
-  elLista.querySelectorAll(".planner_resumo").forEach(textarea => {
-    textarea.addEventListener("input", () => {
-      atualizarEstadoPlanner(Number(textarea.dataset.turmaId), { resumo: textarea.value });
     });
   });
   elLista.querySelectorAll(".planner_dia_conteudo").forEach(textarea => {
@@ -624,7 +608,7 @@ async function salvarTudoIA(turmaId) {
 }
 
 function atualizarEstadoPlanner(turmaId, patch) {
-  plannerEstado[turmaId] = { ...(plannerEstado[turmaId] || { mesAno: mesAnoPadrao() }), ...patch };
+  plannerEstado[turmaId] = { ...(plannerEstado[turmaId] || { mesAno: proximoMesAno() }), ...patch };
 }
 
 async function alternarPlanner(turmaId) {
@@ -633,10 +617,9 @@ async function alternarPlanner(turmaId) {
     renderizarTurmas(turmasAtuais);
     return;
   }
-  await carregarPosicoes();
   plannerExpandidos.add(turmaId);
   if (!plannerEstado[turmaId]) {
-    plannerEstado[turmaId] = { mesAno: mesAnoPadrao() };
+    plannerEstado[turmaId] = { mesAno: proximoMesAno() };
     await carregarPlannerExistente(turmaId);
     return;
   }
@@ -644,7 +627,7 @@ async function alternarPlanner(turmaId) {
 }
 
 async function carregarPlannerExistente(turmaId) {
-  const estado = plannerEstado[turmaId] || { mesAno: mesAnoPadrao() };
+  const estado = plannerEstado[turmaId] || { mesAno: proximoMesAno() };
   const [ano, mes] = estado.mesAno.split("-");
   try {
     const resp = await fetchAutenticado(`/api/turmas/${turmaId}/planner?mes=${Number(mes)}&ano=${ano}`);
@@ -662,10 +645,11 @@ async function carregarPlannerExistente(turmaId) {
 }
 
 async function gerarPlanner(turmaId) {
-  const estado = plannerEstado[turmaId] || { mesAno: mesAnoPadrao() };
+  const estado = plannerEstado[turmaId] || { mesAno: proximoMesAno() };
   if (estado.planner && !confirm("Já existe um planner gerado pra esse mês. Gerar de novo substitui o conteúdo de todos os dias (objetivos e anotações são mantidos). Continuar?")) {
     return;
   }
+  const iaEstado = planoIaEstado[turmaId] || {};
   const [ano, mes] = estado.mesAno.split("-");
   atualizarEstadoPlanner(turmaId, { carregando: true, erro: null, mensagem: null });
   renderizarTurmas(turmasAtuais);
@@ -674,7 +658,7 @@ async function gerarPlanner(turmaId) {
     const resp = await fetchAutenticado(`/api/turmas/${turmaId}/planner?mes=${Number(mes)}&ano=${ano}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ foco: estado.foco || "", resumo: estado.resumo || "" }),
+      body: JSON.stringify({ foco: iaEstado.foco || "", resumo: iaEstado.resumo || "" }),
     });
     const dados = await resp.json();
     if (!resp.ok) throw new Error(dados.erro || "não consegui gerar o planner");
@@ -685,25 +669,35 @@ async function gerarPlanner(turmaId) {
   renderizarTurmas(turmasAtuais);
 }
 
-async function salvarPlanner(turmaId) {
+// Salva o estado atual do planner (dias/objetivos/anotações editados na
+// tela) no servidor. Reaproveitado pelo botão "Salvar alterações" e,
+// antes de baixar/enviar, pra garantir que o PDF/e-mail nunca saia com
+// edições que só existiam no navegador (ver baixarPlannerPdf/emailarPlanner).
+async function _salvarPlannerNoServidor(turmaId) {
   const estado = plannerEstado[turmaId];
   if (!estado || !estado.planner) return;
   const [ano, mes] = estado.mesAno.split("-");
+  const resp = await fetchAutenticado(`/api/turmas/${turmaId}/planner?mes=${Number(mes)}&ano=${ano}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      dias: estado.planner.dias,
+      objetivos: estado.planner.objetivos || "",
+      anotacoes: estado.planner.anotacoes || "",
+    }),
+  });
+  const dados = await resp.json();
+  if (!resp.ok) throw new Error(dados.erro || "não consegui salvar");
+}
+
+async function salvarPlanner(turmaId) {
+  const estado = plannerEstado[turmaId];
+  if (!estado || !estado.planner) return;
   atualizarEstadoPlanner(turmaId, { salvando: true, erro: null, mensagem: null });
   renderizarTurmas(turmasAtuais);
 
   try {
-    const resp = await fetchAutenticado(`/api/turmas/${turmaId}/planner?mes=${Number(mes)}&ano=${ano}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        dias: estado.planner.dias,
-        objetivos: estado.planner.objetivos || "",
-        anotacoes: estado.planner.anotacoes || "",
-      }),
-    });
-    const dados = await resp.json();
-    if (!resp.ok) throw new Error(dados.erro || "não consegui salvar");
+    await _salvarPlannerNoServidor(turmaId);
     atualizarEstadoPlanner(turmaId, { salvando: false, mensagem: "Alterações salvas!" });
   } catch (err) {
     atualizarEstadoPlanner(turmaId, { salvando: false, erro: err.message });
@@ -719,6 +713,7 @@ async function baixarPlannerPdf(turmaId) {
   renderizarTurmas(turmasAtuais);
 
   try {
+    await _salvarPlannerNoServidor(turmaId);
     const resp = await fetchAutenticado(`/api/turmas/${turmaId}/planner/pdf?mes=${Number(mes)}&ano=${ano}`);
     if (!resp.ok) {
       const dados = await resp.json().catch(() => ({}));
@@ -748,6 +743,7 @@ async function emailarPlanner(turmaId) {
   renderizarTurmas(turmasAtuais);
 
   try {
+    await _salvarPlannerNoServidor(turmaId);
     const resp = await fetchAutenticado(`/api/turmas/${turmaId}/planner/email?mes=${Number(mes)}&ano=${ano}`, {
       method: "POST",
     });
