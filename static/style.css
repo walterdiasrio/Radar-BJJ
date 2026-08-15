@@ -842,7 +842,7 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 18px;
-  max-width: 700px;
+  max-width: 1080px;
 }
 
 .plano-card {
@@ -850,6 +850,49 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
   border: 1px solid var(--borda);
   border-radius: 10px;
   padding: 20px;
+}
+
+.plano-card-banner {
+  display: block;
+  padding: 0;
+  overflow: hidden;
+  text-decoration: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.plano-card-banner img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.plano-card-banner:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.grade-planos-full {
+  max-width: none;
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+  padding: 0 16px;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+@media (max-width: 900px) {
+  .grade-planos-full {
+    grid-template-columns: 1fr;
+    max-width: 480px;
+    margin: 0 auto;
+    left: auto;
+    right: auto;
+    width: 100%;
+    padding: 0;
+  }
 }
 
 .plano-card h3 {
