@@ -39,6 +39,9 @@ const planosExpandidos = new Set();
 const planosPorTurma = {};
 const planoIaExpandidos = new Set();
 const planoIaEstado = {};
+const plannerExpandidos = new Set();
+const plannerEstado = {};
+const NOMES_DIA_SEMANA = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 
 function mostrarStatus(texto, ehErro = false) {
   elStatus.textContent = texto;
@@ -197,6 +200,107 @@ function renderizarPlanoIA(turma) {
   `;
 }
 
+function mesAnoPadrao() {
+  return new Date().toISOString().slice(0, 7); // "YYYY-MM"
+}
+
+function formatarDataDiaSemana(iso) {
+  const data = new Date(`${iso}T00:00:00`);
+  return `${NOMES_DIA_SEMANA[data.getDay()]}, ${formatarDataBr(iso)}`;
+}
+
+function renderizarPlanner(turma) {
+  const expandido = plannerExpandidos.has(turma.id);
+  const estado = plannerEstado[turma.id] || { mesAno: mesAnoPadrao() };
+  const grupos = Object.keys(posicoesPorGrupo);
+  const planner = estado.planner;
+
+  return `
+    <div style="margin-top:12px;">
+      <button type="button" class="btn-secundario btn-planner" data-id="${turma.id}">
+        ${expandido ? "Esconder Planner de Aulas" : "Gerar Planner de Aulas"}
+      </button>
+
+      ${expandido ? `
+        <div style="margin-top:12px;">
+          <p style="color:#7c8894; font-size:0.85rem; margin-top:0;">
+            Gera o planner do mês inteiro (um plano de aula curto pra cada dia de aula da turma, com IA),
+            no formato pra baixar em PDF ou mandar por e-mail. Depois de gerado, edite o conteúdo de
+            qualquer dia à vontade.
+          </p>
+
+          <div class="grade-filtros" style="max-width:640px;">
+            <div class="campo">
+              <label>Mês do planner</label>
+              <input type="month" class="planner_mes_ano" data-turma-id="${turma.id}" value="${estado.mesAno}">
+            </div>
+            <div class="campo">
+              <label>Foco (opcional)</label>
+              <select class="planner_foco" data-turma-id="${turma.id}">
+                <option value="">Sem foco específico</option>
+                ${grupos.map(g => `<option value="${g}" ${estado.foco === g ? "selected" : ""}>${g}</option>`).join("")}
+              </select>
+            </div>
+          </div>
+          <div class="campo" style="max-width:640px;">
+            <label>O que você quer nesse mês? (opcional, máx. 200 caracteres)</label>
+            <textarea class="planner_resumo" data-turma-id="${turma.id}" rows="2"
+              placeholder="ex: preparar a turma pro campeonato estadual de setembro"
+              maxlength="200">${estado.resumo || ""}</textarea>
+          </div>
+          <button type="button" class="btn-gerar-planner" data-id="${turma.id}" ${estado.carregando ? "disabled" : ""}>
+            ${estado.carregando ? "Gerando..." : (planner ? "Gerar de novo (substitui os dias)" : "Gerar planner")}
+          </button>
+          <div style="color:#7c8894; font-size:0.78rem; margin-top:4px;">
+            Compartilha o mesmo limite do Plano de Aula IA: 1 geração por dia.
+          </div>
+
+          ${estado.erro ? `<div class="status-importacao erro" style="margin-top:8px;">${estado.erro}</div>` : ""}
+          ${estado.mensagem ? `<div class="status-importacao" style="margin-top:8px;">${estado.mensagem}</div>` : ""}
+          ${planner && planner.aviso ? `<div class="status-importacao" style="margin-top:8px;">${planner.aviso}</div>` : ""}
+
+          ${planner ? `
+            <div style="margin-top:16px;">
+              <strong>Dias de aula (${planner.dias.length}):</strong>
+              ${planner.dias.length ? "" : " nenhum dia de aula nesse mês."}
+              ${planner.dias.map((d, i) => `
+                <div class="cartao-alerta" style="margin-top:8px; padding:12px 14px;">
+                  <div class="cartao-alerta-federacao" style="margin-top:0;">${formatarDataDiaSemana(d.data)}</div>
+                  <textarea class="planner_dia_conteudo" data-turma-id="${turma.id}" data-indice="${i}"
+                    rows="2" maxlength="500" style="margin-top:6px;">${d.conteudo || ""}</textarea>
+                </div>
+              `).join("")}
+
+              <div class="campo" style="max-width:640px; margin-top:16px;">
+                <label>Objetivos do mês</label>
+                <textarea class="planner_objetivos" data-turma-id="${turma.id}" rows="2"
+                  maxlength="2000" placeholder="ex: preparar 3 atletas pro campeonato estadual">${planner.objetivos || ""}</textarea>
+              </div>
+              <div class="campo" style="max-width:640px;">
+                <label>Anotações</label>
+                <textarea class="planner_anotacoes" data-turma-id="${turma.id}" rows="2"
+                  maxlength="2000" placeholder="observações livres sobre o mês">${planner.anotacoes || ""}</textarea>
+              </div>
+
+              <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:8px;">
+                <button type="button" class="btn-salvar-planner" data-id="${turma.id}" ${estado.salvando ? "disabled" : ""}>
+                  ${estado.salvando ? "Salvando..." : "Salvar alterações"}
+                </button>
+                <button type="button" class="btn-secundario btn-baixar-planner" data-id="${turma.id}" ${estado.baixando ? "disabled" : ""}>
+                  ${estado.baixando ? "Gerando PDF..." : "Baixar PDF"}
+                </button>
+                <button type="button" class="btn-secundario btn-emailar-planner" data-id="${turma.id}" ${estado.enviando ? "disabled" : ""}>
+                  ${estado.enviando ? "Enviando..." : "Enviar por e-mail"}
+                </button>
+              </div>
+            </div>
+          ` : ""}
+        </div>
+      ` : ""}
+    </div>
+  `;
+}
+
 function renderizarTurmas(turmas) {
   turmasAtuais = turmas;
 
@@ -265,6 +369,7 @@ function renderizarTurmas(turmas) {
 
         ${renderizarPlanoAula(t)}
         ${renderizarPlanoIA(t)}
+        ${renderizarPlanner(t)}
       </div>
     `;
   }).join("");
@@ -321,6 +426,59 @@ function renderizarTurmas(turmas) {
   });
   elLista.querySelectorAll(".btn-salvar-tudo-ia").forEach(btn => {
     btn.addEventListener("click", () => salvarTudoIA(Number(btn.dataset.id)));
+  });
+  elLista.querySelectorAll(".btn-planner").forEach(btn => {
+    btn.addEventListener("click", () => alternarPlanner(Number(btn.dataset.id)));
+  });
+  elLista.querySelectorAll(".planner_mes_ano").forEach(input => {
+    input.addEventListener("change", () => {
+      const turmaId = Number(input.dataset.turmaId);
+      atualizarEstadoPlanner(turmaId, { mesAno: input.value, planner: null, erro: null, mensagem: null });
+      carregarPlannerExistente(turmaId);
+    });
+  });
+  elLista.querySelectorAll(".planner_foco").forEach(select => {
+    select.addEventListener("change", () => {
+      atualizarEstadoPlanner(Number(select.dataset.turmaId), { foco: select.value });
+    });
+  });
+  elLista.querySelectorAll(".planner_resumo").forEach(textarea => {
+    textarea.addEventListener("input", () => {
+      atualizarEstadoPlanner(Number(textarea.dataset.turmaId), { resumo: textarea.value });
+    });
+  });
+  elLista.querySelectorAll(".planner_dia_conteudo").forEach(textarea => {
+    textarea.addEventListener("input", () => {
+      const turmaId = Number(textarea.dataset.turmaId);
+      const indice = Number(textarea.dataset.indice);
+      const estado = plannerEstado[turmaId];
+      if (!estado || !estado.planner) return;
+      estado.planner.dias[indice].conteudo = textarea.value;
+    });
+  });
+  elLista.querySelectorAll(".planner_objetivos").forEach(textarea => {
+    textarea.addEventListener("input", () => {
+      const estado = plannerEstado[Number(textarea.dataset.turmaId)];
+      if (estado && estado.planner) estado.planner.objetivos = textarea.value;
+    });
+  });
+  elLista.querySelectorAll(".planner_anotacoes").forEach(textarea => {
+    textarea.addEventListener("input", () => {
+      const estado = plannerEstado[Number(textarea.dataset.turmaId)];
+      if (estado && estado.planner) estado.planner.anotacoes = textarea.value;
+    });
+  });
+  elLista.querySelectorAll(".btn-gerar-planner").forEach(btn => {
+    btn.addEventListener("click", () => gerarPlanner(Number(btn.dataset.id)));
+  });
+  elLista.querySelectorAll(".btn-salvar-planner").forEach(btn => {
+    btn.addEventListener("click", () => salvarPlanner(Number(btn.dataset.id)));
+  });
+  elLista.querySelectorAll(".btn-baixar-planner").forEach(btn => {
+    btn.addEventListener("click", () => baixarPlannerPdf(Number(btn.dataset.id)));
+  });
+  elLista.querySelectorAll(".btn-emailar-planner").forEach(btn => {
+    btn.addEventListener("click", () => emailarPlanner(Number(btn.dataset.id)));
   });
 }
 
@@ -463,6 +621,143 @@ async function salvarTudoIA(turmaId) {
   for (let i = 0; i < estado.resultado.aulas.length; i++) {
     if (!estado.resultado.aulas[i].salvo) await salvarSugestaoIA(turmaId, i);
   }
+}
+
+function atualizarEstadoPlanner(turmaId, patch) {
+  plannerEstado[turmaId] = { ...(plannerEstado[turmaId] || { mesAno: mesAnoPadrao() }), ...patch };
+}
+
+async function alternarPlanner(turmaId) {
+  if (plannerExpandidos.has(turmaId)) {
+    plannerExpandidos.delete(turmaId);
+    renderizarTurmas(turmasAtuais);
+    return;
+  }
+  await carregarPosicoes();
+  plannerExpandidos.add(turmaId);
+  if (!plannerEstado[turmaId]) {
+    plannerEstado[turmaId] = { mesAno: mesAnoPadrao() };
+    await carregarPlannerExistente(turmaId);
+    return;
+  }
+  renderizarTurmas(turmasAtuais);
+}
+
+async function carregarPlannerExistente(turmaId) {
+  const estado = plannerEstado[turmaId] || { mesAno: mesAnoPadrao() };
+  const [ano, mes] = estado.mesAno.split("-");
+  try {
+    const resp = await fetchAutenticado(`/api/turmas/${turmaId}/planner?mes=${Number(mes)}&ano=${ano}`);
+    if (resp.status === 404) {
+      atualizarEstadoPlanner(turmaId, { planner: null });
+    } else {
+      const dados = await resp.json();
+      if (!resp.ok) throw new Error(dados.erro || "não consegui carregar o planner");
+      atualizarEstadoPlanner(turmaId, { planner: dados });
+    }
+  } catch (err) {
+    atualizarEstadoPlanner(turmaId, { erro: err.message });
+  }
+  renderizarTurmas(turmasAtuais);
+}
+
+async function gerarPlanner(turmaId) {
+  const estado = plannerEstado[turmaId] || { mesAno: mesAnoPadrao() };
+  if (estado.planner && !confirm("Já existe um planner gerado pra esse mês. Gerar de novo substitui o conteúdo de todos os dias (objetivos e anotações são mantidos). Continuar?")) {
+    return;
+  }
+  const [ano, mes] = estado.mesAno.split("-");
+  atualizarEstadoPlanner(turmaId, { carregando: true, erro: null, mensagem: null });
+  renderizarTurmas(turmasAtuais);
+
+  try {
+    const resp = await fetchAutenticado(`/api/turmas/${turmaId}/planner?mes=${Number(mes)}&ano=${ano}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ foco: estado.foco || "", resumo: estado.resumo || "" }),
+    });
+    const dados = await resp.json();
+    if (!resp.ok) throw new Error(dados.erro || "não consegui gerar o planner");
+    atualizarEstadoPlanner(turmaId, { carregando: false, planner: dados });
+  } catch (err) {
+    atualizarEstadoPlanner(turmaId, { carregando: false, erro: err.message });
+  }
+  renderizarTurmas(turmasAtuais);
+}
+
+async function salvarPlanner(turmaId) {
+  const estado = plannerEstado[turmaId];
+  if (!estado || !estado.planner) return;
+  const [ano, mes] = estado.mesAno.split("-");
+  atualizarEstadoPlanner(turmaId, { salvando: true, erro: null, mensagem: null });
+  renderizarTurmas(turmasAtuais);
+
+  try {
+    const resp = await fetchAutenticado(`/api/turmas/${turmaId}/planner?mes=${Number(mes)}&ano=${ano}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        dias: estado.planner.dias,
+        objetivos: estado.planner.objetivos || "",
+        anotacoes: estado.planner.anotacoes || "",
+      }),
+    });
+    const dados = await resp.json();
+    if (!resp.ok) throw new Error(dados.erro || "não consegui salvar");
+    atualizarEstadoPlanner(turmaId, { salvando: false, mensagem: "Alterações salvas!" });
+  } catch (err) {
+    atualizarEstadoPlanner(turmaId, { salvando: false, erro: err.message });
+  }
+  renderizarTurmas(turmasAtuais);
+}
+
+async function baixarPlannerPdf(turmaId) {
+  const estado = plannerEstado[turmaId];
+  if (!estado || !estado.planner) return;
+  const [ano, mes] = estado.mesAno.split("-");
+  atualizarEstadoPlanner(turmaId, { baixando: true, erro: null });
+  renderizarTurmas(turmasAtuais);
+
+  try {
+    const resp = await fetchAutenticado(`/api/turmas/${turmaId}/planner/pdf?mes=${Number(mes)}&ano=${ano}`);
+    if (!resp.ok) {
+      const dados = await resp.json().catch(() => ({}));
+      throw new Error(dados.erro || "não consegui gerar o PDF");
+    }
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `planner-${mes}-${ano}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    atualizarEstadoPlanner(turmaId, { baixando: false });
+  } catch (err) {
+    atualizarEstadoPlanner(turmaId, { baixando: false, erro: err.message });
+  }
+  renderizarTurmas(turmasAtuais);
+}
+
+async function emailarPlanner(turmaId) {
+  const estado = plannerEstado[turmaId];
+  if (!estado || !estado.planner) return;
+  const [ano, mes] = estado.mesAno.split("-");
+  atualizarEstadoPlanner(turmaId, { enviando: true, erro: null, mensagem: null });
+  renderizarTurmas(turmasAtuais);
+
+  try {
+    const resp = await fetchAutenticado(`/api/turmas/${turmaId}/planner/email?mes=${Number(mes)}&ano=${ano}`, {
+      method: "POST",
+    });
+    const dados = await resp.json();
+    if (!resp.ok) throw new Error(dados.erro || "não consegui enviar o e-mail");
+    atualizarEstadoPlanner(turmaId, { enviando: false, mensagem: `Planner enviado para ${dados.email}!` });
+  } catch (err) {
+    atualizarEstadoPlanner(turmaId, { enviando: false, erro: err.message });
+  }
+  renderizarTurmas(turmasAtuais);
 }
 
 function iniciarEdicao(turmaId, turmas) {

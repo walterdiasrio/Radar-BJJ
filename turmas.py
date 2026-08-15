@@ -117,6 +117,25 @@ def init_db():
             )
         """)
 
+        # Planner mensal de aulas (calendário do mês inteiro, um por
+        # turma+mês+ano) — ver gerar_planner_mensal. "dias" guarda a lista
+        # de {"data", "conteudo"} em JSON; o Mestre edita o conteúdo de
+        # cada dia livremente depois de gerado.
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS planners_mensais (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                turma_id INTEGER NOT NULL REFERENCES turmas(id) ON DELETE CASCADE,
+                mes INTEGER NOT NULL,
+                ano INTEGER NOT NULL,
+                objetivos TEXT NOT NULL DEFAULT '',
+                anotacoes TEXT NOT NULL DEFAULT '',
+                dias TEXT NOT NULL DEFAULT '[]',
+                criado_em TEXT NOT NULL DEFAULT (datetime('now')),
+                atualizado_em TEXT NOT NULL DEFAULT (datetime('now')),
+                UNIQUE(turma_id, mes, ano)
+            )
+        """)
+
 
 def _validar_dados(dados):
     categoria = (dados.get("categoria") or "").strip()
@@ -500,3 +519,241 @@ def gerar_plano_ia(mestre_id, turma_id, foco, resumo, posicoes_por_aula=2):
         return resultado, None
     except Exception:
         return _fallback()
+
+
+# ---------------------------------------------------------------------------
+# Planner mensal de aulas — calendário do mês inteiro (template visual em
+# static/img/planner-*), com o conteúdo de cada dia de aula gerado por IA
+# e depois livremente editável pelo Mestre. Reaproveita o mesmo limite
+# diário de uso da IA que o Plano de Aula (plano_ia_uso) — gerar um mês
+# inteiro é uma única chamada, então cabe na mesma cota.
+# ---------------------------------------------------------------------------
+
+LIMITE_CARACTERES_CONTEUDO_DIA = 500
+
+
+def _datas_do_mes(dias_semana, mes, ano):
+    """Datas de um mês/ano específicos que caem nos dias da semana da
+    turma (ordem crescente). Sem dias da semana cadastrados, retorna
+    lista vazia — o Mestre precisa configurar isso na turma primeiro."""
+    indices = {_DIA_SEMANA_INDICE[d] for d in dias_semana if d in _DIA_SEMANA_INDICE}
+    if not indices:
+        return []
+    ultimo_dia = calendar.monthrange(ano, mes)[1]
+    return [date(ano, mes, dia) for dia in range(1, ultimo_dia + 1) if date(ano, mes, dia).weekday() in indices]
+
+
+def _chamar_claude_planner(turma, mes, ano, foco, resumo, pool, datas):
+    import anthropic
+
+    with _conn() as conn:
+        historico = conn.execute(
+            "SELECT data, posicoes FROM planos_aula WHERE turma_id = ? ORDER BY data DESC LIMIT 30", (turma["id"],)
+        ).fetchall()
+    historico_texto = "\n".join(
+        f"- {linha['data']}: {', '.join(json.loads(linha['posicoes']))}" for linha in historico
+    ) or "(nenhuma aula registrada ainda)"
+
+    prompt = f"""Você é um assistente de um professor (Mestre) de Jiu-Jitsu montando o planner mensal de aulas de uma turma.
+
+Dados da turma:
+- Categoria: {turma['categoria']}
+- Dias de aula na semana: {', '.join(turma['dias_semana'])}
+- Mês do planner: {mes:02d}/{ano}
+- Datas das aulas nesse mês: {', '.join(d.isoformat() for d in datas)}
+
+Histórico de aulas já dadas (mais recentes primeiro, até 30):
+{historico_texto}
+
+Técnicas/posições de referência (use como inspiração, não precisa se limitar a elas):
+{', '.join(pool)}
+
+{"Foco solicitado pelo Mestre para o mês: " + foco if foco else "Nenhum foco específico foi escolhido — distribua entre áreas variadas do Jiu-Jitsu."}
+{("O que o Mestre quer para esse mês: " + resumo) if resumo else ""}
+
+Para cada uma das datas de aula listadas acima, escreva um plano de aula curto (1 a 2 frases, até 220
+caracteres): aquecimento breve + foco técnico do dia + tipo de treino (drilling/sparring). Varie o conteúdo
+entre os dias, priorizando o que a turma menos treinou no histórico. Se a categoria for Baby ou Kids, não
+sugira nenhuma finalização de chave de perna (calcanhar ou toe hold) nem conteúdo inadequado pra crianças.
+
+Responda APENAS com um JSON válido, sem nenhum texto antes ou depois, exatamente neste formato:
+{{"dias": [{{"data": "YYYY-MM-DD", "conteudo": "texto curto do plano de aula desse dia"}}]}}"""
+
+    client = anthropic.Anthropic()
+    response = client.messages.create(
+        model="claude-opus-5",
+        max_tokens=3000,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    texto = "".join(bloco.text for bloco in response.content if bloco.type == "text").strip()
+    if texto.startswith("```"):
+        texto = texto.strip("`")
+        if texto.startswith("json"):
+            texto = texto[4:]
+    dados = json.loads(texto)
+
+    datas_validas = {d.isoformat() for d in datas}
+    validos = []
+    for dia in dados.get("dias") or []:
+        data_str = dia.get("data")
+        conteudo = (dia.get("conteudo") or "").strip()[:LIMITE_CARACTERES_CONTEUDO_DIA]
+        if data_str in datas_validas and conteudo:
+            validos.append({"data": data_str, "conteudo": conteudo})
+
+    if not validos:
+        raise ValueError("resposta da IA sem dias válidos")
+    validos.sort(key=lambda d: d["data"])
+    return validos
+
+
+def _conteudo_fallback(turma, pool, data_referencia, contagem):
+    """Conteúdo determinístico (sem IA) pra um dia — cicla pelas posições
+    menos treinadas, igual à lógica de sugerir_plano_mensal."""
+    ordenadas = sorted(pool, key=lambda p: (contagem[p], p))
+    escolhidas = ordenadas[:2] if len(ordenadas) >= 2 else ordenadas[:1]
+    contagem.update(escolhidas)
+    return f"Aquecimento + foco técnico: {', '.join(escolhidas)}. Drilling seguido de sparring temático."
+
+
+def _gerar_dias_fallback(turma, pool, datas):
+    contagem = Counter({p: 0 for p in pool})
+    with _conn() as conn:
+        historico = conn.execute(
+            "SELECT posicoes FROM planos_aula WHERE turma_id = ?", (turma["id"],)
+        ).fetchall()
+    for linha in historico:
+        for posicao in json.loads(linha["posicoes"]):
+            if posicao in contagem:
+                contagem[posicao] += 1
+    return [
+        {"data": dia.isoformat(), "conteudo": _conteudo_fallback(turma, pool, dia, contagem)}
+        for dia in datas
+    ]
+
+
+def _turma_para_planner(mestre_id, turma_id):
+    with _conn() as conn:
+        turma = conn.execute(
+            "SELECT * FROM turmas WHERE id = ? AND mestre_id = ?", (turma_id, mestre_id)
+        ).fetchone()
+    if not turma:
+        return None
+    turma = dict(turma)
+    turma["dias_semana"] = json.loads(turma["dias_semana"]) if turma["dias_semana"] else []
+    return turma
+
+
+def gerar_planner_mensal(mestre_id, turma_id, mes, ano, foco="", resumo=""):
+    """Gera (ou regenera) o conteúdo dos dias de aula do planner mensal de
+    uma turma, usando IA quando disponível (mesma cota diária do Plano de
+    Aula IA) — cai pro determinístico sem custo se a API não estiver
+    configurada, o limite diário já tiver sido usado, ou a chamada falhar.
+    Preserva objetivos/anotações já salvos ao regenerar. Retorna
+    (planner, erro)."""
+    try:
+        mes = int(mes)
+        ano = int(ano)
+    except (TypeError, ValueError):
+        return None, "mês/ano inválidos"
+    if not (1 <= mes <= 12) or ano < 2020:
+        return None, "mês/ano inválidos"
+    if foco and foco not in POSICOES:
+        return None, f"foco inválido (use: {', '.join(POSICOES.keys())})"
+
+    turma = _turma_para_planner(mestre_id, turma_id)
+    if not turma:
+        return None, "turma não encontrada"
+    if not turma["dias_semana"]:
+        return None, "configure os dias da semana da turma antes de gerar o planner"
+
+    resumo = (resumo or "").strip()[:LIMITE_CARACTERES_RESUMO_IA]
+    pool = list(POSICOES[foco]) if foco else list(_TODAS_POSICOES)
+    if turma["categoria"] in ("Baby", "Kids"):
+        pool = [p for p in pool if p not in POSICOES_ADULTO_APENAS]
+
+    datas = _datas_do_mes(turma["dias_semana"], mes, ano)
+    if not datas:
+        return None, "não há aulas nesse mês pros dias da semana configurados"
+
+    usou_ia = False
+    aviso = None
+    if not os.environ.get("ANTHROPIC_API_KEY"):
+        dias = _gerar_dias_fallback(turma, pool, datas)
+    elif not _pode_usar_plano_ia_hoje(mestre_id):
+        dias = _gerar_dias_fallback(turma, pool, datas)
+        aviso = (
+            "Você já usou o Plano de Aula IA hoje (limite de 1x por dia) — "
+            "esse planner foi gerado automaticamente, sem IA. Tente de novo amanhã."
+        )
+    else:
+        try:
+            dias = _chamar_claude_planner(turma, mes, ano, foco, resumo, pool, datas)
+            usou_ia = True
+            _registrar_uso_plano_ia(mestre_id)
+        except Exception:
+            dias = _gerar_dias_fallback(turma, pool, datas)
+            aviso = "IA indisponível no momento — planner gerado automaticamente, sem IA."
+
+    with _conn() as conn:
+        conn.execute(
+            """INSERT INTO planners_mensais (turma_id, mes, ano, dias, atualizado_em)
+               VALUES (?, ?, ?, ?, datetime('now'))
+               ON CONFLICT(turma_id, mes, ano)
+               DO UPDATE SET dias = excluded.dias, atualizado_em = excluded.atualizado_em""",
+            (turma_id, mes, ano, json.dumps(dias, ensure_ascii=False)),
+        )
+        linha = conn.execute(
+            "SELECT * FROM planners_mensais WHERE turma_id = ? AND mes = ? AND ano = ?",
+            (turma_id, mes, ano),
+        ).fetchone()
+
+    planner = dict(linha)
+    planner["dias"] = json.loads(planner["dias"])
+    planner["ia"] = usou_ia
+    if aviso:
+        planner["aviso"] = aviso
+    return planner, None
+
+
+def obter_planner(mestre_id, turma_id, mes, ano):
+    if not turma_pertence_ao_mestre(mestre_id, turma_id):
+        return None
+    with _conn() as conn:
+        linha = conn.execute(
+            "SELECT * FROM planners_mensais WHERE turma_id = ? AND mes = ? AND ano = ?",
+            (turma_id, mes, ano),
+        ).fetchone()
+    if not linha:
+        return None
+    planner = dict(linha)
+    planner["dias"] = json.loads(planner["dias"])
+    return planner
+
+
+def salvar_planner(mestre_id, turma_id, mes, ano, dias, objetivos, anotacoes):
+    """Salva as edições do Mestre (conteúdo de cada dia, objetivos e
+    anotações) num planner já gerado antes. Retorna (ok, erro)."""
+    if not turma_pertence_ao_mestre(mestre_id, turma_id):
+        return False, "turma não encontrada"
+
+    dias_validos = []
+    for dia in dias or []:
+        data_str = (dia.get("data") or "").strip()
+        conteudo = (dia.get("conteudo") or "").strip()[:LIMITE_CARACTERES_CONTEUDO_DIA]
+        if data_str:
+            dias_validos.append({"data": data_str, "conteudo": conteudo})
+
+    with _conn() as conn:
+        cursor = conn.execute(
+            """UPDATE planners_mensais SET dias = ?, objetivos = ?, anotacoes = ?, atualizado_em = datetime('now')
+               WHERE turma_id = ? AND mes = ? AND ano = ?""",
+            (
+                json.dumps(dias_validos, ensure_ascii=False),
+                (objetivos or "").strip()[:2000],
+                (anotacoes or "").strip()[:2000],
+                turma_id, mes, ano,
+            ),
+        )
+    if cursor.rowcount == 0:
+        return False, "gere o planner desse mês antes de salvar edições"
+    return True, None

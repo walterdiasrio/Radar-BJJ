@@ -447,7 +447,7 @@ main {
 }
 
 select, input[type="text"], input[type="number"], input[type="email"],
-input[type="password"], input[type="date"], input[type="tel"], textarea {
+input[type="password"], input[type="date"], input[type="month"], input[type="tel"], textarea {
   padding: 11px 14px;
   border: 1.5px solid var(--borda);
   border-radius: 10px;
@@ -460,7 +460,7 @@ input[type="password"], input[type="date"], input[type="tel"], textarea {
 }
 
 select:focus, input[type="text"]:focus, input[type="number"]:focus, input[type="email"]:focus,
-input[type="password"]:focus, input[type="date"]:focus, input[type="tel"]:focus, textarea:focus {
+input[type="password"]:focus, input[type="date"]:focus, input[type="month"]:focus, input[type="tel"]:focus, textarea:focus {
   outline: none;
   border-color: var(--azul-claro);
   box-shadow: 0 0 0 3px rgba(70, 99, 174, 0.15);

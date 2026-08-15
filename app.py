@@ -1,3 +1,4 @@
+import base64
 import os
 import secrets
 import threading
@@ -7,7 +8,7 @@ from datetime import date
 from functools import wraps
 from pathlib import Path
 
-from flask import Flask, jsonify, redirect, request, send_from_directory, session
+from flask import Flask, Response, jsonify, redirect, request, send_from_directory, session
 
 import alertas
 import auth
@@ -15,6 +16,7 @@ import carreira
 import contato
 import noticias
 import pagamentos
+import planner_pdf
 import turmas
 from connectors import FEDERACOES, TODAS, listar_eventos, buscar_atletas_agregado, listar_competicoes, evento_sem_kimono
 from connectors import adcc
@@ -1283,6 +1285,127 @@ def api_sugerir_plano_ia(turma_id):
     if erro:
         return jsonify({"erro": erro}), 400
     return jsonify(resultado)
+
+
+def _mes_ano_da_query():
+    """Lê mes/ano da query string — usado em todas as rotas do planner
+    (GET/POST/PUT), mesmo quando o corpo da requisição também carrega
+    JSON (foco/resumo, dias/objetivos/anotações). Retorna (mes, ano, erro)."""
+    try:
+        mes = int(request.args.get("mes"))
+        ano = int(request.args.get("ano"))
+    except (TypeError, ValueError):
+        return None, None, "informe mês e ano"
+    return mes, ano, None
+
+
+@app.post("/api/turmas/<int:turma_id>/planner")
+@api_assinatura_necessaria
+def api_gerar_planner(turma_id):
+    if not _usuario_atual_eh_mestre():
+        return jsonify({"erro": "exclusivo do perfil Mestre"}), 403
+    dados = request.get_json(silent=True) or {}
+    mes, ano, erro = _mes_ano_da_query()
+    if erro:
+        return jsonify({"erro": erro}), 400
+    foco = dados.get("foco", "")
+    resumo = dados.get("resumo", "")
+    planner, erro = turmas.gerar_planner_mensal(session["usuario_id"], turma_id, mes, ano, foco, resumo)
+    if erro:
+        return jsonify({"erro": erro}), 400
+    return jsonify(planner)
+
+
+@app.get("/api/turmas/<int:turma_id>/planner")
+@api_assinatura_necessaria
+def api_obter_planner(turma_id):
+    if not _usuario_atual_eh_mestre():
+        return jsonify({"erro": "exclusivo do perfil Mestre"}), 403
+    mes, ano, erro = _mes_ano_da_query()
+    if erro:
+        return jsonify({"erro": erro}), 400
+    planner = turmas.obter_planner(session["usuario_id"], turma_id, mes, ano)
+    if not planner:
+        return jsonify({"erro": "nenhum planner gerado pra esse mês ainda"}), 404
+    return jsonify(planner)
+
+
+@app.put("/api/turmas/<int:turma_id>/planner")
+@api_assinatura_necessaria
+def api_salvar_planner(turma_id):
+    if not _usuario_atual_eh_mestre():
+        return jsonify({"erro": "exclusivo do perfil Mestre"}), 403
+    dados = request.get_json(silent=True) or {}
+    mes, ano, erro = _mes_ano_da_query()
+    if erro:
+        return jsonify({"erro": erro}), 400
+    ok, erro = turmas.salvar_planner(
+        session["usuario_id"], turma_id, mes, ano,
+        dados.get("dias"), dados.get("objetivos", ""), dados.get("anotacoes", ""),
+    )
+    if not ok:
+        return jsonify({"erro": erro}), 400
+    return jsonify({"ok": True})
+
+
+def _turma_e_planner_para_pdf(turma_id, mes, ano):
+    """Retorna (turma, planner, erro) já validando dono/existência —
+    reaproveitado pelo download e pelo envio por e-mail do PDF."""
+    if not _usuario_atual_eh_mestre():
+        return None, None, ("exclusivo do perfil Mestre", 403)
+    turma = next((t for t in turmas.listar_turmas(session["usuario_id"]) if t["id"] == turma_id), None)
+    if not turma:
+        return None, None, ("turma não encontrada", 404)
+    planner = turmas.obter_planner(session["usuario_id"], turma_id, mes, ano)
+    if not planner:
+        return None, None, ("nenhum planner gerado pra esse mês ainda", 404)
+    return turma, planner, None
+
+
+@app.get("/api/turmas/<int:turma_id>/planner/pdf")
+@api_assinatura_necessaria
+def api_planner_pdf(turma_id):
+    mes, ano, erro = _mes_ano_da_query()
+    if erro:
+        return jsonify({"erro": erro}), 400
+    turma, planner, erro = _turma_e_planner_para_pdf(turma_id, mes, ano)
+    if erro:
+        return jsonify({"erro": erro[0]}), erro[1]
+    pdf_bytes = planner_pdf.gerar_pdf(turma, planner)
+    nome_arquivo = f"planner-{turma['categoria'].lower()}-{mes:02d}-{ano}.pdf"
+    return Response(
+        pdf_bytes,
+        mimetype="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{nome_arquivo}"'},
+    )
+
+
+@app.post("/api/turmas/<int:turma_id>/planner/email")
+@api_assinatura_necessaria
+def api_planner_email(turma_id):
+    mes, ano, erro = _mes_ano_da_query()
+    if erro:
+        return jsonify({"erro": erro}), 400
+    turma, planner, erro = _turma_e_planner_para_pdf(turma_id, mes, ano)
+    if erro:
+        return jsonify({"erro": erro[0]}), erro[1]
+
+    usuario = auth.buscar_por_id(session["usuario_id"])
+    if not usuario:
+        return jsonify({"erro": "usuário não encontrado"}), 404
+
+    pdf_bytes = planner_pdf.gerar_pdf(turma, planner)
+    nome_arquivo = f"planner-{turma['categoria'].lower()}-{mes:02d}-{ano}.pdf"
+    nome_turma = turma.get("nome") or turma["categoria"]
+    enviado = alertas.enviar_email(
+        usuario["email"],
+        f"Radar BJJ — Planner de Aulas ({nome_turma}, {mes:02d}/{ano})",
+        f"<p>Segue em anexo o planner de aulas de <b>{nome_turma}</b> para {mes:02d}/{ano}.</p>",
+        anexos=[{"filename": nome_arquivo, "content_base64": base64.b64encode(pdf_bytes).decode("ascii")}],
+    )
+    if not enviado:
+        return jsonify({"erro": "não consegui enviar o e-mail agora, tente de novo"}), 502
+    return jsonify({"ok": True, "email": usuario["email"]})
 
 
 @app.get("/api/carreira/meu-mestre")

@@ -368,17 +368,24 @@ def verificar_todas_competicoes():
             traceback.print_exc()
 
 
-def enviar_email(destinatario, assunto, corpo_html):
+def enviar_email(destinatario, assunto, corpo_html, anexos=None):
+    """anexos, se informado: lista de {"filename": ..., "content_base64": ...}
+    (ver turmas/planner_pdf — usado pra mandar o Planner de Aulas em PDF)."""
     if not RESEND_API_KEY:
         print(f"[alertas] RESEND_API_KEY não configurada — e-mail não enviado "
               f"(para={destinatario}, assunto={assunto!r})")
         return False
+    corpo = {"from": REMETENTE, "to": [destinatario], "subject": assunto, "html": corpo_html}
+    if anexos:
+        corpo["attachments"] = [
+            {"filename": a["filename"], "content": a["content_base64"]} for a in anexos
+        ]
     try:
         resp = requests.post(
             "https://api.resend.com/emails",
             headers={"Authorization": f"Bearer {RESEND_API_KEY}"},
-            json={"from": REMETENTE, "to": [destinatario], "subject": assunto, "html": corpo_html},
-            timeout=15,
+            json=corpo,
+            timeout=20,
         )
     except requests.RequestException as exc:
         print(f"[alertas] falha de rede ao enviar e-mail: {exc}")
