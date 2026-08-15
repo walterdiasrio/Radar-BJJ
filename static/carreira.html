@@ -94,6 +94,21 @@
 
     <form id="form-perfil" class="card-carreira">
       <div class="campo">
+        <label>Foto do perfil</label>
+        <div style="display:flex; align-items:center; gap:16px;">
+          <div id="p_foto_wrap" style="position:relative; width:88px; height:88px; flex-shrink:0;">
+            <img id="p_foto_preview" src="" alt="Foto do perfil" style="display:none; width:88px; height:88px; border-radius:50%; object-fit:cover; border:2px solid var(--borda);">
+            <div id="p_foto_placeholder" style="width:88px; height:88px; border-radius:50%; background:var(--campo-bg); border:2px solid var(--borda); display:flex; align-items:center; justify-content:center; font-size:2.2rem;">🥋</div>
+          </div>
+          <div>
+            <input type="file" id="p_foto_input" accept="image/png, image/jpeg, image/webp" style="display:none;">
+            <label for="p_foto_input" class="btn-secundario" style="display:inline-block; cursor:pointer;">Escolher foto</label>
+            <button type="button" id="btn-remover-foto" class="btn-secundario" style="display:none;">Remover</button>
+            <div id="status-foto-perfil" class="status-importacao" style="margin-top:4px; margin-bottom:0;"></div>
+          </div>
+        </div>
+      </div>
+      <div class="campo">
         <label for="p_nome">Nome</label>
         <input type="text" id="p_nome" placeholder="Seu nome">
       </div>

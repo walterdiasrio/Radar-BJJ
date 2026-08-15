@@ -6,18 +6,23 @@ verdade em vez de localStorage + Google Sheets.
 """
 import os
 import sqlite3
+import uuid
 from pathlib import Path
 
 DATA_DIR = Path(os.environ.get("DATA_DIR", Path(__file__).parent))
 DB_PATH = DATA_DIR / "carreira.db"
+DIR_FOTOS = DATA_DIR / "perfil_fotos"
 
 RESULTADOS = ("vitoria", "derrota", "empate")
 METODOS = ("pontos", "finalizacao", "wo", "desclassificacao", "medica")
 MEDALHAS = ("ouro", "prata", "bronze")
 
+EXTENSOES_FOTO_PERMITIDAS = {"jpg", "jpeg", "png", "webp"}
+TAMANHO_FOTO_PERFIL = 300  # px — foto quadrada; o recorte redondo é feito via CSS onde ela aparece.
+
 PERFIL_PADRAO = {
     "avatar": "🥋", "nome": "", "faixa": "Branca", "grau": "0",
-    "categoria": "", "academia": "", "inicio": "",
+    "categoria": "", "academia": "", "inicio": "", "foto_arquivo": None,
 }
 
 
@@ -43,6 +48,11 @@ def init_db():
                 inicio TEXT
             )
         """)
+        # foto_arquivo entrou depois que a tabela já existia em produção.
+        colunas = {linha["name"] for linha in conn.execute("PRAGMA table_info(perfis_atleta)")}
+        if "foto_arquivo" not in colunas:
+            conn.execute("ALTER TABLE perfis_atleta ADD COLUMN foto_arquivo TEXT")
+
         conn.execute("""
             CREATE TABLE IF NOT EXISTS competicoes (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -178,7 +188,81 @@ def salvar_perfil(usuario_id, dados):
                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
                 (usuario_id, *perfil.values()),
             )
-    return {**perfil, "usuario_id": usuario_id}
+        # Devolve a linha inteira (não só os campos que esse formulário
+        # manda) pra incluir foto_arquivo, que é editado num formulário
+        # separado (ver salvar_foto_perfil) e não pode ser perdido aqui.
+        linha = conn.execute(
+            "SELECT * FROM perfis_atleta WHERE usuario_id = ?", (usuario_id,)
+        ).fetchone()
+    return dict(linha)
+
+
+def _extensao(nome_arquivo):
+    return (nome_arquivo or "").rsplit(".", 1)[-1].lower() if "." in (nome_arquivo or "") else ""
+
+
+def salvar_foto_perfil(usuario_id, arquivo_imagem, nome_original):
+    """arquivo_imagem é o FileStorage do Flask (request.files[...]). Recorta
+    pro quadrado central e redimensiona pra TAMANHO_FOTO_PERFIL — o formato
+    redondo em si é aplicado via CSS (border-radius) onde a foto aparece, não
+    no arquivo salvo. Retorna (nome_arquivo, erro)."""
+    ext = _extensao(nome_original)
+    if ext not in EXTENSOES_FOTO_PERMITIDAS:
+        return None, "imagem inválida (use jpg, png ou webp)"
+
+    from PIL import Image, ImageOps
+
+    try:
+        imagem = Image.open(arquivo_imagem.stream)
+        imagem = ImageOps.exif_transpose(imagem)  # corrige rotação de fotos tiradas com celular
+        imagem = imagem.convert("RGB")
+    except Exception:
+        return None, "não consegui ler essa imagem"
+
+    lado = min(imagem.size)
+    esquerda = (imagem.width - lado) // 2
+    topo = (imagem.height - lado) // 2
+    imagem = imagem.crop((esquerda, topo, esquerda + lado, topo + lado))
+    imagem = imagem.resize((TAMANHO_FOTO_PERFIL, TAMANHO_FOTO_PERFIL), Image.LANCZOS)
+
+    DIR_FOTOS.mkdir(parents=True, exist_ok=True)
+    nome_arquivo = f"{usuario_id}-{uuid.uuid4().hex}.jpg"
+    imagem.save(DIR_FOTOS / nome_arquivo, "JPEG", quality=88, optimize=True)
+
+    with _conn() as conn:
+        antiga = conn.execute(
+            "SELECT foto_arquivo FROM perfis_atleta WHERE usuario_id = ?", (usuario_id,)
+        ).fetchone()
+        if antiga:
+            conn.execute(
+                "UPDATE perfis_atleta SET foto_arquivo = ? WHERE usuario_id = ?", (nome_arquivo, usuario_id)
+            )
+        else:
+            conn.execute(
+                """INSERT INTO perfis_atleta (usuario_id, avatar, nome, faixa, grau, categoria, academia, foto_arquivo)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                (usuario_id, PERFIL_PADRAO["avatar"], "", "Branca", "0", "", "", nome_arquivo),
+            )
+        if antiga and antiga["foto_arquivo"]:
+            caminho_antigo = DIR_FOTOS / antiga["foto_arquivo"]
+            if caminho_antigo.exists():
+                caminho_antigo.unlink()
+
+    return nome_arquivo, None
+
+
+def remover_foto_perfil(usuario_id):
+    with _conn() as conn:
+        linha = conn.execute(
+            "SELECT foto_arquivo FROM perfis_atleta WHERE usuario_id = ?", (usuario_id,)
+        ).fetchone()
+        if not linha or not linha["foto_arquivo"]:
+            return False
+        caminho = DIR_FOTOS / linha["foto_arquivo"]
+        if caminho.exists():
+            caminho.unlink()
+        conn.execute("UPDATE perfis_atleta SET foto_arquivo = NULL WHERE usuario_id = ?", (usuario_id,))
+    return True
 
 
 def _validar_lutas(lutas_brutas):

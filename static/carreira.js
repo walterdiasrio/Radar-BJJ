@@ -18,6 +18,22 @@ function mostrarStatus(elId, texto, ehErro = false) {
 }
 
 // ---------- Perfil ----------
+function atualizarFotoPerfilUI(fotoUrl) {
+  const elPreview = document.getElementById("p_foto_preview");
+  const elPlaceholder = document.getElementById("p_foto_placeholder");
+  const elBtnRemover = document.getElementById("btn-remover-foto");
+  if (fotoUrl) {
+    elPreview.src = fotoUrl;
+    elPreview.style.display = "block";
+    elPlaceholder.style.display = "none";
+    elBtnRemover.style.display = "inline-block";
+  } else {
+    elPreview.style.display = "none";
+    elPlaceholder.style.display = "flex";
+    elBtnRemover.style.display = "none";
+  }
+}
+
 async function carregarPerfil() {
   try {
     const resp = await fetchAutenticado("/api/carreira/perfil");
@@ -28,11 +44,43 @@ async function carregarPerfil() {
     document.getElementById("p_categoria").value = p.categoria || "";
     document.getElementById("p_academia").value = p.academia || "";
     document.getElementById("p_inicio").value = p.inicio || "";
+    atualizarFotoPerfilUI(p.foto_url);
     atualizarLembretePerfil(p);
   } catch (err) {
     // segue com os campos vazios
   }
 }
+
+document.getElementById("p_foto_input").addEventListener("change", async (ev) => {
+  const arquivo = ev.target.files[0];
+  if (!arquivo) return;
+  mostrarStatus("status-foto-perfil", "Enviando foto...");
+  const formData = new FormData();
+  formData.append("foto", arquivo);
+  try {
+    const resp = await fetchAutenticado("/api/carreira/foto", { method: "POST", body: formData });
+    const dados = await resp.json();
+    if (!resp.ok) throw new Error(dados.erro || "não consegui enviar a foto");
+    atualizarFotoPerfilUI(dados.foto_url);
+    mostrarStatus("status-foto-perfil", "Foto atualizada!");
+  } catch (err) {
+    mostrarStatus("status-foto-perfil", `Erro: ${err.message}`, true);
+  } finally {
+    ev.target.value = "";
+  }
+});
+
+document.getElementById("btn-remover-foto").addEventListener("click", async () => {
+  if (!confirm("Remover a foto do perfil?")) return;
+  try {
+    const resp = await fetchAutenticado("/api/carreira/foto", { method: "DELETE" });
+    if (!resp.ok) throw new Error("não consegui remover a foto");
+    atualizarFotoPerfilUI(null);
+    mostrarStatus("status-foto-perfil", "Foto removida.");
+  } catch (err) {
+    mostrarStatus("status-foto-perfil", `Erro: ${err.message}`, true);
+  }
+});
 
 // Aviso fixo (visível em qualquer aba) enquanto faltar nome, faixa ou
 // academia — sem esses três preenchidos, o vínculo com Mestre/Alunos e o

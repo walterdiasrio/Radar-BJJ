@@ -24,9 +24,14 @@ async function carregarAlunos() {
     elLista.innerHTML = alunos.map(a => `
       <div class="cartao-alerta">
         <div class="cartao-alerta-topo">
-          <div>
-            <h3><a href="/meus-alunos/${a.usuario_id}" style="color: var(--azul); text-decoration: none;">${a.nome || "(sem nome)"}</a></h3>
-            <div class="cartao-alerta-federacao">Faixa ${a.faixa}${Number(a.grau) > 0 ? " · " + a.grau + "º grau" : ""}</div>
+          <div style="display:flex; align-items:center; gap:12px;">
+            ${a.foto_url
+              ? `<img src="${a.foto_url}" alt="" style="width:44px; height:44px; border-radius:50%; object-fit:cover; flex-shrink:0;">`
+              : `<div style="width:44px; height:44px; border-radius:50%; background:var(--campo-bg); border:1px solid var(--borda); display:flex; align-items:center; justify-content:center; font-size:1.3rem; flex-shrink:0;">🥋</div>`}
+            <div>
+              <h3><a href="/meus-alunos/${a.usuario_id}" style="color: var(--azul); text-decoration: none;">${a.nome || "(sem nome)"}</a></h3>
+              <div class="cartao-alerta-federacao">Faixa ${a.faixa}${Number(a.grau) > 0 ? " · " + a.grau + "º grau" : ""}</div>
+            </div>
           </div>
           <button type="button" class="btn-remover" data-id="${a.usuario_id}">Remover</button>
         </div>

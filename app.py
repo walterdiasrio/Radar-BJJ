@@ -970,10 +970,19 @@ def pagina_carreira():
     return send_from_directory("static", "carreira.html")
 
 
+def _com_foto_url(perfil):
+    """Acrescenta foto_url (rota pública da foto) a um dict de perfil,
+    a partir do foto_arquivo salvo — mesmo padrão do imagem_url das
+    notícias (ver api_listar_noticias)."""
+    perfil = dict(perfil)
+    perfil["foto_url"] = f"/perfil-fotos/{perfil['foto_arquivo']}" if perfil.get("foto_arquivo") else None
+    return perfil
+
+
 @app.get("/api/carreira/perfil")
 @api_assinatura_necessaria
 def api_carreira_obter_perfil():
-    return jsonify(carreira.obter_perfil(session["usuario_id"]))
+    return jsonify(_com_foto_url(carreira.obter_perfil(session["usuario_id"])))
 
 
 @app.post("/api/carreira/perfil")
@@ -981,7 +990,31 @@ def api_carreira_obter_perfil():
 def api_carreira_salvar_perfil():
     dados = request.get_json(silent=True) or {}
     perfil = carreira.salvar_perfil(session["usuario_id"], dados)
-    return jsonify(perfil)
+    return jsonify(_com_foto_url(perfil))
+
+
+@app.get("/perfil-fotos/<path:nome_arquivo>")
+def servir_foto_perfil(nome_arquivo):
+    return send_from_directory(carreira.DIR_FOTOS, nome_arquivo)
+
+
+@app.post("/api/carreira/foto")
+@api_assinatura_necessaria
+def api_carreira_upload_foto():
+    arquivo = request.files.get("foto")
+    if not arquivo or not arquivo.filename:
+        return jsonify({"erro": "selecione uma imagem"}), 400
+    nome_arquivo, erro = carreira.salvar_foto_perfil(session["usuario_id"], arquivo, arquivo.filename)
+    if erro:
+        return jsonify({"erro": erro}), 400
+    return jsonify({"ok": True, "foto_url": f"/perfil-fotos/{nome_arquivo}"})
+
+
+@app.delete("/api/carreira/foto")
+@api_assinatura_necessaria
+def api_carreira_remover_foto():
+    carreira.remover_foto_perfil(session["usuario_id"])
+    return jsonify({"ok": True})
 
 
 @app.get("/api/carreira/competicoes")
@@ -1065,7 +1098,7 @@ def _perfil_publico_vinculo(usuario_id):
     if not perfil.get("nome"):
         usuario = auth.buscar_por_id(usuario_id)
         perfil["nome"] = (usuario and (usuario.get("nome_usuario") or usuario.get("email"))) or "(perfil incompleto)"
-    return perfil
+    return _com_foto_url(perfil)
 
 
 @app.get("/api/meus-alunos")
