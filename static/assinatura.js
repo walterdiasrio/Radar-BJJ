@@ -3,7 +3,7 @@ const elAssinaturaAtiva = document.getElementById("assinatura-ativa");
 const elPlanosContainer = document.getElementById("planos-container");
 const elResumoRadar = document.getElementById("resumo-radar");
 
-const NOMES_PLANO = { atleta: "Atleta", mestre: "Mestre" };
+const NOMES_PLANO = { atleta: "Atleta PRO", mestre: "Mestre PRO" };
 const NOMES_STATUS = {
   trialing: "em teste grátis",
   active: "ativa",

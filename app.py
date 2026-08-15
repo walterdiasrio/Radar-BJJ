@@ -378,6 +378,12 @@ def pagina_fale_conosco():
     return send_from_directory("static", "fale-conosco.html")
 
 
+@app.get("/termos")
+def pagina_termos():
+    # Pública — aberta a todo mundo, logado ou não.
+    return send_from_directory("static", "termos.html")
+
+
 @app.post("/api/contato")
 def api_criar_mensagem_contato():
     dados = request.get_json(silent=True) or {}
