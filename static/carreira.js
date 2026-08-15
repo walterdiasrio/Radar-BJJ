@@ -561,11 +561,11 @@ async function gerarImagemStory() {
   ctx.textAlign = "center";
 
   // Banner do site, no topo
-  let yBanner = 80;
-  let yAposBanner = 300;
+  let yBanner = 70;
+  let yAposBanner = 280;
   try {
     const banner = await carregarImagem("img/banner.jpg");
-    const larguraBanner = 600;
+    const larguraBanner = 580;
     const alturaBanner = larguraBanner * (banner.height / banner.width);
     ctx.save();
     ctx.shadowColor = "rgba(127, 212, 255, 0.5)";
@@ -574,7 +574,7 @@ async function gerarImagemStory() {
     ctx.clip();
     ctx.drawImage(banner, W / 2 - larguraBanner / 2, yBanner, larguraBanner, alturaBanner);
     ctx.restore();
-    yAposBanner = yBanner + alturaBanner + 40;
+    yAposBanner = yBanner + alturaBanner + 32;
   } catch (err) {
     // segue sem o banner se não conseguir carregar
   }
@@ -586,7 +586,7 @@ async function gerarImagemStory() {
   const elFotoPreview = document.getElementById("p_foto_preview");
   const fotoUrl = elFotoPreview.style.display !== "none" ? elFotoPreview.src : null;
 
-  const raioFoto = 78;
+  const raioFoto = 68;
   const cxFoto = W / 2;
   const cyFoto = yAposBanner + raioFoto;
 
@@ -617,9 +617,9 @@ async function gerarImagemStory() {
   } else {
     ctx.fillStyle = "#12314f";
     ctx.fillRect(cxFoto - raioFoto, cyFoto - raioFoto, raioFoto * 2, raioFoto * 2);
-    ctx.font = "68px -apple-system, Arial, sans-serif";
+    ctx.font = "60px -apple-system, Arial, sans-serif";
     ctx.fillStyle = "#ffffff";
-    ctx.fillText("🥋", cxFoto, cyFoto + 24);
+    ctx.fillText("🥋", cxFoto, cyFoto + 21);
   }
   ctx.restore();
 
@@ -629,7 +629,7 @@ async function gerarImagemStory() {
   ctx.lineWidth = 5;
   ctx.stroke();
 
-  yAposBanner = cyFoto + raioFoto + 46;
+  yAposBanner = cyFoto + raioFoto + 36;
 
   // "RESUMO DE CARREIRA" com dois tracinhos decorativos ao lado
   ctx.font = "26px -apple-system, Arial, sans-serif";
@@ -659,7 +659,7 @@ async function gerarImagemStory() {
     ctx.font = `bold ${tamanhoNome}px -apple-system, Arial, sans-serif`;
   }
   ctx.fillStyle = "#ffffff";
-  const yNome = yAposBanner + 75;
+  const yNome = yAposBanner + 70;
   ctx.fillText(nome, W / 2, yNome);
 
   // Faixa (badge)
@@ -669,14 +669,14 @@ async function gerarImagemStory() {
   ctx.font = "bold 30px -apple-system, Arial, sans-serif";
   const larguraBadge = ctx.measureText(faixaTexto).width + 70;
   const xBadge = W / 2 - larguraBadge / 2;
-  const yBadge = yNome + 45;
+  const yBadge = yNome + 42;
   ctx.fillStyle = corDaFaixa(faixa);
   roundRect(ctx, xBadge, yBadge, larguraBadge, 58, 29);
   ctx.fill();
   ctx.fillStyle = ["preta", "azul", "roxa", "marrom", "verde", "verde-preta", "cinza-preta", "laranja-preta", "amarela-preta"].includes(faixa.toLowerCase()) ? "#ffffff" : "#1c2733";
   ctx.fillText(faixaTexto, W / 2, yBadge + 39);
 
-  let yAcademia = yBadge + 58 + 55;
+  let yAcademia = yBadge + 58 + 40;
   if (perfil.academia) {
     ctx.font = "30px -apple-system, Arial, sans-serif";
     ctx.fillStyle = CINZA_AZULADO;
@@ -697,10 +697,10 @@ async function gerarImagemStory() {
   ];
 
   const margem = 60;
-  const gapGrid = 24;
+  const gapGrid = 18;
   const colW = (W - margem * 2 - gapGrid) / 2;
-  const linhaAltura = 190;
-  const gridTopo = yAcademia + 55;
+  const linhaAltura = 165;
+  const gridTopo = yAcademia + 42;
 
   statsPrincipais.forEach((item, i) => {
     const col = i % 2;
@@ -733,21 +733,21 @@ async function gerarImagemStory() {
 
   // Pódio — barras com altura proporcional ao lugar (ouro no centro, mais
   // alta), medalha fixa no topo do painel e a contagem dentro de cada barra.
-  const painelY = gridFim + 40;
-  const painelAltura = 380;
+  const painelY = gridFim + 30;
+  const painelAltura = 330;
   cartaoComGlow(ctx, margem, painelY, W - margem * 2, painelAltura, 24, "rgba(127, 212, 255, 0.3)");
 
   const medalhas = [
-    { icone: "🥈", valor: stats.pratas || 0, alturaBarra: 110, cor: "rgba(200, 210, 220, 0.35)" },
-    { icone: "🥇", valor: stats.ouros || 0, alturaBarra: 170, cor: "rgba(255, 215, 90, 0.4)" },
-    { icone: "🥉", valor: stats.bronzes || 0, alturaBarra: 80, cor: "rgba(205, 140, 90, 0.4)" },
+    { icone: "🥈", valor: stats.pratas || 0, alturaBarra: 95, cor: "rgba(200, 210, 220, 0.35)" },
+    { icone: "🥇", valor: stats.ouros || 0, alturaBarra: 148, cor: "rgba(255, 215, 90, 0.4)" },
+    { icone: "🥉", valor: stats.bronzes || 0, alturaBarra: 70, cor: "rgba(205, 140, 90, 0.4)" },
   ];
   const larguraBarra = 200;
   const gapBarra = 40;
   const larguraTotalBarras = larguraBarra * 3 + gapBarra * 2;
   const xInicioBarras = margem + (W - margem * 2 - larguraTotalBarras) / 2;
-  const baseBarras = painelY + painelAltura - 50;
-  const yMedalha = painelY + 100;
+  const baseBarras = painelY + painelAltura - 43;
+  const yMedalha = painelY + 87;
 
   medalhas.forEach((m, i) => {
     const x = xInicioBarras + i * (larguraBarra + gapBarra);
@@ -773,7 +773,7 @@ async function gerarImagemStory() {
   const urlSite = "www.radarbjj.com";
   ctx.font = "bold 40px -apple-system, Arial, sans-serif";
   const larguraUrl = ctx.measureText(urlSite).width + 90;
-  const yUrl = painelY + painelAltura + 90;
+  const yUrl = painelY + painelAltura + 65;
   ctx.fillStyle = "rgba(127, 212, 255, 0.15)";
   roundRect(ctx, W / 2 - larguraUrl / 2, yUrl - 44, larguraUrl, 64, 32);
   ctx.fill();
