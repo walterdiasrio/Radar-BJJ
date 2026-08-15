@@ -147,6 +147,19 @@ async function montarMenuRodape() {
       window.location.reload();
     });
   }
+
+  montarRodapeLegal(elRodape);
+}
+
+// Faixa fixa com os links legais (Termos de Uso / Política de Privacidade),
+// logo abaixo do menu replicado no rodapé — presente em toda página, sem
+// precisar mexer no HTML de cada uma.
+function montarRodapeLegal(elRodape) {
+  if (document.querySelector(".rodape-legal")) return;
+  elRodape.insertAdjacentHTML(
+    "afterend",
+    '<div class="rodape-legal">© Radar BJJ · <a href="/termos">Termos de Uso</a> · <a href="/privacidade">Política de Privacidade</a></div>'
+  );
 }
 
 carregarSessaoNoMenu().then(montarMenuRodape);

@@ -42,34 +42,58 @@
   </nav>
 
 <main>
-  <form id="form-cadastro" class="form-auth">
-    <h2>Criar conta</h2>
-    <div class="campo">
-      <label for="email">E-mail</label>
-      <input type="email" id="email" required autocomplete="email">
-    </div>
-    <div class="campo">
-      <label for="senha">Senha</label>
-      <input type="password" id="senha" required minlength="8" autocomplete="new-password">
-    </div>
-    <div class="campo">
-      <label>Perfil</label>
-      <div class="opcoes-federacao">
-        <label><input type="radio" name="tipo_perfil" value="atleta" checked> Atleta</label>
-        <label><input type="radio" name="tipo_perfil" value="mestre"> Mestre</label>
+  <div class="cadastro-layout">
+    <form id="form-cadastro" class="form-auth">
+      <h2>Criar conta</h2>
+      <div class="campo">
+        <label for="email">E-mail</label>
+        <input type="email" id="email" required autocomplete="email">
       </div>
-      <small>Mestre tem acesso a busca por academia e alertas para toda a equipe.</small>
+      <div class="campo">
+        <label for="senha">Senha</label>
+        <input type="password" id="senha" required minlength="8" autocomplete="new-password">
+      </div>
+      <div class="campo">
+        <label>Perfil</label>
+        <div class="opcoes-federacao">
+          <label><input type="radio" name="tipo_perfil" value="atleta" checked> Atleta</label>
+          <label><input type="radio" name="tipo_perfil" value="mestre"> Mestre</label>
+        </div>
+      </div>
+      <div class="campo" style="flex-direction: row; align-items: flex-start; gap: 8px;">
+        <input type="checkbox" id="aceite_termos" required style="width: auto; margin-top: 3px;">
+        <label for="aceite_termos" style="font-weight: normal; text-transform: none; color: #7c8894; font-size: 0.85rem;">
+          Li e concordo com os <a href="/termos" target="_blank">Termos de Uso</a> e a
+          <a href="/privacidade" target="_blank">Política de Privacidade</a>.
+        </label>
+      </div>
+      <button type="submit">Cadastrar</button>
+      <p>Já tem conta? <a href="/login">Entrar</a></p>
+    </form>
+
+    <div class="card-carreira resumo-perfis">
+      <h3 style="color: var(--azul); margin-top: 0;">O que você ganha</h3>
+
+      <div class="resumo-perfil-bloco">
+        <h4>Como Atleta</h4>
+        <ul>
+          <li>Radar de Atletas: busca de inscritos em 8 federações (CBJJ, FJJRio, CBJJD, CBJJO, CBJJE, FPJJ, ADCC e AJP)</li>
+          <li>Agenda de Competições e BJJ News</li>
+          <li>Alertas por e-mail de novos adversários na sua categoria e de novas competições</li>
+          <li>Minha Carreira: perfil público com histórico de resultados</li>
+        </ul>
+      </div>
+
+      <div class="resumo-perfil-bloco">
+        <h4>Como Mestre</h4>
+        <ul>
+          <li>Tudo do Atleta, além de busca e alertas por equipe/academia</li>
+          <li>Gerenciamento de Turmas e Meus Alunos</li>
+          <li>Criação de planos de aula com apoio de Inteligência Artificial</li>
+        </ul>
+      </div>
     </div>
-    <div class="campo" style="flex-direction: row; align-items: flex-start; gap: 8px;">
-      <input type="checkbox" id="aceite_termos" required style="width: auto; margin-top: 3px;">
-      <label for="aceite_termos" style="font-weight: normal; text-transform: none; color: #7c8894; font-size: 0.85rem;">
-        Li e concordo com os <a href="/termos" target="_blank">Termos de Uso</a> e a
-        <a href="/privacidade" target="_blank">Política de Privacidade</a>.
-      </label>
-    </div>
-    <button type="submit">Cadastrar</button>
-    <p>Já tem conta? <a href="/login">Entrar</a></p>
-  </form>
+  </div>
 
   <div id="status"></div>
   </main>
