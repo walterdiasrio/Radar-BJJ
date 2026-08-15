@@ -38,9 +38,8 @@ URL_SITE = os.environ.get("URL_SITE", "http://localhost:5050")
 LIMITE_ALERTAS_POR_USUARIO = 2
 
 # Alertas de competição nova são liberados pro Plano Free (sem exigir
-# assinatura) — limite um pouco mais folgado, mas ainda existe pra não virar
-# um jeito de configurar um monitor genérico ilimitado por conta.
-LIMITE_ALERTAS_COMPETICAO_POR_USUARIO = 5
+# assinatura), mas com o mesmo limite dos alertas de atleta por conta.
+LIMITE_ALERTAS_COMPETICAO_POR_USUARIO = 2
 
 
 def _conn():
