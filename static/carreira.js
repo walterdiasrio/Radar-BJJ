@@ -561,21 +561,75 @@ async function gerarImagemStory() {
   ctx.textAlign = "center";
 
   // Banner do site, no topo
-  let yBanner = 90;
-  let yAposBanner = 320;
+  let yBanner = 80;
+  let yAposBanner = 300;
   try {
-    const banner = await carregarImagem("img/logo-carreira.png");
-    const larguraBanner = 640;
+    const banner = await carregarImagem("img/banner.jpg");
+    const larguraBanner = 600;
     const alturaBanner = larguraBanner * (banner.height / banner.width);
     ctx.save();
     ctx.shadowColor = "rgba(127, 212, 255, 0.5)";
     ctx.shadowBlur = 30;
+    roundRect(ctx, W / 2 - larguraBanner / 2, yBanner, larguraBanner, alturaBanner, 14);
+    ctx.clip();
     ctx.drawImage(banner, W / 2 - larguraBanner / 2, yBanner, larguraBanner, alturaBanner);
     ctx.restore();
-    yAposBanner = yBanner + alturaBanner + 55;
+    yAposBanner = yBanner + alturaBanner + 40;
   } catch (err) {
     // segue sem o banner se não conseguir carregar
   }
+
+  // Foto de perfil (redonda), logo abaixo do banner — usa a mesma foto já
+  // exibida no formulário de Perfil (evita buscar de novo, mesma lógica do
+  // resto dos dados desta função). Sem foto cadastrada, cai num círculo com
+  // o emoji padrão, pra não deixar um espaço vazio ali.
+  const elFotoPreview = document.getElementById("p_foto_preview");
+  const fotoUrl = elFotoPreview.style.display !== "none" ? elFotoPreview.src : null;
+
+  const raioFoto = 78;
+  const cxFoto = W / 2;
+  const cyFoto = yAposBanner + raioFoto;
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cxFoto, cyFoto, raioFoto + 4, 0, Math.PI * 2);
+  ctx.shadowColor = "rgba(127, 212, 255, 0.6)";
+  ctx.shadowBlur = 26;
+  ctx.fillStyle = "rgba(127, 212, 255, 0.15)";
+  ctx.fill();
+  ctx.restore();
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cxFoto, cyFoto, raioFoto, 0, Math.PI * 2);
+  ctx.closePath();
+  ctx.clip();
+  let fotoCarregada = null;
+  if (fotoUrl) {
+    try {
+      fotoCarregada = await carregarImagem(fotoUrl);
+    } catch (err) {
+      fotoCarregada = null;
+    }
+  }
+  if (fotoCarregada) {
+    ctx.drawImage(fotoCarregada, cxFoto - raioFoto, cyFoto - raioFoto, raioFoto * 2, raioFoto * 2);
+  } else {
+    ctx.fillStyle = "#12314f";
+    ctx.fillRect(cxFoto - raioFoto, cyFoto - raioFoto, raioFoto * 2, raioFoto * 2);
+    ctx.font = "68px -apple-system, Arial, sans-serif";
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText("🥋", cxFoto, cyFoto + 24);
+  }
+  ctx.restore();
+
+  ctx.beginPath();
+  ctx.arc(cxFoto, cyFoto, raioFoto, 0, Math.PI * 2);
+  ctx.strokeStyle = CIANO;
+  ctx.lineWidth = 5;
+  ctx.stroke();
+
+  yAposBanner = cyFoto + raioFoto + 46;
 
   // "RESUMO DE CARREIRA" com dois tracinhos decorativos ao lado
   ctx.font = "26px -apple-system, Arial, sans-serif";

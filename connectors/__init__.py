@@ -436,22 +436,33 @@ _NOME_ESTADO_PARA_UF = {
 }
 _NOMES_ESTADO_POR_TAMANHO = sorted(_NOME_ESTADO_PARA_UF, key=len, reverse=True)
 
+# Federações regionais por definição — o "local" delas costuma trazer só o
+# nome do ginásio, sem cidade/estado (ex: "CLUBE MUNICIPAL", "Ginásio de
+# Esportes José Correa"), mas todo evento delas é sempre no mesmo estado, então
+# dá pra completar com segurança quando o texto livre não tem essa informação.
+# CBJJD fica de fora de propósito: é uma confederação nacional (eventos em
+# vários estados), não dá pra chutar um estado fixo pra ela.
+_UF_FIXA_POR_FEDERACAO = {
+    "fjjrio": "RJ",  # Federação de Jiu-Jitsu do Rio de Janeiro
+    "fpjj": "SP",    # Federação Paulista de Jiu-Jitsu
+}
 
-def _extrair_uf(local):
+
+def _extrair_uf(local, federacao=None):
     """Tenta achar o estado a partir do texto livre de "local" — primeiro
     procura uma sigla de 2 letras isolada (ex: "Fortaleza, CE"), senão tenta
-    o nome do estado por extenso (ex: "..., Minas Gerais"). None quando o
-    local é só o nome do ginásio, sem cidade/estado."""
-    if not local:
-        return None
-    for codigo in reversed(re.findall(r"\b([A-Z]{2})\b", local)):
-        if codigo in _UF_VALIDAS:
-            return codigo
-    texto = local.lower()
-    for nome in _NOMES_ESTADO_POR_TAMANHO:
-        if nome in texto:
-            return _NOME_ESTADO_PARA_UF[nome]
-    return None
+    o nome do estado por extenso (ex: "..., Minas Gerais"). Sem nada disso,
+    cai pro estado fixo da federação quando ela é regional (ver
+    _UF_FIXA_POR_FEDERACAO) — None só quando não há mesmo como saber."""
+    if local:
+        for codigo in reversed(re.findall(r"\b([A-Z]{2})\b", local)):
+            if codigo in _UF_VALIDAS:
+                return codigo
+        texto = local.lower()
+        for nome in _NOMES_ESTADO_POR_TAMANHO:
+            if nome in texto:
+                return _NOME_ESTADO_PARA_UF[nome]
+    return _UF_FIXA_POR_FEDERACAO.get(federacao)
 
 
 _PALAVRAS_KIDS = re.compile(r"pr[ée].?mirim|\bmirim\b|infantil|infanto|\bkids\b", re.I)
@@ -519,7 +530,7 @@ def listar_competicoes(federacao):
                     "data": datas_mod.formatar(evento.get("data", "")),
                     "mes": datas_mod.rotulo_mes(data_ordenacao),
                     "local": evento.get("local", ""),
-                    "uf": _extrair_uf(evento.get("local", "")),
+                    "uf": _extrair_uf(evento.get("local", ""), fed),
                     "inscricoes_abertas": inscricoes_abertas,
                     "publico": _classificar_publico(nome, fed),
                 },
