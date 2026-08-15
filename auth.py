@@ -57,6 +57,10 @@ def init_db():
         if "nome_usuario" not in colunas:
             conn.execute("ALTER TABLE usuarios ADD COLUMN nome_usuario TEXT")
             conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_usuarios_nome_usuario ON usuarios(nome_usuario)")
+        # Migração pra bancos criados antes do filtro padrão do Radar de
+        # Atletas existir — guardado como JSON (ver salvar_filtro_padrao).
+        if "filtro_padrao_busca" not in colunas:
+            conn.execute("ALTER TABLE usuarios ADD COLUMN filtro_padrao_busca TEXT")
 
         conn.execute("""
             CREATE TABLE IF NOT EXISTS reset_senha (
@@ -254,3 +258,28 @@ def confirmar_email(token):
         conn.execute("UPDATE usuarios SET email_verificado = 1 WHERE id = ?", (linha["usuario_id"],))
         conn.execute("UPDATE verificacao_email SET usado = 1 WHERE token = ?", (token,))
     return True, None
+
+
+def salvar_filtro_padrao(usuario_id, filtro):
+    """Guarda o filtro (dict) usado no Radar de Atletas como padrão do
+    usuário, pra ser aplicado automaticamente na próxima visita à página."""
+    with _conn() as conn:
+        conn.execute(
+            "UPDATE usuarios SET filtro_padrao_busca = ? WHERE id = ?",
+            (json.dumps(filtro), usuario_id),
+        )
+
+
+def obter_filtro_padrao(usuario_id):
+    """Retorna o filtro padrão salvo (dict) ou None se o usuário nunca
+    salvou um."""
+    with _conn() as conn:
+        linha = conn.execute(
+            "SELECT filtro_padrao_busca FROM usuarios WHERE id = ?", (usuario_id,)
+        ).fetchone()
+    if not linha or not linha["filtro_padrao_busca"]:
+        return None
+    try:
+        return json.loads(linha["filtro_padrao_busca"])
+    except (TypeError, ValueError):
+        return None

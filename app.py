@@ -616,6 +616,37 @@ def api_federacoes():
     ])
 
 
+@app.get("/api/buscador/filtro-padrao")
+@api_assinatura_necessaria
+def api_obter_filtro_padrao():
+    return jsonify({"filtro": auth.obter_filtro_padrao(session["usuario_id"])})
+
+
+@app.post("/api/buscador/filtro-padrao")
+@api_assinatura_necessaria
+def api_salvar_filtro_padrao():
+    dados = request.get_json(silent=True) or {}
+    filtro = {
+        "federacao": dados.get("federacao") or "",
+        "genero": dados.get("genero") or "",
+        "data_nascimento": dados.get("data_nascimento") or "",
+        "faixa": dados.get("faixa") or "",
+        "peso_kg": dados.get("peso_kg") or "",
+        "peso_sem_kimono": dados.get("peso_sem_kimono") or "",
+        "nome": dados.get("nome") or "",
+        "equipe": dados.get("equipe") or "",
+    }
+    auth.salvar_filtro_padrao(session["usuario_id"], filtro)
+    return jsonify({"ok": True})
+
+
+@app.delete("/api/buscador/filtro-padrao")
+@api_assinatura_necessaria
+def api_remover_filtro_padrao():
+    auth.salvar_filtro_padrao(session["usuario_id"], None)
+    return jsonify({"ok": True})
+
+
 @app.get("/api/eventos")
 @api_assinatura_necessaria
 def api_eventos():

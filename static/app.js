@@ -14,6 +14,8 @@ const elForm = document.getElementById("form-busca");
 const elBtnBuscar = document.getElementById("btn-buscar");
 const elBtnCriarAlerta = document.getElementById("btn-criar-alerta");
 const elStatusAlerta = document.getElementById("status-alerta");
+const elBtnSalvarFiltroPadrao = document.getElementById("btn-salvar-filtro-padrao");
+const elStatusFiltroPadrao = document.getElementById("status-filtro-padrao");
 
 const LABEL_FEDERACAO = { cbjj: "CBJJ", fjjrio: "FJJRio", cbjjd: "CBJJD", cbjjo: "CBJJO", cbjje: "CBJJE", fpjj: "FPJJ", adcc: "ADCC", ajp: "AJP" };
 
@@ -372,4 +374,101 @@ elBtnCriarAlerta.addEventListener("click", async () => {
   }
 });
 
-carregarFederacoes().then(() => carregarEventos(null));
+function valoresFiltroAtual() {
+  const federacao = federacaoSelecionada(elFederacaoOpcoes);
+  return {
+    federacao: federacao === null ? "" : federacaoParaParametro(federacao),
+    genero: elGenero.value,
+    data_nascimento: elDataNascimento.value,
+    faixa: document.getElementById("faixa").value,
+    peso_kg: elPesoKg.value,
+    peso_sem_kimono: elPesoSemKimono.value,
+    nome: document.getElementById("nome").value,
+    equipe: document.getElementById("equipe").value,
+  };
+}
+
+// Aplica um filtro salvo aos campos do formulário — usado ao carregar a
+// página, pra restaurar o filtro padrão do usuário (ver carregarFiltroPadrao).
+function aplicarFiltroAosCampos(filtro) {
+  if (!filtro) return;
+
+  const checkboxes = Array.from(elFederacaoOpcoes.querySelectorAll('input[type="checkbox"]'));
+  const todasCheckbox = checkboxes[0];
+  const individuais = checkboxes.slice(1);
+  if (filtro.federacao === TODAS || !filtro.federacao) {
+    todasCheckbox.checked = true;
+    individuais.forEach(c => { c.checked = false; });
+  } else {
+    const valores = filtro.federacao.split(",");
+    individuais.forEach(c => { c.checked = valores.includes(c.value); });
+    todasCheckbox.checked = !individuais.some(c => c.checked);
+  }
+
+  elGenero.value = filtro.genero || "";
+  elDataNascimento.value = filtro.data_nascimento || "";
+  document.getElementById("faixa").value = filtro.faixa || "";
+  elPesoKg.value = filtro.peso_kg || "";
+  elPesoSemKimono.value = filtro.peso_sem_kimono || "";
+  document.getElementById("nome").value = filtro.nome || "";
+  document.getElementById("equipe").value = filtro.equipe || "";
+}
+
+function mostrarLinkRemoverFiltroPadrao() {
+  elStatusFiltroPadrao.innerHTML = 'Filtro padrão aplicado. <a href="#" id="link-remover-filtro-padrao">Remover filtro padrão</a>';
+  document.getElementById("link-remover-filtro-padrao").addEventListener("click", async (ev) => {
+    ev.preventDefault();
+    try {
+      await fetchAutenticado("/api/buscador/filtro-padrao", { method: "DELETE" });
+      elStatusFiltroPadrao.textContent = "Filtro padrão removido.";
+    } catch (err) {
+      // fetchAutenticado já trata sessão/assinatura; outros erros ficam silenciosos aqui
+    }
+  });
+}
+
+async function carregarFiltroPadrao() {
+  try {
+    const resp = await fetchAutenticado("/api/buscador/filtro-padrao");
+    const dados = await resp.json();
+    if (dados.filtro) {
+      aplicarFiltroAosCampos(dados.filtro);
+      mostrarLinkRemoverFiltroPadrao();
+    }
+  } catch (err) {
+    // sem filtro padrão salvo, ou erro ao buscar — segue com o formulário vazio
+  }
+}
+
+elBtnSalvarFiltroPadrao.addEventListener("click", async () => {
+  const federacao = federacaoSelecionada(elFederacaoOpcoes);
+  if (federacao === null) {
+    elStatusFiltroPadrao.textContent = "Selecione ao menos uma federação antes de salvar.";
+    elStatusFiltroPadrao.className = "erro";
+    return;
+  }
+
+  elBtnSalvarFiltroPadrao.disabled = true;
+  elStatusFiltroPadrao.className = "";
+  elStatusFiltroPadrao.textContent = "Salvando filtro padrão...";
+
+  try {
+    await fetchAutenticado("/api/buscador/filtro-padrao", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(valoresFiltroAtual()),
+    });
+    mostrarLinkRemoverFiltroPadrao();
+  } catch (err) {
+    elStatusFiltroPadrao.textContent = `Erro ao salvar filtro padrão: ${err.message}`;
+    elStatusFiltroPadrao.className = "erro";
+  } finally {
+    elBtnSalvarFiltroPadrao.disabled = false;
+  }
+});
+
+carregarFederacoes()
+  .then(() => carregarFiltroPadrao())
+  .then(() => {
+    onFederacaoMudou();
+  });
