@@ -153,14 +153,15 @@ function renderizarPlanoIA(turma) {
             </select>
           </div>
           <div class="campo" style="max-width:420px;">
-            <label>O que você quer nesse plano? (opcional)</label>
+            <label>O que você quer nesse plano? (opcional, máx. 200 caracteres)</label>
             <textarea class="plano_ia_resumo" data-turma-id="${turma.id}" rows="3"
               placeholder="ex: turma está fraca na defesa, quero reforçar escapes e fundamentos essa semana"
-              maxlength="600">${estado.resumo || ""}</textarea>
+              maxlength="200">${estado.resumo || ""}</textarea>
           </div>
           <button type="button" class="btn-gerar-plano-ia" data-id="${turma.id}" ${estado.carregando ? "disabled" : ""}>
             ${estado.carregando ? "Gerando..." : "Gerar sugestão com IA"}
           </button>
+          <div style="color:#7c8894; font-size:0.78rem; margin-top:4px;">Limite: 1 geração com IA por dia.</div>
 
           ${estado.erro ? `<div class="status-importacao erro" style="margin-top:8px;">${estado.erro}</div>` : ""}
 
@@ -168,7 +169,7 @@ function renderizarPlanoIA(turma) {
             <div style="margin-top:14px;">
               ${estado.resultado.ia === false ? `
                 <div class="status-importacao" style="margin-bottom:8px;">
-                  IA indisponível no momento — mostrando sugestão automática (sem IA).
+                  ${estado.resultado.aviso || "IA indisponível no momento — mostrando sugestão automática (sem IA)."}
                 </div>
               ` : ""}
               ${estado.resultado.aulas.map((a, i) => `

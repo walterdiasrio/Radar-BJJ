@@ -108,6 +108,15 @@ def init_db():
         """)
         conn.execute("CREATE INDEX IF NOT EXISTS idx_planos_aula_turma ON planos_aula(turma_id)")
 
+        # Controla o limite de 1 geração de Plano de Aula IA por Mestre por
+        # dia (a chamada à API da Claude é paga) — ver gerar_plano_ia.
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS plano_ia_uso (
+                mestre_id INTEGER PRIMARY KEY,
+                data TEXT NOT NULL
+            )
+        """)
+
 
 def _validar_dados(dados):
     categoria = (dados.get("categoria") or "").strip()
@@ -407,12 +416,40 @@ Responda APENAS com um JSON válido, sem nenhum texto antes ou depois, exatament
     return {"foco": foco or "Geral", "categoria": turma["categoria"], "aulas": validas}
 
 
+LIMITE_CARACTERES_RESUMO_IA = 200
+
+
+def _pode_usar_plano_ia_hoje(mestre_id):
+    hoje = date.today().isoformat()
+    with _conn() as conn:
+        linha = conn.execute(
+            "SELECT data FROM plano_ia_uso WHERE mestre_id = ?", (mestre_id,)
+        ).fetchone()
+    return not linha or linha["data"] != hoje
+
+
+def _registrar_uso_plano_ia(mestre_id):
+    hoje = date.today().isoformat()
+    with _conn() as conn:
+        conn.execute(
+            """INSERT INTO plano_ia_uso (mestre_id, data) VALUES (?, ?)
+               ON CONFLICT(mestre_id) DO UPDATE SET data = excluded.data""",
+            (mestre_id, hoje),
+        )
+
+
 def gerar_plano_ia(mestre_id, turma_id, foco, resumo, posicoes_por_aula=2):
     """Sugestão de plano de aula pro próximo mês usando IA (Claude), levando em
-    conta o resumo em texto livre do Mestre. Se a API não estiver configurada
-    (sem ANTHROPIC_API_KEY) ou a chamada falhar, cai pra sugestão determinística
-    (sugerir_plano_mensal). Retorna (resultado, erro); resultado tem uma chave
-    'ia' indicando se veio da IA de fato ou do fallback."""
+    conta o resumo em texto livre do Mestre (limitado a
+    LIMITE_CARACTERES_RESUMO_IA caracteres). Cai pra sugestão determinística
+    (sugerir_plano_mensal) — sem chamar a API, então sem custo — se: a API não
+    estiver configurada (sem ANTHROPIC_API_KEY), o Mestre já tiver usado a IA
+    hoje (1x/dia — a chamada é paga) ou a chamada falhar. Retorna
+    (resultado, erro); resultado tem uma chave 'ia' indicando se veio da IA de
+    fato ou do fallback, e 'aviso' quando o motivo do fallback é o limite
+    diário (pra avisar o Mestre na tela)."""
+    resumo = (resumo or "").strip()[:LIMITE_CARACTERES_RESUMO_IA]
+
     if foco and foco not in POSICOES:
         return None, f"foco inválido (use: {', '.join(POSICOES.keys())})"
 
@@ -447,9 +484,19 @@ def gerar_plano_ia(mestre_id, turma_id, foco, resumo, posicoes_por_aula=2):
     if not os.environ.get("ANTHROPIC_API_KEY"):
         return _fallback()
 
+    if not _pode_usar_plano_ia_hoje(mestre_id):
+        resultado, erro = _fallback()
+        if resultado:
+            resultado["aviso"] = (
+                "Você já usou o Plano de Aula IA hoje (limite de 1x por dia) — "
+                "essa sugestão foi gerada automaticamente, sem IA. Tente de novo amanhã."
+            )
+        return resultado, erro
+
     try:
-        resultado = _chamar_claude_plano(turma, foco, (resumo or "").strip(), pool, datas)
+        resultado = _chamar_claude_plano(turma, foco, resumo, pool, datas)
         resultado["ia"] = True
+        _registrar_uso_plano_ia(mestre_id)
         return resultado, None
     except Exception:
         return _fallback()
