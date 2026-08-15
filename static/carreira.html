@@ -42,22 +42,23 @@
   </nav>
 
 <main>
-  <img src="img/banner-minha-carreira.jpg" alt="Minha Carreira" style="display:block; width:100%; height:auto; border-radius:10px; margin:0;">
+  <div class="banner-carreira-wrap">
+    <img src="img/banner-minha-carreira.jpg" alt="Minha Carreira">
+    <nav class="tabs-carreira tabs-carreira-banner">
+      <button type="button" class="tab-carreira-btn ativo" data-tab="perfil">Perfil</button>
+      <button type="button" class="tab-carreira-btn" data-tab="registrar">Registrar</button>
+      <button type="button" class="tab-carreira-btn" data-tab="historico">Histórico</button>
+      <button type="button" class="tab-carreira-btn" data-tab="pesquisa">Pesquisa</button>
+      <button type="button" class="tab-carreira-btn" data-tab="estatisticas">Estatísticas</button>
+      <button type="button" class="tab-carreira-btn" data-tab="compartilhar">Compartilhar</button>
+    </nav>
+  </div>
 
-  <div id="lembrete-perfil" class="aviso-lembrete" style="display:none; margin-top:16px;">
+  <div id="lembrete-perfil" class="aviso-lembrete" style="display:none">
     <strong>⚠️ Complete seu perfil</strong>
     <span id="lembrete-perfil-texto"></span>
     <button type="button" class="btn-secundario" data-tab-link="perfil">Ir para o Perfil</button>
   </div>
-
-  <nav class="tabs-carreira">
-    <button type="button" class="tab-carreira-btn ativo" data-tab="perfil">Perfil</button>
-    <button type="button" class="tab-carreira-btn" data-tab="registrar">Registrar</button>
-    <button type="button" class="tab-carreira-btn" data-tab="historico">Histórico</button>
-    <button type="button" class="tab-carreira-btn" data-tab="pesquisa">Pesquisa</button>
-    <button type="button" class="tab-carreira-btn" data-tab="estatisticas">Estatísticas</button>
-    <button type="button" class="tab-carreira-btn" data-tab="compartilhar">Compartilhar</button>
-  </nav>
 
   <!-- PERFIL -->
   <section id="tab-perfil" class="tab-carreira-content ativo">

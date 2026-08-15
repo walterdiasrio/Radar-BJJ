@@ -1075,6 +1075,73 @@ tr:hover td { background: #f8fafc; }
   padding-bottom: 10px;
 }
 
+/* Variante fixa por cima do banner de Minha Carreira, no estilo do menu
+   principal do site (texto branco maiúsculo com sombra, em vez dos pills
+   com fundo branco) — ver .banner-carreira-wrap. */
+.banner-carreira-wrap {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.banner-carreira-wrap > img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
+}
+
+.tabs-carreira-banner {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  justify-content: center;
+  gap: 0;
+  margin: 0;
+  padding: 6px 0 0;
+  border: none;
+  border-radius: 0 0 10px 10px;
+  background: linear-gradient(to top, rgba(3, 10, 30, 0.88), rgba(3, 10, 30, 0.55) 70%, transparent);
+}
+
+.tabs-carreira-banner .tab-carreira-btn {
+  background: transparent;
+  color: #ffffff;
+  border: none;
+  border-radius: 0;
+  border-bottom: 3px solid transparent;
+  margin-top: 0;
+  padding: 10px 14px;
+  font-family: var(--fonte-menu-topo);
+  font-size: 0.78rem;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85), 0 0 6px rgba(0, 0, 0, 0.5);
+}
+
+.tabs-carreira-banner .tab-carreira-btn:hover { background: rgba(255, 255, 255, 0.12); }
+.tabs-carreira-banner .tab-carreira-btn.ativo {
+  background: var(--azul-claro);
+  border-bottom-color: #ffffff;
+  color: #ffffff;
+}
+
+@media (max-width: 900px) {
+  /* Mesmo tratamento do menu principal no mobile: numa faixa só, rolando
+     na horizontal, em vez de quebrar linha — quebrar cresceria pra cima
+     (é position:absolute; bottom:0) e vazaria por cima do banner. */
+  .tabs-carreira-banner {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .tabs-carreira-banner::-webkit-scrollbar { display: none; }
+  .tabs-carreira-banner .tab-carreira-btn { flex-shrink: 0; }
+}
+
 .tab-carreira-btn {
   background: transparent;
   color: var(--azul-claro);
