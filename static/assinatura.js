@@ -27,6 +27,19 @@ function filtrarPlanoPorPerfil(tipoPerfil) {
   }
 }
 
+// Não oferece "assinar" pro plano+periodicidade que o usuário já tem
+// ativo/em teste — só faz sentido oferecer trocar de plano ou de
+// periodicidade (ex: mensal -> anual), não recontratar o que já tem.
+function marcarPlanoAtualNosBotoes(a) {
+  if (!a || !a.tem_acesso || !a.plano) return;
+  document.querySelectorAll(".btn-assinar").forEach(btn => {
+    if (btn.dataset.plano === a.plano && btn.dataset.periodicidade === a.periodicidade) {
+      btn.disabled = true;
+      btn.textContent = "Seu plano atual";
+    }
+  });
+}
+
 async function carregarAssinaturaAtual() {
   try {
     const resp = await fetch("/api/sessao");
@@ -42,6 +55,7 @@ async function carregarAssinaturaAtual() {
     if (!dados.assinatura || !dados.assinatura.status) return;
 
     const a = dados.assinatura;
+    marcarPlanoAtualNosBotoes(a);
     elAssinaturaAtiva.style.display = "";
     elAssinaturaAtiva.innerHTML = `
       <div class="plano-card" style="max-width: 420px; margin-bottom: 24px;">

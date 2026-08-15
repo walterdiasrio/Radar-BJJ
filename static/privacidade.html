@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <link rel="icon" type="image/png" href="/img/favicon.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Radar BJJ — Cadastro</title>
+<title>Radar BJJ — Política de Privacidade</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -42,41 +42,110 @@
   </nav>
 
 <main>
-  <form id="form-cadastro" class="form-auth">
-    <h2>Criar conta</h2>
-    <div class="campo">
-      <label for="email">E-mail</label>
-      <input type="email" id="email" required autocomplete="email">
-    </div>
-    <div class="campo">
-      <label for="senha">Senha</label>
-      <input type="password" id="senha" required minlength="8" autocomplete="new-password">
-    </div>
-    <div class="campo">
-      <label>Perfil</label>
-      <div class="opcoes-federacao">
-        <label><input type="radio" name="tipo_perfil" value="atleta" checked> Atleta</label>
-        <label><input type="radio" name="tipo_perfil" value="mestre"> Mestre</label>
-      </div>
-      <small>Mestre tem acesso a busca por academia e alertas para toda a equipe.</small>
-    </div>
-    <div class="campo" style="flex-direction: row; align-items: flex-start; gap: 8px;">
-      <input type="checkbox" id="aceite_termos" required style="width: auto; margin-top: 3px;">
-      <label for="aceite_termos" style="font-weight: normal; color: #7c8894; font-size: 0.85rem;">
-        Li e concordo com os <a href="/termos" target="_blank">Termos de Uso</a> e a
-        <a href="/privacidade" target="_blank">Política de Privacidade</a>.
-      </label>
-    </div>
-    <button type="submit">Cadastrar</button>
-    <p>Já tem conta? <a href="/login">Entrar</a></p>
-  </form>
+  <h2 style="color: var(--azul); margin-bottom: 4px;">Política de Privacidade</h2>
+  <p style="color: #7c8894; font-size: 0.85rem; margin-top: 0;">
+    Última atualização: 14/08/2026 · Veja também nossos <a href="/termos">Termos de Uso</a>.
+  </p>
 
-  <div id="status"></div>
-  </main>
+  <div class="card-carreira" style="max-width: 820px; line-height: 1.6;">
+
+    <h3 style="color: var(--azul);">1. Introdução</h3>
+    <p>
+      O Radar BJJ é uma plataforma dedicada a atletas, mestres e academias de Jiu-Jitsu. Esta Política
+      de Privacidade descreve como coletamos, usamos, armazenamos e protegemos suas informações
+      pessoais.
+    </p>
+    <p>Ao usar nossa plataforma, você concorda com as práticas descritas nesta política.</p>
+
+    <h3 style="color: var(--azul);">2. Dados que Coletamos</h3>
+    <p><strong>Informações de Cadastro</strong></p>
+    <ul>
+      <li>E-mail e senha (armazenada com hash, nunca em texto puro)</li>
+      <li>Nome de usuário e tipo de perfil (Atleta ou Mestre)</li>
+    </ul>
+    <p><strong>Informações de Perfil (Minha Carreira)</strong></p>
+    <ul>
+      <li>Nome, foto e dados de graduação que você opta por informar</li>
+      <li>Histórico de competições e resultados</li>
+      <li>Vínculo entre Mestre e Atletas (Meus Alunos/Turmas), quando aplicável</li>
+    </ul>
+    <p><strong>Dados de Uso</strong></p>
+    <ul>
+      <li>Endereço IP e informações do dispositivo</li>
+      <li>Navegador e sistema operacional</li>
+      <li>Filtros de busca e alertas configurados no Radar de Atletas</li>
+    </ul>
+
+    <h3 style="color: var(--azul);">3. Como Usamos Seus Dados</h3>
+    <p>Usamos suas informações para:</p>
+    <ul>
+      <li>Criar e gerenciar sua conta</li>
+      <li>Fornecer funcionalidades como perfil público, histórico de carreira e alertas por e-mail</li>
+      <li>Conectar Mestres e Atletas dentro de Turmas e academias</li>
+      <li>Processar assinaturas e cobranças de planos pagos (quando aplicável)</li>
+      <li>Enviar notificações importantes sobre sua conta ou competições que você acompanha</li>
+      <li>Melhorar nossos serviços e desenvolver novas funcionalidades</li>
+      <li>Garantir a segurança da plataforma e prevenir fraudes</li>
+    </ul>
+
+    <h3 style="color: var(--azul);">4. Compartilhamento de Dados</h3>
+    <p>Seus dados podem ser compartilhados nas seguintes situações:</p>
+    <ul>
+      <li><strong>Perfil público:</strong> as informações do seu perfil em Minha Carreira (nome, foto, graduação, histórico) ficam visíveis a outros usuários</li>
+      <li><strong>Academia/Mestre:</strong> se você vincular sua conta a um Mestre, ele pode ver seus dados de turma e histórico registrados na plataforma</li>
+      <li><strong>Prestadores de serviço:</strong> compartilhamos dados com provedores de infraestrutura (hospedagem na Render), envio de e-mail (Resend) e processamento de pagamentos (Stripe), na medida necessária pra operar cada serviço</li>
+      <li><strong>Exigência legal:</strong> podemos divulgar informações quando exigido por lei</li>
+    </ul>
+    <p><strong>!</strong> Nunca vendemos seus dados pessoais a terceiros.</p>
+
+    <h3 style="color: var(--azul);">5. Segurança dos Dados</h3>
+    <p>Adotamos medidas de segurança para proteger suas informações:</p>
+    <ul>
+      <li>Criptografia de dados em trânsito (HTTPS/SSL)</li>
+      <li>Senhas armazenadas com hash, nunca em texto puro</li>
+      <li>Sessão de login protegida por cookie assinado, exigindo confirmação de e-mail para ativação da conta</li>
+      <li>Backups periódicos dos dados</li>
+    </ul>
+
+    <h3 style="color: var(--azul);">6. Seus Direitos (LGPD)</h3>
+    <p>Em conformidade com a Lei Geral de Proteção de Dados (LGPD), você tem o direito de:</p>
+    <ul>
+      <li>Acessar seus dados pessoais</li>
+      <li>Corrigir dados incompletos, inexatos ou desatualizados</li>
+      <li>Solicitar a exclusão de dados desnecessários ou tratados indevidamente</li>
+      <li>Revogar seu consentimento a qualquer momento</li>
+      <li>Solicitar a portabilidade dos seus dados</li>
+      <li>Obter informações sobre com quem seus dados são compartilhados</li>
+    </ul>
+    <p>Para exercer seus direitos, entre em contato conforme a seção 8 abaixo.</p>
+
+    <h3 style="color: var(--azul);">7. Cookies</h3>
+    <p>Usamos apenas cookies essenciais ao funcionamento da plataforma, como:</p>
+    <ul>
+      <li><strong>Cookie de sessão:</strong> necessário para manter você autenticado durante o uso do site</li>
+    </ul>
+    <p>Não usamos cookies de rastreamento ou de análise de terceiros. Se isso mudar no futuro, esta política será atualizada.</p>
+
+    <h3 style="color: var(--azul);">8. Contato</h3>
+    <p>
+      Para dúvidas sobre esta Política de Privacidade ou para exercer seus direitos, entre em contato
+      através da página <a href="/fale-conosco">Fale Conosco</a>. Responderemos sua solicitação em até
+      15 dias úteis.
+    </p>
+
+    <h3 style="color: var(--azul);">9. Alterações nesta Política</h3>
+    <p>
+      Podemos atualizar esta Política de Privacidade periodicamente. Quando fizermos alterações
+      significativas, avisaremos por e-mail ou através de um aviso na plataforma. A data da última
+      atualização é sempre exibida no topo desta página.
+    </p>
+
+    <p style="color: #7c8894; font-size: 0.85rem; margin-top: 24px;">© 2026 Radar BJJ. Todos os direitos reservados.</p>
+  </div>
+</main>
 </div>
 
 <script src="auth-nav.js"></script>
-<script src="cadastro.js"></script>
 <nav class="menu-lateral menu-lateral-rodape" id="menu-rodape"></nav>
 </body>
 </html>

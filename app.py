@@ -384,6 +384,12 @@ def pagina_termos():
     return send_from_directory("static", "termos.html")
 
 
+@app.get("/privacidade")
+def pagina_privacidade():
+    # Pública — aberta a todo mundo, logado ou não.
+    return send_from_directory("static", "privacidade.html")
+
+
 @app.post("/api/contato")
 def api_criar_mensagem_contato():
     dados = request.get_json(silent=True) or {}
