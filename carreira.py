@@ -369,20 +369,6 @@ def remover_competicao(usuario_id, competicao_id):
     return True
 
 
-def importar_competicoes(usuario_id, competicoes):
-    """Cria em massa (usada pelo botão 'Importar JSON' da aba Perfil).
-    Aceita o mesmo formato de `criar_competicao`, em lote. Não faz upsert por
-    id — cada chamada sempre cria registros novos, então reimportar o mesmo
-    arquivo duplica. Retorna (quantidade_importada, erros)."""
-    importadas = 0
-    erros = []
-    for i, dados in enumerate(competicoes or []):
-        _, erro = criar_competicao(usuario_id, dados)
-        if erro:
-            erros.append(f"item {i + 1}: {erro}")
-        else:
-            importadas += 1
-    return importadas, erros
 
 
 def _competicoes_com_lutas(conn, usuario_id, filtros=None):

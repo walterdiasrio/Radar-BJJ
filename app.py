@@ -1147,17 +1147,6 @@ def api_carreira_remover_competicao(competicao_id):
     return jsonify({"ok": True})
 
 
-@app.post("/api/carreira/importar")
-@api_assinatura_necessaria
-def api_carreira_importar():
-    dados = request.get_json(silent=True) or {}
-    competicoes = dados.get("competicoes")
-    if not isinstance(competicoes, list):
-        return jsonify({"erro": "envie {\"competicoes\": [...]}"}), 400
-    importadas, erros = carreira.importar_competicoes(session["usuario_id"], competicoes)
-    return jsonify({"ok": True, "importadas": importadas, "erros": erros})
-
-
 @app.get("/api/carreira/estatisticas")
 @api_assinatura_necessaria
 def api_carreira_estatisticas():
