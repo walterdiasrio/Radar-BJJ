@@ -11,7 +11,6 @@ async function carregarNoticias() {
     }
     elStatus.textContent = "";
     elDestaques.innerHTML = `
-      <h2 class="destaques-titulo"><img src="/img/bjjnews-logo.png" alt="BJJ News" class="destaques-titulo-logo"></h2>
       <div class="destaques-grade">
         ${lista.map((n, i) => `
           <div class="destaque-card" data-indice="${i}">
