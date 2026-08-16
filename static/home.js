@@ -112,7 +112,7 @@ async function ajustarCartaoBoasVindas() {
   elBotoesLogado.style.display = "block";
   const elBotaoBuscaRapida = document.getElementById("home-botao-busca-rapida");
   if (resumo.tem_filtro_salvo) {
-    elBotaoBuscaRapida.innerHTML = '<a href="/buscador?auto=1"><button type="button">Buscar com meu filtro salvo</button></a>';
+    elBotaoBuscaRapida.innerHTML = '<a href="/buscador?auto=1"><button type="button">Buscar Atleta com meu filtro salvo</button></a>';
   } else {
     elBotaoBuscaRapida.innerHTML = '<a href="/buscador"><button type="button">Ir para o Radar de Atletas</button></a>';
   }

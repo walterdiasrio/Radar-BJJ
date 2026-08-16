@@ -22,7 +22,7 @@ function renderizar(itens) {
     mostrarStatus('Nenhuma competição marcada ainda. Vá em Competições e marque as que te interessam com "Tenho Interesse" ou "Inscrito".');
     return;
   }
-  mostrarStatus(`${itens.length} competição(ões) na agenda.`);
+  mostrarStatus("");
 
   const blocos = [];
   let atual = null;
