@@ -67,6 +67,24 @@ function badgeInscricao(aberta) {
   return '<span class="badge-inscricao badge-desconhecida">Não informado</span>';
 }
 
+function escapeAtributo(texto) {
+  return (texto || "").replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+}
+
+function botoesAgenda(c) {
+  const status = c.agenda_status || null;
+  return `
+    <div class="botoes-agenda"
+      data-federacao="${escapeAtributo(c.federacao)}" data-nome="${escapeAtributo(c.nome)}"
+      data-data="${escapeAtributo(c.data)}" data-local="${escapeAtributo(c.local)}">
+      <button type="button" class="btn-agenda btn-agenda-interesse ${status === "interesse" ? "ativo" : ""}"
+        data-status="interesse">Tenho Interesse</button>
+      <button type="button" class="btn-agenda btn-agenda-inscrito ${status === "inscrito" ? "ativo" : ""}"
+        data-status="inscrito">Inscrito</button>
+    </div>
+  `;
+}
+
 // "ambos" (competições que misturam categorias kids e adulto no mesmo
 // evento, ex: "Pré Mirim a Master") aparece nos dois filtros.
 function competicoesFiltradas() {
@@ -138,6 +156,7 @@ function renderizarCompeticoes(competicoes) {
           <th>Data</th>
           <th>Local</th>
           <th>Inscrições</th>
+          <th>Minha Agenda</th>
         </tr>
       </thead>
       <tbody>
@@ -148,12 +167,52 @@ function renderizarCompeticoes(competicoes) {
             <td>${c.data || ""}</td>
             <td>${c.local || ""}</td>
             <td>${badgeInscricao(c.inscricoes_abertas)}</td>
+            <td>${botoesAgenda(c)}</td>
           </tr>
         `).join("")}
       </tbody>
     </table>
     </section>
   `).join("");
+
+  elResultados.querySelectorAll(".btn-agenda").forEach(btn => {
+    btn.addEventListener("click", () => alternarAgenda(btn));
+  });
+}
+
+async function alternarAgenda(btn) {
+  const container = btn.closest(".botoes-agenda");
+  const { federacao, nome, data, local } = container.dataset;
+  const jaAtivo = btn.classList.contains("ativo");
+  const status = btn.dataset.status;
+
+  container.querySelectorAll(".btn-agenda").forEach(b => b.disabled = true);
+
+  try {
+    if (jaAtivo) {
+      const resp = await fetchAutenticado("/api/agenda", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ federacao, nome, data }),
+      });
+      if (!resp.ok) throw new Error("não consegui desmarcar");
+      container.querySelectorAll(".btn-agenda").forEach(b => b.classList.remove("ativo"));
+    } else {
+      const resp = await fetchAutenticado("/api/agenda", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ federacao, nome, data, local, status }),
+      });
+      const dados = await resp.json();
+      if (!resp.ok) throw new Error(dados.erro || "não consegui marcar");
+      container.querySelectorAll(".btn-agenda").forEach(b => b.classList.remove("ativo"));
+      btn.classList.add("ativo");
+    }
+  } catch (err) {
+    mostrarStatus(`Erro: ${err.message}`, true);
+  } finally {
+    container.querySelectorAll(".btn-agenda").forEach(b => b.disabled = false);
+  }
 }
 
 async function carregar() {

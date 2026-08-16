@@ -706,6 +706,29 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
 .badge-fechada { background: #fdeceb; color: #b3261e; }
 .badge-desconhecida { background: #eef2f6; color: #7c8894; }
 
+.botoes-agenda {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.btn-agenda {
+  background: transparent;
+  color: var(--azul-claro);
+  border: 1.5px solid var(--borda);
+  margin-top: 0;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.btn-agenda:hover:not(:disabled) { background: #eef6fb; transform: none; box-shadow: none; }
+.btn-agenda.btn-agenda-interesse.ativo { background: #eef2f6; border-color: #7c8894; color: #55606b; }
+.btn-agenda.btn-agenda-inscrito.ativo { background: #e3f6e8; border-color: #1a7d3a; color: #1a7d3a; }
+
 .cartao-alerta {
   background: white;
   border: 1px solid var(--borda);

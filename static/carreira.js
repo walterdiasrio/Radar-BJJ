@@ -17,6 +17,34 @@ function mostrarStatus(elId, texto, ehErro = false) {
   el.className = "status-importacao" + (ehErro ? " erro" : "");
 }
 
+document.getElementById("input-importar-json").addEventListener("change", async (ev) => {
+  const arquivo = ev.target.files[0];
+  if (!arquivo) return;
+  mostrarStatus("status-importar-json", "Lendo arquivo...");
+  try {
+    const texto = await arquivo.text();
+    const json = JSON.parse(texto);
+    const competicoes = Array.isArray(json) ? json : json.competicoes;
+    if (!Array.isArray(competicoes)) throw new Error("JSON não tem uma lista de competições");
+    if (!confirm(`Importar ${competicoes.length} competição(ões) pra sua Minha Carreira?`)) return;
+
+    mostrarStatus("status-importar-json", "Importando...");
+    const resp = await fetchAutenticado("/api/carreira/importar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ competicoes }),
+    });
+    const dados = await resp.json();
+    if (!resp.ok) throw new Error(dados.erro || "não consegui importar");
+    const resumo = dados.erros.length ? ` (${dados.erros.length} com erro)` : "";
+    mostrarStatus("status-importar-json", `${dados.importadas} competição(ões) importada(s)${resumo}.`);
+  } catch (err) {
+    mostrarStatus("status-importar-json", `Erro: ${err.message}`, true);
+  } finally {
+    ev.target.value = "";
+  }
+});
+
 // ---------- Perfil ----------
 function atualizarFotoPerfilUI(fotoUrl) {
   const elPreview = document.getElementById("p_foto_preview");

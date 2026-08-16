@@ -10,6 +10,7 @@ from pathlib import Path
 
 from flask import Flask, Response, jsonify, redirect, request, send_from_directory, session
 
+import agenda
 import alertas
 import auth
 import carreira
@@ -49,6 +50,7 @@ pagamentos.init_db()
 carreira.init_db()
 contato.init_db()
 turmas.init_db()
+agenda.init_db()
 noticias.remover_noticias_expiradas()  # limpa logo na subida, não só no próximo ciclo
 
 
@@ -868,7 +870,50 @@ def api_competicoes():
         traceback.print_exc()
         return jsonify({"erro": f"não foi possível carregar competições: {exc}"}), 502
 
+    # Logado: já mostra o que o usuário marcou antes em Minha Agenda (ver
+    # agenda.py), pra não deixar a tela sem indicação do que já foi marcado.
+    usuario_id = session.get("usuario_id")
+    if usuario_id:
+        status_por_chave = agenda.mapa_status(usuario_id)
+        for c in competicoes_lista:
+            chave = agenda.chave_de(c.get("federacao", ""), c.get("nome", ""), c.get("data", ""))
+            c["agenda_status"] = status_por_chave.get(chave)
+
     return jsonify({"total": len(competicoes_lista), "competicoes": competicoes_lista, "avisos": erros})
+
+
+@app.get("/agenda")
+@login_necessario
+def pagina_agenda():
+    return send_from_directory("static", "agenda.html")
+
+
+@app.get("/api/agenda")
+@api_login_necessario
+def api_listar_agenda():
+    return jsonify(agenda.listar(session["usuario_id"]))
+
+
+@app.post("/api/agenda")
+@api_login_necessario
+def api_marcar_agenda():
+    dados = request.get_json(silent=True) or {}
+    ok, erro = agenda.marcar(
+        session["usuario_id"],
+        dados.get("federacao"), dados.get("nome"), dados.get("data"),
+        dados.get("local"), dados.get("status"),
+    )
+    if not ok:
+        return jsonify({"erro": erro}), 400
+    return jsonify({"ok": True})
+
+
+@app.delete("/api/agenda")
+@api_login_necessario
+def api_desmarcar_agenda():
+    dados = request.get_json(silent=True) or {}
+    removido = agenda.desmarcar(session["usuario_id"], dados.get("federacao"), dados.get("nome"), dados.get("data"))
+    return jsonify({"ok": removido})
 
 
 @app.get("/alertas")
@@ -1077,6 +1122,17 @@ def api_carreira_remover_competicao(competicao_id):
     if not removida:
         return jsonify({"erro": "competição não encontrada"}), 404
     return jsonify({"ok": True})
+
+
+@app.post("/api/carreira/importar")
+@api_assinatura_necessaria
+def api_carreira_importar():
+    dados = request.get_json(silent=True) or {}
+    competicoes = dados.get("competicoes")
+    if not isinstance(competicoes, list):
+        return jsonify({"erro": "envie {\"competicoes\": [...]}"}), 400
+    importadas, erros = carreira.importar_competicoes(session["usuario_id"], competicoes)
+    return jsonify({"ok": True, "importadas": importadas, "erros": erros})
 
 
 @app.get("/api/carreira/estatisticas")
