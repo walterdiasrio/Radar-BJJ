@@ -423,6 +423,17 @@ main {
   margin: 0 0 20px;
 }
 
+/* Banner de página cheio (Radar de Atletas, Competições) — mantém uma
+   distância tanto do banner principal do site acima (padding-top do
+   main) quanto da caixa de conteúdo abaixo (margin-bottom aqui). */
+.banner-pagina {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
+  margin: 0 0 20px;
+}
+
 #form-busca {
   background: white;
   border: 1px solid var(--borda);
@@ -1128,12 +1139,18 @@ tr:hover td { background: #f8fafc; }
 }
 
 @media (max-width: 900px) {
-  /* Mesmo tratamento do menu principal no mobile: numa faixa só, rolando
-     na horizontal, em vez de quebrar linha — quebrar cresceria pra cima
-     (é position:absolute; bottom:0) e vazaria por cima do banner. */
+  /* No mobile as abas saem de dentro do banner (senão, com 6 abas, quebrar
+     linha cresceria pra cima — é position:absolute — e vazaria por cima da
+     imagem) e vão pro fluxo normal, logo abaixo dele: mesma faixa sólida do
+     menu principal, numa linha só com rolagem horizontal. */
   .tabs-carreira-banner {
+    position: static;
+    margin-top: 10px;
     flex-wrap: nowrap;
     justify-content: flex-start;
+    background: var(--azul-menu);
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;

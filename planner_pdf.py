@@ -147,7 +147,7 @@ def gerar_pdf(turma, planner):
     caixas.setStyle(TableStyle([("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (1, 0), (1, 0), 0), ("RIGHTPADDING", (0, 0), (0, 0), 8 * mm)]))
     elementos.append(caixas)
     elementos.append(Spacer(1, 10))
-    elementos.append(Paragraph("Gerado pelo Radar BJJ — radar-bjj.onrender.com", estilos["rodape"]))
+    elementos.append(Paragraph("Gerado pelo Radar BJJ — www.radarbjj.com", estilos["rodape"]))
 
     doc.build(elementos)
     return buffer.getvalue()

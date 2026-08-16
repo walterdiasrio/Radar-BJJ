@@ -13,7 +13,7 @@ services:
       - key: RESEND_API_KEY
         sync: false
       - key: URL_SITE
-        value: https://radar-bjj.onrender.com
+        value: https://www.radarbjj.com
       - key: STRIPE_SECRET_KEY
         sync: false
       - key: STRIPE_WEBHOOK_SECRET
