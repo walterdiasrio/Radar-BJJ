@@ -108,14 +108,31 @@ def init_db():
         """)
         conn.execute("CREATE INDEX IF NOT EXISTS idx_planos_aula_turma ON planos_aula(turma_id)")
 
-        # Controla o limite de 1 geração de Plano de Aula IA por Mestre por
+        # Controla o limite de 1 geração de Plano de Aula IA por turma por
         # dia (a chamada à API da Claude é paga) — ver gerar_plano_ia.
         conn.execute("""
             CREATE TABLE IF NOT EXISTS plano_ia_uso (
-                mestre_id INTEGER PRIMARY KEY,
-                data TEXT NOT NULL
+                mestre_id INTEGER NOT NULL,
+                turma_id INTEGER NOT NULL,
+                data TEXT NOT NULL,
+                PRIMARY KEY (mestre_id, turma_id)
             )
         """)
+        # Migração pra bancos onde o limite ainda era por Mestre (uma linha
+        # só por mestre_id, sem turma_id) — reseta a contagem ao trocar de
+        # esquema (é só um controle de limite diário, sem problema perder
+        # o estado de "já usou hoje" na troca).
+        colunas_plano_ia = {linha["name"] for linha in conn.execute("PRAGMA table_info(plano_ia_uso)")}
+        if "turma_id" not in colunas_plano_ia:
+            conn.execute("DROP TABLE plano_ia_uso")
+            conn.execute("""
+                CREATE TABLE plano_ia_uso (
+                    mestre_id INTEGER NOT NULL,
+                    turma_id INTEGER NOT NULL,
+                    data TEXT NOT NULL,
+                    PRIMARY KEY (mestre_id, turma_id)
+                )
+            """)
 
         # Planner mensal de aulas (calendário do mês inteiro, um por
         # turma+mês+ano) — ver gerar_planner_mensal. "dias" guarda a lista
@@ -438,22 +455,22 @@ Responda APENAS com um JSON válido, sem nenhum texto antes ou depois, exatament
 LIMITE_CARACTERES_RESUMO_IA = 200
 
 
-def _pode_usar_plano_ia_hoje(mestre_id):
+def _pode_usar_plano_ia_hoje(mestre_id, turma_id):
     hoje = date.today().isoformat()
     with _conn() as conn:
         linha = conn.execute(
-            "SELECT data FROM plano_ia_uso WHERE mestre_id = ?", (mestre_id,)
+            "SELECT data FROM plano_ia_uso WHERE mestre_id = ? AND turma_id = ?", (mestre_id, turma_id)
         ).fetchone()
     return not linha or linha["data"] != hoje
 
 
-def _registrar_uso_plano_ia(mestre_id):
+def _registrar_uso_plano_ia(mestre_id, turma_id):
     hoje = date.today().isoformat()
     with _conn() as conn:
         conn.execute(
-            """INSERT INTO plano_ia_uso (mestre_id, data) VALUES (?, ?)
-               ON CONFLICT(mestre_id) DO UPDATE SET data = excluded.data""",
-            (mestre_id, hoje),
+            """INSERT INTO plano_ia_uso (mestre_id, turma_id, data) VALUES (?, ?, ?)
+               ON CONFLICT(mestre_id, turma_id) DO UPDATE SET data = excluded.data""",
+            (mestre_id, turma_id, hoje),
         )
 
 
@@ -503,11 +520,11 @@ def gerar_plano_ia(mestre_id, turma_id, foco, resumo, posicoes_por_aula=2):
     if not os.environ.get("ANTHROPIC_API_KEY"):
         return _fallback()
 
-    if not _pode_usar_plano_ia_hoje(mestre_id):
+    if not _pode_usar_plano_ia_hoje(mestre_id, turma_id):
         resultado, erro = _fallback()
         if resultado:
             resultado["aviso"] = (
-                "Você já usou o Plano de Aula IA hoje (limite de 1x por dia) — "
+                "Essa turma já usou o Plano de Aula IA hoje (limite de 1x por dia por turma) — "
                 "essa sugestão foi gerada automaticamente, sem IA. Tente de novo amanhã."
             )
         return resultado, erro
@@ -515,7 +532,7 @@ def gerar_plano_ia(mestre_id, turma_id, foco, resumo, posicoes_por_aula=2):
     try:
         resultado = _chamar_claude_plano(turma, foco, resumo, pool, datas)
         resultado["ia"] = True
-        _registrar_uso_plano_ia(mestre_id)
+        _registrar_uso_plano_ia(mestre_id, turma_id)
         return resultado, None
     except Exception:
         return _fallback()
@@ -679,17 +696,17 @@ def gerar_planner_mensal(mestre_id, turma_id, mes, ano, foco="", resumo=""):
     aviso = None
     if not os.environ.get("ANTHROPIC_API_KEY"):
         dias = _gerar_dias_fallback(turma, pool, datas)
-    elif not _pode_usar_plano_ia_hoje(mestre_id):
+    elif not _pode_usar_plano_ia_hoje(mestre_id, turma_id):
         dias = _gerar_dias_fallback(turma, pool, datas)
         aviso = (
-            "Você já usou o Plano de Aula IA hoje (limite de 1x por dia) — "
+            "Essa turma já usou o Plano de Aula IA hoje (limite de 1x por dia por turma) — "
             "esse planner foi gerado automaticamente, sem IA. Tente de novo amanhã."
         )
     else:
         try:
             dias = _chamar_claude_planner(turma, mes, ano, foco, resumo, pool, datas)
             usou_ia = True
-            _registrar_uso_plano_ia(mestre_id)
+            _registrar_uso_plano_ia(mestre_id, turma_id)
         except Exception:
             dias = _gerar_dias_fallback(turma, pool, datas)
             aviso = "IA indisponível no momento — planner gerado automaticamente, sem IA."
