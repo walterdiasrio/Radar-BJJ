@@ -159,8 +159,9 @@ header {
   display: flex;
   align-items: center;
   gap: 2px;
-  margin-left: auto;
   padding: 0 8px;
+  border-left: 1px solid rgba(255, 255, 255, 0.18);
+  border-right: 1px solid rgba(255, 255, 255, 0.18);
 }
 
 .nav-usuario a {
@@ -279,11 +280,7 @@ header {
     color: #ffffff;
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85), 0 0 6px rgba(0, 0, 0, 0.5);
   }
-  .nav-usuario {
-    flex-shrink: 0;
-    margin-left: 0;
-    border-left: 1px solid rgba(255, 255, 255, 0.12);
-  }
+  .nav-usuario { flex-shrink: 0; }
 }
 
 /* Réplica do menu principal no rodapé — mas ao contrário do menu do topo,

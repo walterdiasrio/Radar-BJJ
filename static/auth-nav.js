@@ -6,12 +6,12 @@ async function carregarSessaoNoMenu() {
   const elNavAdmin = document.getElementById("nav-admin");
   const elMeusAlunos = document.getElementById("nav-meus-alunos");
   const elTurmas = document.getElementById("nav-turmas");
-  const elAssinatura = document.getElementById("nav-assinatura");
   const elPlanos = document.getElementById("nav-planos");
 
   const ICONE_LOGOUT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>';
   const ICONE_LOGIN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>';
   const ICONE_CADASTRO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>';
+  const ICONE_ASSINATURA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>';
 
   const aplicarSessao = (dados) => {
     window.sessaoAtual = dados;
@@ -27,7 +27,7 @@ async function carregarSessaoNoMenu() {
     const resp = await fetch("/api/sessao");
     const dados = await resp.json();
     if (dados.logado) {
-      el.innerHTML = `<span class="nav-email">${dados.email}</span><a href="#" id="nav-sair">${ICONE_LOGOUT}<span>Sair</span></a>`;
+      el.innerHTML = `<span class="nav-email">${dados.email}</span><a href="/assinatura">${ICONE_ASSINATURA}<span>Minha Assinatura</span></a><a href="#" id="nav-sair">${ICONE_LOGOUT}<span>Sair</span></a>`;
       document.getElementById("nav-sair").addEventListener("click", async (ev) => {
         ev.preventDefault();
         await fetch("/api/sair", { method: "POST" });
@@ -36,7 +36,6 @@ async function carregarSessaoNoMenu() {
       if (elNavAdmin) elNavAdmin.style.display = dados.admin ? "" : "none";
       if (elMeusAlunos) elMeusAlunos.style.display = dados.mestre ? "" : "none";
       if (elTurmas) elTurmas.style.display = dados.mestre ? "" : "none";
-      if (elAssinatura) elAssinatura.style.display = "";
       if (elPlanos) elPlanos.style.display = "none";
       if (dados.mestre) await carregarSubmenuTurmas();
       aplicarSessao({ logado: true, mestre: !!dados.mestre, admin: !!dados.admin, email: dados.email });
@@ -45,7 +44,6 @@ async function carregarSessaoNoMenu() {
       if (elNavAdmin) elNavAdmin.style.display = "none";
       if (elMeusAlunos) elMeusAlunos.style.display = "none";
       if (elTurmas) elTurmas.style.display = "none";
-      if (elAssinatura) elAssinatura.style.display = "none";
       if (elPlanos) elPlanos.style.display = "";
       aplicarSessao({ logado: false, mestre: false, admin: false });
     }
@@ -54,7 +52,6 @@ async function carregarSessaoNoMenu() {
     if (elNavAdmin) elNavAdmin.style.display = "none";
     if (elMeusAlunos) elMeusAlunos.style.display = "none";
     if (elTurmas) elTurmas.style.display = "none";
-    if (elAssinatura) elAssinatura.style.display = "none";
     if (elPlanos) elPlanos.style.display = "";
     aplicarSessao({ logado: false, mestre: false, admin: false });
   }
