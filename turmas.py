@@ -579,66 +579,6 @@ def _datas_do_mes(dias_semana, mes, ano):
     return [date(ano, mes, dia) for dia in range(1, ultimo_dia + 1) if date(ano, mes, dia).weekday() in indices]
 
 
-def _chamar_claude_planner(turma, mes, ano, foco, resumo, pool, datas):
-    import anthropic
-
-    historico = _historico_para_ia(turma["id"])
-    historico_texto = "\n".join(
-        f"- {linha['data']}: {', '.join(json.loads(linha['posicoes']))}" for linha in historico
-    ) or "(nenhuma aula registrada ainda)"
-
-    prompt = f"""Você é um assistente de um professor (Mestre) de Jiu-Jitsu montando o planner mensal de aulas de uma turma.
-
-Dados da turma:
-- Categoria: {turma['categoria']}
-- Dias de aula na semana: {', '.join(turma['dias_semana'])}
-- Mês do planner: {mes:02d}/{ano}
-- Datas das aulas nesse mês: {', '.join(d.isoformat() for d in datas)}
-
-Histórico de aulas já dadas (últimos 6 meses, mais recentes primeiro):
-{historico_texto}
-
-Técnicas/posições de referência (use como inspiração, não precisa se limitar a elas):
-{', '.join(pool)}
-
-{"Foco solicitado pelo Mestre para o mês: " + foco if foco else "Nenhum foco específico foi escolhido — distribua entre áreas variadas do Jiu-Jitsu."}
-{("O que o Mestre quer para esse mês: " + resumo) if resumo else ""}
-
-Para cada uma das datas de aula listadas acima, escreva um plano de aula curto (1 a 2 frases, até 220
-caracteres): aquecimento breve + foco técnico do dia + tipo de treino (drilling/sparring). Varie o conteúdo
-entre os dias, priorizando o que a turma menos treinou no histórico. Se a categoria for Baby ou Kids, não
-sugira nenhuma finalização de chave de perna (calcanhar ou toe hold) nem conteúdo inadequado pra crianças.
-
-Responda APENAS com um JSON válido, sem nenhum texto antes ou depois, exatamente neste formato:
-{{"dias": [{{"data": "YYYY-MM-DD", "conteudo": "texto curto do plano de aula desse dia"}}]}}"""
-
-    client = anthropic.Anthropic()
-    response = client.messages.create(
-        model="claude-opus-5",
-        max_tokens=3000,
-        messages=[{"role": "user", "content": prompt}],
-    )
-    texto = "".join(bloco.text for bloco in response.content if bloco.type == "text").strip()
-    if texto.startswith("```"):
-        texto = texto.strip("`")
-        if texto.startswith("json"):
-            texto = texto[4:]
-    dados = json.loads(texto)
-
-    datas_validas = {d.isoformat() for d in datas}
-    validos = []
-    for dia in dados.get("dias") or []:
-        data_str = dia.get("data")
-        conteudo = (dia.get("conteudo") or "").strip()[:LIMITE_CARACTERES_CONTEUDO_DIA]
-        if data_str in datas_validas and conteudo:
-            validos.append({"data": data_str, "conteudo": conteudo})
-
-    if not validos:
-        raise ValueError("resposta da IA sem dias válidos")
-    validos.sort(key=lambda d: d["data"])
-    return validos
-
-
 def _conteudo_fallback(turma, pool, data_referencia, contagem):
     """Conteúdo determinístico (sem IA) pra um dia — cicla pelas posições
     menos treinadas, igual à lógica de sugerir_plano_mensal."""
@@ -676,13 +616,24 @@ def _turma_para_planner(mestre_id, turma_id):
     return turma
 
 
-def gerar_planner_mensal(mestre_id, turma_id, mes, ano, foco="", resumo=""):
+def _conteudo_de_aula_ia(aula):
+    """Formata uma entrada de aula do Plano de Aula IA (posições + breve
+    observação) como o texto curto de um dia do planner."""
+    posicoes = ", ".join(aula.get("posicoes") or [])
+    observacao = (aula.get("observacao") or "").strip()
+    texto = f"{posicoes}. {observacao}" if observacao else posicoes
+    return texto[:LIMITE_CARACTERES_CONTEUDO_DIA]
+
+
+def gerar_planner_mensal(mestre_id, turma_id, mes, ano, foco="", aulas_ia=None):
     """Gera (ou regenera) o conteúdo dos dias de aula do planner mensal de
-    uma turma, usando IA quando disponível (mesma cota diária do Plano de
-    Aula IA) — cai pro determinístico sem custo se a API não estiver
-    configurada, o limite diário já tiver sido usado, ou a chamada falhar.
-    Preserva objetivos/anotações já salvos ao regenerar. Retorna
-    (planner, erro)."""
+    uma turma. Não chama a IA por conta própria — em vez disso, copia o
+    conteúdo de `aulas_ia` (a sugestão já gerada pelo Plano de Aula IA,
+    mandada pelo front) pros dias correspondentes; dias sem sugestão
+    (fora do que o Plano de Aula IA cobriu) usam o determinístico sem IA.
+    Sem `aulas_ia` nenhum, o planner inteiro sai determinístico — pra usar
+    IA aqui, gere o Plano de Aula IA primeiro. Preserva objetivos/anotações
+    já salvos ao regenerar. Retorna (planner, erro)."""
     try:
         mes = int(mes)
         ano = int(ano)
@@ -699,7 +650,6 @@ def gerar_planner_mensal(mestre_id, turma_id, mes, ano, foco="", resumo=""):
     if not turma["dias_semana"]:
         return None, "configure os dias da semana da turma antes de gerar o planner"
 
-    resumo = (resumo or "").strip()[:LIMITE_CARACTERES_RESUMO_IA]
     pool = list(POSICOES[foco]) if foco else list(_TODAS_POSICOES)
     if turma["categoria"] in ("Baby", "Kids"):
         pool = [p for p in pool if p not in POSICOES_ADULTO_APENAS]
@@ -708,26 +658,40 @@ def gerar_planner_mensal(mestre_id, turma_id, mes, ano, foco="", resumo=""):
     if not datas:
         return None, "não há aulas nesse mês pros dias da semana configurados"
 
-    usou_ia = False
-    aviso = None
-    if not os.environ.get("ANTHROPIC_API_KEY"):
-        dias = _gerar_dias_fallback(turma, pool, datas)
-    elif not _pode_usar_plano_ia_hoje(mestre_id, turma_id):
-        dias = _gerar_dias_fallback(turma, pool, datas)
-        aviso = (
-            "Essa turma já usou o Plano de Aula IA hoje (limite de 1x por dia por turma) — "
-            "esse planner foi gerado automaticamente, sem IA. Tente de novo amanhã."
-        )
+    aulas_ia_por_data = {
+        aula.get("data"): aula for aula in (aulas_ia or []) if aula.get("data")
+    }
+
+    contagem = Counter({p: 0 for p in pool})
+    with _conn() as conn:
+        historico = conn.execute(
+            "SELECT posicoes FROM planos_aula WHERE turma_id = ?", (turma_id,)
+        ).fetchall()
+    for linha in historico:
+        for posicao in json.loads(linha["posicoes"]):
+            if posicao in contagem:
+                contagem[posicao] += 1
+
+    dias = []
+    faltando = 0
+    for dia in datas:
+        data_iso = dia.isoformat()
+        aula_ia = aulas_ia_por_data.get(data_iso)
+        if aula_ia:
+            dias.append({"data": data_iso, "conteudo": _conteudo_de_aula_ia(aula_ia)})
+        else:
+            faltando += 1
+            dias.append({"data": data_iso, "conteudo": _conteudo_fallback(turma, pool, dia, contagem)})
+
+    if not aulas_ia_por_data:
+        aviso = "Gere o Plano de Aula IA primeiro pra usar sugestões da IA aqui — esse planner foi gerado automaticamente, sem IA."
+        usou_ia = False
+    elif faltando:
+        aviso = f"{faltando} dia(s) fora do que o Plano de Aula IA sugeriu foram gerados automaticamente, sem IA."
+        usou_ia = True
     else:
-        try:
-            dias = _chamar_claude_planner(turma, mes, ano, foco, resumo, pool, datas)
-            usou_ia = True
-            _registrar_uso_plano_ia(mestre_id, turma_id)
-        except Exception:
-            print("Planner mensal IA falhou:")
-            traceback.print_exc()
-            dias = _gerar_dias_fallback(turma, pool, datas)
-            aviso = "IA indisponível no momento — planner gerado automaticamente, sem IA."
+        aviso = None
+        usou_ia = True
 
     with _conn() as conn:
         conn.execute(

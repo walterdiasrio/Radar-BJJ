@@ -267,9 +267,11 @@ function renderizarPlanner(turma) {
       ${expandido ? `
         <div style="margin-top:12px;">
           <p style="color:#7c8894; font-size:0.85rem; margin-top:0;">
-            Gera o planner do mês inteiro (um plano de aula curto pra cada dia de aula da turma, com o
-            mesmo foco/resumo usados acima), no formato pra baixar em PDF ou mandar por e-mail. Depois de
-            gerado, edite o conteúdo de qualquer dia à vontade.
+            Gera o planner do mês inteiro (um plano de aula curto pra cada dia de aula da turma), no
+            formato pra baixar em PDF ou mandar por e-mail. Não usa IA por conta própria — copia as aulas
+            do Plano de Aula IA gerado acima (dias fora dessa sugestão saem no automático, sem IA). Gere o
+            Plano de Aula IA primeiro pra aproveitar a sugestão da IA aqui. Depois de gerado, edite o
+            conteúdo de qualquer dia à vontade.
           </p>
 
           <div class="campo" style="max-width:220px;">
@@ -687,6 +689,10 @@ async function gerarPlanner(turmaId) {
     return;
   }
   const iaEstado = planoIaEstado[turmaId] || {};
+  // O planner não gera aulas novas com IA — ele copia as aulas já sugeridas
+  // pelo Plano de Aula IA (se essa turma já gerou uma). Sem sugestão de IA
+  // ainda, o planner sai inteiro no determinístico (sem custo extra).
+  const aulasIa = iaEstado.resultado && iaEstado.resultado.ia ? iaEstado.resultado.aulas : null;
   const [ano, mes] = estado.mesAno.split("-");
   atualizarEstadoPlanner(turmaId, { carregando: true, erro: null, mensagem: null });
   renderizarTurmas(turmasAtuais);
@@ -695,7 +701,7 @@ async function gerarPlanner(turmaId) {
     const resp = await fetchAutenticado(`/api/turmas/${turmaId}/planner?mes=${Number(mes)}&ano=${ano}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ foco: iaEstado.foco || "", resumo: iaEstado.resumo || "" }),
+      body: JSON.stringify({ foco: iaEstado.foco || "", aulas_ia: aulasIa }),
     });
     const dados = await resp.json();
     if (!resp.ok) throw new Error(dados.erro || "não consegui gerar o planner");

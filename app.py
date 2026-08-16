@@ -1441,8 +1441,8 @@ def api_gerar_planner(turma_id):
     if erro:
         return jsonify({"erro": erro}), 400
     foco = dados.get("foco", "")
-    resumo = dados.get("resumo", "")
-    planner, erro = turmas.gerar_planner_mensal(session["usuario_id"], turma_id, mes, ano, foco, resumo)
+    aulas_ia = dados.get("aulas_ia")
+    planner, erro = turmas.gerar_planner_mensal(session["usuario_id"], turma_id, mes, ano, foco, aulas_ia)
     if erro:
         return jsonify({"erro": erro}), 400
     return jsonify(planner)
