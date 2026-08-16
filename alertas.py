@@ -30,7 +30,7 @@ DATA_DIR = Path(os.environ.get("DATA_DIR", Path(__file__).parent))
 DB_PATH = DATA_DIR / "alertas.db"
 
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY")
-REMETENTE = os.environ.get("ALERTA_REMETENTE", "Radar BJJ <onboarding@resend.dev>")
+REMETENTE = os.environ.get("ALERTA_REMETENTE", "Radar BJJ <no-reply@radarbjj.com>")
 URL_SITE = os.environ.get("URL_SITE", "http://localhost:5050")
 
 # Limite por conta — evita que um único login seja usado pra criar alertas

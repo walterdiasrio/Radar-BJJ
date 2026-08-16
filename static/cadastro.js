@@ -6,6 +6,12 @@ function mostrarStatus(texto, ehErro = false) {
   elStatus.className = ehErro ? "erro" : "";
 }
 
+function escapeHtml(texto) {
+  const div = document.createElement("div");
+  div.textContent = texto;
+  return div.innerHTML;
+}
+
 elForm.addEventListener("submit", async (ev) => {
   ev.preventDefault();
   const email = document.getElementById("email").value;
@@ -24,7 +30,14 @@ elForm.addEventListener("submit", async (ev) => {
     if (!resp.ok) throw new Error(dados.erro || "erro ao cadastrar");
 
     elForm.style.display = "none";
-    mostrarStatus(`Falta pouco! Enviamos um link de confirmação para ${dados.email}. Clique nele pra ativar sua conta.`);
+    elStatus.className = "aviso-sucesso";
+    elStatus.innerHTML = `
+      <span style="font-size:1.4rem; line-height:1;">📩</span>
+      <span>
+        <strong>Falta pouco!</strong>
+        Enviamos um link de confirmação para <strong>${escapeHtml(dados.email)}</strong>. Clique nele pra ativar sua conta.
+      </span>
+    `;
   } catch (err) {
     mostrarStatus(err.message, true);
   }

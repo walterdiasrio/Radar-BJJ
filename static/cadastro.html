@@ -2,6 +2,15 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-DDSBFFHD2F"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-DDSBFFHD2F');
+</script>
+
 <link rel="icon" type="image/png" href="/img/favicon.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Radar BJJ — Cadastro</title>
@@ -43,6 +52,7 @@
 
 <main>
   <div class="cadastro-layout">
+    <div>
     <form id="form-cadastro" class="form-auth">
       <h2>Criar conta</h2>
       <div class="campo">
@@ -71,31 +81,46 @@
       <p>Já tem conta? <a href="/login">Entrar</a></p>
     </form>
 
+    <div id="status"></div>
+    </div>
+
     <div class="card-carreira resumo-perfis">
-      <h3 style="color: var(--azul); margin-top: 0;">O que você ganha</h3>
+      <h3 style="color: var(--azul); margin-top: 0;">Escolha o plano certo pra você</h3>
 
       <div class="resumo-perfil-bloco">
-        <h4>Como Atleta</h4>
+        <h4>Plano Free — Grátis</h4>
         <ul>
-          <li>Radar de Atletas: busca de inscritos em 8 federações (CBJJ, FJJRio, CBJJD, CBJJO, CBJJE, FPJJ, ADCC e AJP)</li>
-          <li>Agenda de Competições e BJJ News</li>
-          <li>Alertas por e-mail de novos adversários na sua categoria e de novas competições</li>
+          <li>Agregador de Competições e BJJ News</li>
+          <li>Alertas por e-mail de novas competições</li>
           <li>Minha Carreira: perfil público com histórico de resultados</li>
         </ul>
       </div>
 
       <div class="resumo-perfil-bloco">
-        <h4>Como Mestre</h4>
+        <h4>Plano Atleta PRO — R$ 9,90/mês</h4>
         <ul>
-          <li>Tudo do Atleta, além de busca e alertas por equipe/academia</li>
+          <li>Tudo do Free, mais:</li>
+          <li>Radar de Atletas: busca de inscritos em 8 federações (CBJJ, FJJRio, CBJJD, CBJJO, CBJJE, FPJJ, ADCC e AJP)</li>
+          <li>Alertas por e-mail de novos adversários na sua categoria</li>
+        </ul>
+      </div>
+
+      <div class="resumo-perfil-bloco">
+        <h4>Plano Mestre PRO — R$ 19,90/mês</h4>
+        <ul>
+          <li>Tudo do Atleta PRO, mais:</li>
+          <li>Busca e alertas por equipe/academia inteira</li>
           <li>Gerenciamento de Turmas e Meus Alunos</li>
           <li>Criação de planos de aula com apoio de Inteligência Artificial</li>
         </ul>
       </div>
+
+      <p style="color: #7c8894; font-size: 0.8rem; margin-bottom: 0;">
+        7 dias de teste grátis em qualquer plano pago. Escolha o perfil (Atleta ou Mestre) ao lado — dá pra
+        assinar o PRO depois, a qualquer momento, em Minha Assinatura.
+      </p>
     </div>
   </div>
-
-  <div id="status"></div>
   </main>
 </div>
 

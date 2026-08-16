@@ -28,4 +28,21 @@ async function carregarDestaques() {
   }
 }
 
+async function ajustarCartaoBoasVindas() {
+  const elBotoesLogado = document.getElementById("home-botoes-logado");
+  const elCtaCadastro = document.getElementById("home-cta-cadastro");
+  if (!elBotoesLogado || !elCtaCadastro) return;
+  try {
+    const resp = await fetch("/api/sessao");
+    const dados = await resp.json();
+    if (!dados.logado) {
+      elBotoesLogado.style.display = "none";
+      elCtaCadastro.style.display = "block";
+    }
+  } catch (err) {
+    // em caso de erro, mantém os botões padrão (logado) visíveis
+  }
+}
+
 carregarDestaques();
+ajustarCartaoBoasVindas();

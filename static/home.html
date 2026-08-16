@@ -2,6 +2,15 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-DDSBFFHD2F"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-DDSBFFHD2F');
+</script>
+
 <link rel="icon" type="image/png" href="/img/favicon.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Radar BJJ — Home</title>
@@ -57,13 +66,24 @@
       <p style="color: var(--azul-claro); font-size: 1.1rem; font-weight: 700;">
         Concentre-se no treino!<br>O resto fica por nossa conta!
       </p>
-      <p>
-        <a href="/buscador"><button type="button">Ir para o Radar de Atletas</button></a>
-        <a href="/competicoes"><button type="button" class="btn-secundario">Ver Competições</button></a>
-      </p>
-      <p>
-        <a href="/carreira"><button type="button" class="btn-secundario">Minha Carreira</button></a>
-      </p>
+      <div id="home-botoes-logado">
+        <p>
+          <a href="/buscador"><button type="button">Ir para o Radar de Atletas</button></a>
+          <a href="/competicoes"><button type="button" class="btn-secundario">Ver Competições</button></a>
+        </p>
+        <p>
+          <a href="/carreira"><button type="button" class="btn-secundario">Minha Carreira</button></a>
+        </p>
+      </div>
+
+      <div id="home-cta-cadastro" style="display:none;">
+        <p style="color: var(--azul-claro); font-size: 1.05rem; font-weight: 600;">
+          Crie um histórico de todas as suas lutas, gere estatísticas e compartilhe suas conquistas.
+        </p>
+        <p>
+          <a href="/cadastro"><button type="button" style="font-size: 1.05rem; padding: 14px 32px;">Criar Conta Grátis</button></a>
+        </p>
+      </div>
     </div>
 
     <div class="destaques-home">
