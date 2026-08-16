@@ -54,7 +54,9 @@ async function carregarSessaoNoMenu() {
         </div>
       `;
       configurarDropdowns(el);
+      el.classList.add("nav-usuario-compacto-mobile");
       if (elMobile) {
+        elMobile.style.display = "";
         elMobile.innerHTML = `<a href="/assinatura" title="Minha Assinatura">${ICONE_ASSINATURA}</a><a href="#" class="nav-sair" title="Sair">${ICONE_LOGOUT}</a>`;
       }
       document.querySelectorAll(".nav-sair").forEach((btn) => {
@@ -71,9 +73,12 @@ async function carregarSessaoNoMenu() {
       if (dados.mestre) await carregarSubmenuTurmas();
       aplicarSessao({ logado: true, mestre: !!dados.mestre, admin: !!dados.admin, email: dados.email });
     } else {
-      const html = `<a href="/login" title="Entrar">${ICONE_LOGIN}<span>Entrar</span></a><a href="/cadastro" title="Cadastrar">${ICONE_CADASTRO}<span>Cadastrar</span></a>`;
-      el.innerHTML = html;
-      if (elMobile) elMobile.innerHTML = html;
+      // Entrar/Cadastrar continuam dentro do menu rolante (CSS manda pro
+      // fim da fila no mobile) — só a conta já logada (Sair/Assinatura) é
+      // que sai do menu e vira ícone compacto no banner, no mobile.
+      el.classList.remove("nav-usuario-compacto-mobile");
+      el.innerHTML = `<a href="/login" title="Entrar">${ICONE_LOGIN}<span>Entrar</span></a><a href="/cadastro" title="Cadastrar">${ICONE_CADASTRO}<span>Cadastrar</span></a>`;
+      if (elMobile) { elMobile.style.display = "none"; elMobile.innerHTML = ""; }
       if (elNavAdmin) elNavAdmin.style.display = "none";
       if (elMeusAlunos) elMeusAlunos.style.display = "none";
       if (elTurmas) elTurmas.style.display = "none";
@@ -81,9 +86,9 @@ async function carregarSessaoNoMenu() {
       aplicarSessao({ logado: false, mestre: false, admin: false });
     }
   } catch (err) {
-    const html = `<a href="/login">Entrar</a><a href="/cadastro">Cadastrar</a>`;
-    el.innerHTML = html;
-    if (elMobile) elMobile.innerHTML = html;
+    el.classList.remove("nav-usuario-compacto-mobile");
+    el.innerHTML = `<a href="/login">Entrar</a><a href="/cadastro">Cadastrar</a>`;
+    if (elMobile) { elMobile.style.display = "none"; elMobile.innerHTML = ""; }
     if (elNavAdmin) elNavAdmin.style.display = "none";
     if (elMeusAlunos) elMeusAlunos.style.display = "none";
     if (elTurmas) elTurmas.style.display = "none";

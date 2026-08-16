@@ -220,13 +220,19 @@ header {
   .nav-usuario .nav-email { color: #7fd4ff; }
 }
 
-/* Réplica compacta de "Minha Assinatura"/"Sair" (ou Entrar/Cadastrar), só
-   ícones, sobreposta no canto inferior esquerdo do banner — some no
-   desktop, onde o bloco de conta já mora no menu (ver .nav-usuario acima). */
+/* Réplica compacta de "Minha Assinatura"/"Sair", só ícones, sobreposta no
+   canto inferior esquerdo do banner — some no desktop, onde o bloco de
+   conta já mora no menu (ver .nav-usuario acima). Só existe pra quem está
+   logado; Entrar/Cadastrar continuam dentro do menu rolante (ver abaixo). */
 .nav-usuario-mobile { display: none; }
 
 @media (max-width: 900px) {
-  #nav-usuario { display: none; }
+  /* Entrar/Cadastrar (deslogado) ficam no menu normal, só que no fim da
+     fila — não competem mais por espaço com os links importantes logo no
+     início. Logado (.nav-usuario-compacto-mobile) some daqui: vira os
+     ícones compactos em cima do banner (.nav-usuario-mobile acima). */
+  #nav-usuario { order: 99; }
+  #nav-usuario.nav-usuario-compacto-mobile { display: none; }
 
   .nav-usuario-mobile {
     display: flex;
