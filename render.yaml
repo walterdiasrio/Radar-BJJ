@@ -32,6 +32,8 @@ services:
         sync: false
       - key: IMPORT_API_KEY
         sync: false
+      - key: GOOGLE_SERVICE_ACCOUNT_JSON
+        sync: false
     disk:
       name: radar-bjj-data
       mountPath: /var/data

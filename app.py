@@ -15,6 +15,7 @@ import alertas
 import auth
 import carreira
 import contato
+import drive_import
 import noticias
 import pagamentos
 import planner_pdf
@@ -95,6 +96,7 @@ def _iniciar_verificacao_periodica_de_alertas():
 
 
 _iniciar_verificacao_periodica_de_alertas()
+drive_import._iniciar_agendador_diario()
 
 
 def _parse_federacao(bruto):
@@ -628,6 +630,14 @@ def api_ajp_importar_atletas():
         return jsonify({"erro": "não encontrei nenhum atleta nessa página — confirma que rolou a tela até o final antes de salvar?"}), 400
     ajp.salvar_atletas(evento_id, atletas)
     return jsonify({"ok": True, "total": len(atletas)})
+
+
+@app.post("/api/drive-import/verificar-agora")
+@api_admin_necessario
+def api_drive_import_verificar_agora():
+    """Roda a checagem da pasta do Drive na hora, sem esperar os 20h —
+    botão manual pro admin, além da verificação diária automática."""
+    return jsonify({"log": drive_import.verificar_e_importar()})
 
 
 @app.get("/api/sessao")
