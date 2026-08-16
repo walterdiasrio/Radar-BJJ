@@ -7,6 +7,7 @@ import calendar
 import json
 import os
 import sqlite3
+import traceback
 from collections import Counter
 from datetime import date
 from pathlib import Path
@@ -535,6 +536,8 @@ def gerar_plano_ia(mestre_id, turma_id, foco, resumo, posicoes_por_aula=2):
         _registrar_uso_plano_ia(mestre_id, turma_id)
         return resultado, None
     except Exception:
+        print("Plano de Aula IA falhou:")
+        traceback.print_exc()
         return _fallback()
 
 
@@ -708,6 +711,8 @@ def gerar_planner_mensal(mestre_id, turma_id, mes, ano, foco="", resumo=""):
             usou_ia = True
             _registrar_uso_plano_ia(mestre_id, turma_id)
         except Exception:
+            print("Planner mensal IA falhou:")
+            traceback.print_exc()
             dias = _gerar_dias_fallback(turma, pool, datas)
             aviso = "IA indisponível no momento — planner gerado automaticamente, sem IA."
 
