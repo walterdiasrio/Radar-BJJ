@@ -58,6 +58,33 @@ function formatarDataBr(iso) {
   return `${dia}/${mes}/${ano}`;
 }
 
+const MESES_PT = [
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+];
+
+function rotuloMesAno(iso) {
+  if (!iso) return "Data não informada";
+  const [ano, mes] = iso.split("-");
+  return `${MESES_PT[Number(mes) - 1]} ${ano}`;
+}
+
+// Agrupa uma lista já ordenada (mais recente primeiro) em blocos por
+// mês/ano, preservando a ordem — não reordena os planos, só agrupa.
+function agruparPorMes(planos) {
+  const blocos = [];
+  let atual = null;
+  for (const plano of planos) {
+    const rotulo = rotuloMesAno(plano.data);
+    if (!atual || atual.rotulo !== rotulo) {
+      atual = { rotulo, planos: [] };
+      blocos.push(atual);
+    }
+    atual.planos.push(plano);
+  }
+  return blocos;
+}
+
 async function carregarMeusAlunos() {
   try {
     const resp = await fetchAutenticado("/api/meus-alunos");
@@ -107,21 +134,28 @@ function renderizarPlanoAula(turma) {
                 </div>
               </div>
             `).join("")}
-            <button type="submit">Salvar plano de aula</button>
+            <button type="submit">Salvar histórico</button>
           </form>
 
           <div style="margin-top:14px;">
             <strong>Aulas registradas${planos.length ? ` (${planos.length})` : ""}:</strong>
             ${planos.length ? "" : " nenhuma ainda."}
-            ${planos.map(p => `
-              <div class="cartao-alerta" style="margin-top:8px; padding:12px 14px;">
-                <div class="cartao-alerta-topo">
-                  <div class="cartao-alerta-federacao" style="margin-top:0;">${formatarDataBr(p.data)}</div>
-                  <button type="button" class="btn-remover btn-remover-plano" data-turma-id="${turma.id}" data-plano-id="${p.id}">Remover</button>
+            ${agruparPorMes(planos).map(bloco => `
+              <div style="margin-top:12px;">
+                <div style="font-weight:600; color:var(--azul); font-size:0.85rem; text-transform:uppercase; letter-spacing:0.02em;">
+                  ${bloco.rotulo} <span style="color:#7c8894; font-weight:400; text-transform:none;">(${bloco.planos.length})</span>
                 </div>
-                <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;">
-                  ${p.posicoes.map(pos => `<span style="background:#eef2f6; border-radius:20px; padding:3px 10px; font-size:0.8rem;">${pos}</span>`).join("")}
-                </div>
+                ${bloco.planos.map(p => `
+                  <div class="cartao-alerta" style="margin-top:8px; padding:12px 14px;">
+                    <div class="cartao-alerta-topo">
+                      <div class="cartao-alerta-federacao" style="margin-top:0;">${formatarDataBr(p.data)}</div>
+                      <button type="button" class="btn-remover btn-remover-plano" data-turma-id="${turma.id}" data-plano-id="${p.id}">Remover</button>
+                    </div>
+                    <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;">
+                      ${p.posicoes.map(pos => `<span style="background:#eef2f6; border-radius:20px; padding:3px 10px; font-size:0.8rem;">${pos}</span>`).join("")}
+                    </div>
+                  </div>
+                `).join("")}
               </div>
             `).join("")}
           </div>

@@ -9,7 +9,7 @@ import os
 import sqlite3
 import traceback
 from collections import Counter
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 DATA_DIR = Path(os.environ.get("DATA_DIR", Path(__file__).parent))
@@ -391,13 +391,29 @@ def sugerir_plano_mensal(mestre_id, turma_id, foco, posicoes_por_aula=2):
     return {"foco": foco, "categoria": turma["categoria"], "aulas": sugestao}, None
 
 
+# Janela de histórico considerada pela IA (Plano de Aula e Planner mensal) —
+# 6 meses corridos, não uma quantidade fixa de aulas: uma turma que treina
+# poucas vezes por semana não deve ficar com um histórico "curto demais" nem
+# uma que treina todo dia deve estourar o prompt — o teto (LIMIT) é só uma
+# rede de segurança pro caso extremo de aulas diárias por 6 meses.
+HISTORICO_IA_DIAS = 182
+HISTORICO_IA_LIMITE = 200
+
+
+def _historico_para_ia(turma_id):
+    corte = (date.today() - timedelta(days=HISTORICO_IA_DIAS)).isoformat()
+    with _conn() as conn:
+        return conn.execute(
+            """SELECT data, posicoes FROM planos_aula WHERE turma_id = ? AND data >= ?
+               ORDER BY data DESC LIMIT ?""",
+            (turma_id, corte, HISTORICO_IA_LIMITE),
+        ).fetchall()
+
+
 def _chamar_claude_plano(turma, foco, resumo, pool, datas):
     import anthropic
 
-    with _conn() as conn:
-        historico = conn.execute(
-            "SELECT data, posicoes FROM planos_aula WHERE turma_id = ? ORDER BY data DESC LIMIT 30", (turma["id"],)
-        ).fetchall()
+    historico = _historico_para_ia(turma["id"])
     historico_texto = "\n".join(
         f"- {linha['data']}: {', '.join(json.loads(linha['posicoes']))}" for linha in historico
     ) or "(nenhuma aula registrada ainda)"
@@ -409,7 +425,7 @@ Dados da turma:
 - Dias de aula na semana: {', '.join(turma['dias_semana']) or '(não definido)'}
 - Datas das próximas aulas no mês: {', '.join(d.isoformat() for d in datas)}
 
-Histórico de aulas já dadas (mais recentes primeiro, até 30):
+Histórico de aulas já dadas (últimos 6 meses, mais recentes primeiro):
 {historico_texto}
 
 Posições/técnicas permitidas para escolher (use exatamente esses nomes, não invente outros):
@@ -566,10 +582,7 @@ def _datas_do_mes(dias_semana, mes, ano):
 def _chamar_claude_planner(turma, mes, ano, foco, resumo, pool, datas):
     import anthropic
 
-    with _conn() as conn:
-        historico = conn.execute(
-            "SELECT data, posicoes FROM planos_aula WHERE turma_id = ? ORDER BY data DESC LIMIT 30", (turma["id"],)
-        ).fetchall()
+    historico = _historico_para_ia(turma["id"])
     historico_texto = "\n".join(
         f"- {linha['data']}: {', '.join(json.loads(linha['posicoes']))}" for linha in historico
     ) or "(nenhuma aula registrada ainda)"
@@ -582,7 +595,7 @@ Dados da turma:
 - Mês do planner: {mes:02d}/{ano}
 - Datas das aulas nesse mês: {', '.join(d.isoformat() for d in datas)}
 
-Histórico de aulas já dadas (mais recentes primeiro, até 30):
+Histórico de aulas já dadas (últimos 6 meses, mais recentes primeiro):
 {historico_texto}
 
 Técnicas/posições de referência (use como inspiração, não precisa se limitar a elas):
