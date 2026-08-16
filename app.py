@@ -186,6 +186,26 @@ def api_admin_necessario(view):
     return wrapper
 
 
+def api_import_key_ou_admin(view):
+    """Protege só os 4 endpoints de importação ADCC/AJP: aceita admin logado
+    (uso manual, pelo navegador) OU uma chave compartilhada no header
+    X-Import-Key (uso automatizado, sem sessão — ver IMPORT_API_KEY).
+    Decorator separado do api_admin_necessario de propósito: se essa chave
+    algum dia vazar, o estrago fica limitado só à importação de eventos, não
+    abre as outras rotas de admin (usuários, notícias, mensagens...)."""
+    @wraps(view)
+    def wrapper(*args, **kwargs):
+        chave_esperada = os.environ.get("IMPORT_API_KEY")
+        if chave_esperada and request.headers.get("X-Import-Key") == chave_esperada:
+            return view(*args, **kwargs)
+        if not session.get("usuario_id"):
+            return jsonify({"erro": "faça login para continuar"}), 401
+        if not _usuario_atual_eh_admin():
+            return jsonify({"erro": "acesso restrito"}), 403
+        return view(*args, **kwargs)
+    return wrapper
+
+
 def _usuario_atual_tem_assinatura():
     """Admin sempre tem acesso, sem precisar assinar."""
     return _usuario_atual_eh_admin() or pagamentos.usuario_tem_acesso(session.get("usuario_id"))
@@ -527,7 +547,7 @@ def pagina_importar_adcc():
 
 
 @app.post("/api/adcc/importar-evento")
-@api_admin_necessario
+@api_import_key_ou_admin
 def api_adcc_importar_evento():
     dados = request.get_json(silent=True) or {}
     html = dados.get("html", "")
@@ -545,7 +565,7 @@ def api_adcc_importar_evento():
 
 
 @app.post("/api/adcc/importar-atletas")
-@api_admin_necessario
+@api_import_key_ou_admin
 def api_adcc_importar_atletas():
     dados = request.get_json(silent=True) or {}
     evento_id = dados.get("evento_id", "")
@@ -572,7 +592,7 @@ def pagina_importar_ajp():
 
 
 @app.post("/api/ajp/importar-evento")
-@api_admin_necessario
+@api_import_key_ou_admin
 def api_ajp_importar_evento():
     dados = request.get_json(silent=True) or {}
     html = dados.get("html", "")
@@ -590,7 +610,7 @@ def api_ajp_importar_evento():
 
 
 @app.post("/api/ajp/importar-atletas")
-@api_admin_necessario
+@api_import_key_ou_admin
 def api_ajp_importar_atletas():
     dados = request.get_json(silent=True) or {}
     evento_id = dados.get("evento_id", "")

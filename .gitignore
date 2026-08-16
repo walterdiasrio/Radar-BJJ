@@ -1,6 +1,7 @@
 __pycache__/
 *.pyc
 .secret_key
+.import_api_key
 usuarios.db
 alertas.db
 noticias.db
