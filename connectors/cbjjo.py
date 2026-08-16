@@ -19,6 +19,24 @@ from . import datas as datas_mod
 CBJJO_SITE = "https://www.cbjjo.com.br"
 PORTAL = "https://cbjjo.beta.portalsamurai.com"
 
+# Nome da categoria de peso vem colado no rótulo da categoria (ex: "ADULTO
+# (18 A 29 ANOS) MASCULINO BRANCA LEVE") — mesmos nomes usados em
+# connectors/peso.py pra CBJJO, então extrair daqui permite filtrar por peso.
+# Ordem por tamanho (maior primeiro) só por clareza — não afeta o resultado:
+# como o "PESADO" de "SUPER-PESADO"/"MEIO-PESADO" nunca é a posição mais à
+# esquerda de um match (a palavra composta sempre começa antes), o regex já
+# encontra a composta primeiro de qualquer forma.
+_PESO_CATEGORIAS = ["Galo", "Pluma", "Pena", "Leve", "Médio", "Meio-Pesado", "Pesado", "Super-Pesado", "Pesadíssimo"]
+_PESO_REGEX = re.compile("|".join(
+    re.escape(p.upper()) for p in sorted(_PESO_CATEGORIAS, key=len, reverse=True)
+))
+_PESO_POR_TEXTO_UPPER = {p.upper(): p for p in _PESO_CATEGORIAS}
+
+
+def _extrair_peso(categoria_texto):
+    m = _PESO_REGEX.search(categoria_texto.upper())
+    return _PESO_POR_TEXTO_UPPER.get(m.group(0), "") if m else ""
+
 
 def listar_eventos():
     resp = get(f"{CBJJO_SITE}/site/eventos/calendario")
@@ -112,6 +130,7 @@ def _parsear_checagem(html, federacao):
         )
         faixa = m_faixa.group(0) if m_faixa else ""
         categoria_idade = categoria_texto.split(genero)[0].strip() if genero else categoria_texto
+        peso = _extrair_peso(categoria_texto)
 
         tabela = secao.select_one("table.ck-table") or secao.find_next("table")
         if not tabela:
@@ -132,7 +151,7 @@ def _parsear_checagem(html, federacao):
                 "equipe": equipe,
                 "categoria_idade": categoria_idade,
                 "genero": genero,
-                "peso": "",
+                "peso": peso,
                 "faixa": faixa,
             })
     return resultados
@@ -157,6 +176,7 @@ def _parsear_categoria(html, federacao):
         )
         faixa = m_faixa.group(0) if m_faixa else ""
         categoria_idade = categoria_texto.split(genero)[0].strip() if genero else categoria_texto
+        peso = _extrair_peso(categoria_texto)
 
         for linha in tabela.select("tbody tr"):
             cols = [c.get_text(strip=True) for c in linha.find_all("td")]
@@ -168,7 +188,7 @@ def _parsear_categoria(html, federacao):
                 "equipe": cols[1],
                 "categoria_idade": categoria_idade,
                 "genero": genero,
-                "peso": "",
+                "peso": peso,
                 "faixa": faixa,
             })
     return resultados
