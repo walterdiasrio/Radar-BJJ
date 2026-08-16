@@ -2,6 +2,7 @@ __pycache__/
 *.pyc
 .secret_key
 .import_api_key
+.google_service_account.json
 usuarios.db
 alertas.db
 noticias.db
