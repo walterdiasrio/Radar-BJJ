@@ -3,6 +3,20 @@ async function carregarSessaoNoMenu() {
   const el = document.getElementById("nav-usuario");
   if (!el) return;
 
+  // Réplica compacta (só ícones) sobreposta no canto inferior esquerdo do
+  // banner — no celular, o bloco de conta/assinatura dentro do menu rolante
+  // roubava espaço dos links que importam de verdade. Some no desktop (CSS).
+  let elMobile = document.getElementById("nav-usuario-mobile");
+  if (!elMobile) {
+    const elHeader = document.querySelector("header");
+    if (elHeader) {
+      elMobile = document.createElement("div");
+      elMobile.id = "nav-usuario-mobile";
+      elMobile.className = "nav-usuario-mobile";
+      elHeader.appendChild(elMobile);
+    }
+  }
+
   const elNavAdmin = document.getElementById("nav-admin");
   const elMeusAlunos = document.getElementById("nav-meus-alunos");
   const elTurmas = document.getElementById("nav-turmas");
@@ -27,11 +41,28 @@ async function carregarSessaoNoMenu() {
     const resp = await fetch("/api/sessao");
     const dados = await resp.json();
     if (dados.logado) {
-      el.innerHTML = `<span class="nav-email">${dados.email}</span><a href="/assinatura">${ICONE_ASSINATURA}<span>Minha Assinatura</span></a><a href="#" id="nav-sair">${ICONE_LOGOUT}<span>Sair</span></a>`;
-      document.getElementById("nav-sair").addEventListener("click", async (ev) => {
-        ev.preventDefault();
-        await fetch("/api/sair", { method: "POST" });
-        window.location.reload();
+      // Desktop: "Minha Assinatura"/"Sair" viram um submenu no nome do
+      // usuário, igual ao dropdown de Admin/Turmas (mesmas classes, reusa o
+      // configurarDropdowns já existente). Mobile continua só com os ícones.
+      el.innerHTML = `
+        <div class="nav-admin-dropdown">
+          <a href="#" class="nav-admin-toggle"><span class="nav-email">${dados.email}</span><span class="nav-admin-seta">▾</span></a>
+          <div class="nav-admin-submenu">
+            <a href="/assinatura">${ICONE_ASSINATURA}<span>Minha Assinatura</span></a>
+            <a href="#" class="nav-sair">${ICONE_LOGOUT}<span>Sair</span></a>
+          </div>
+        </div>
+      `;
+      configurarDropdowns(el);
+      if (elMobile) {
+        elMobile.innerHTML = `<a href="/assinatura" title="Minha Assinatura">${ICONE_ASSINATURA}</a><a href="#" class="nav-sair" title="Sair">${ICONE_LOGOUT}</a>`;
+      }
+      document.querySelectorAll(".nav-sair").forEach((btn) => {
+        btn.addEventListener("click", async (ev) => {
+          ev.preventDefault();
+          await fetch("/api/sair", { method: "POST" });
+          window.location.reload();
+        });
       });
       if (elNavAdmin) elNavAdmin.style.display = dados.admin ? "" : "none";
       if (elMeusAlunos) elMeusAlunos.style.display = dados.mestre ? "" : "none";
@@ -40,7 +71,9 @@ async function carregarSessaoNoMenu() {
       if (dados.mestre) await carregarSubmenuTurmas();
       aplicarSessao({ logado: true, mestre: !!dados.mestre, admin: !!dados.admin, email: dados.email });
     } else {
-      el.innerHTML = `<a href="/login">${ICONE_LOGIN}<span>Entrar</span></a><a href="/cadastro">${ICONE_CADASTRO}<span>Cadastrar</span></a>`;
+      const html = `<a href="/login" title="Entrar">${ICONE_LOGIN}<span>Entrar</span></a><a href="/cadastro" title="Cadastrar">${ICONE_CADASTRO}<span>Cadastrar</span></a>`;
+      el.innerHTML = html;
+      if (elMobile) elMobile.innerHTML = html;
       if (elNavAdmin) elNavAdmin.style.display = "none";
       if (elMeusAlunos) elMeusAlunos.style.display = "none";
       if (elTurmas) elTurmas.style.display = "none";
@@ -48,7 +81,9 @@ async function carregarSessaoNoMenu() {
       aplicarSessao({ logado: false, mestre: false, admin: false });
     }
   } catch (err) {
-    el.innerHTML = `<a href="/login">Entrar</a><a href="/cadastro">Cadastrar</a>`;
+    const html = `<a href="/login">Entrar</a><a href="/cadastro">Cadastrar</a>`;
+    el.innerHTML = html;
+    if (elMobile) elMobile.innerHTML = html;
     if (elNavAdmin) elNavAdmin.style.display = "none";
     if (elMeusAlunos) elMeusAlunos.style.display = "none";
     if (elTurmas) elTurmas.style.display = "none";
@@ -134,9 +169,9 @@ async function montarMenuRodape() {
   elRodape.innerHTML = elTopo.innerHTML;
   configurarDropdowns(elRodape);
 
-  // O botão "Sair" tem um listener preso ao elemento original (não a um
-  // id) — o clone precisa do próprio, senão o botão de baixo fica morto.
-  const elSairRodape = elRodape.querySelector("#nav-sair");
+  // O botão "Sair" tem um listener preso ao elemento original (não a uma
+  // classe) — o clone precisa do próprio, senão o botão de baixo fica morto.
+  const elSairRodape = elRodape.querySelector(".nav-sair");
   if (elSairRodape) {
     elSairRodape.addEventListener("click", async (ev) => {
       ev.preventDefault();

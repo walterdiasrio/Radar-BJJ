@@ -34,6 +34,7 @@ body {
 }
 
 header {
+  position: relative;
   background: #ffffff;
   text-align: center;
   line-height: 0;
@@ -201,10 +202,61 @@ header {
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85), 0 0 6px rgba(0, 0, 0, 0.5);
 }
 
+/* "Minha Assinatura"/"Sair" ficam num submenu (mesmo padrão do Admin/Turmas)
+   — especificidade maior que ".nav-usuario a" pra não herdar o estilo branco
+   do menu escuro, e sim o fundo claro normal do dropdown. */
+.nav-usuario .nav-admin-submenu a {
+  color: var(--azul);
+  text-shadow: none;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.nav-usuario .nav-admin-submenu a:hover { background: #eef4fa; }
+
 @media (prefers-color-scheme: dark) {
   .nav-usuario a { color: #eaf2f9; }
   .nav-usuario a:hover { background: rgba(255, 255, 255, 0.06); }
   .nav-usuario .nav-email { color: #7fd4ff; }
+}
+
+/* Réplica compacta de "Minha Assinatura"/"Sair" (ou Entrar/Cadastrar), só
+   ícones, sobreposta no canto inferior esquerdo do banner — some no
+   desktop, onde o bloco de conta já mora no menu (ver .nav-usuario acima). */
+.nav-usuario-mobile { display: none; }
+
+@media (max-width: 900px) {
+  #nav-usuario { display: none; }
+
+  .nav-usuario-mobile {
+    display: flex;
+    position: absolute;
+    left: 10px;
+    bottom: 10px;
+    gap: 2px;
+    background: rgba(0, 0, 0, 0.45);
+    border-radius: 20px;
+    padding: 2px;
+    z-index: 5;
+  }
+
+  .nav-usuario-mobile a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    color: #ffffff;
+  }
+
+  .nav-usuario-mobile a svg {
+    width: 15px;
+    height: 15px;
+    stroke: currentColor;
+  }
+
+  .nav-usuario-mobile a:hover { background: rgba(255, 255, 255, 0.2); }
 }
 
 @media (min-width: 901px) {
