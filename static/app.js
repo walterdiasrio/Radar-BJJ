@@ -470,5 +470,13 @@ elBtnSalvarFiltroPadrao.addEventListener("click", async () => {
 carregarFederacoes()
   .then(() => carregarFiltroPadrao())
   .then(() => {
-    onFederacaoMudou();
+    elResultados.innerHTML = "";
+    mostrarStatus("");
+    atualizarCategoriaCalculada();
+    return carregarEventos(federacaoSelecionada(elFederacaoOpcoes));
+  })
+  .then(() => {
+    if (new URLSearchParams(window.location.search).get("auto") === "1") {
+      elForm.requestSubmit();
+    }
   });

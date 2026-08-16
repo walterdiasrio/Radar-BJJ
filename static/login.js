@@ -43,7 +43,7 @@ elForm.addEventListener("submit", async (ev) => {
       throw new Error(dados.erro || "erro ao entrar");
     }
 
-    window.location.href = "/buscador";
+    window.location.href = "/";
   } catch (err) {
     mostrarStatus(err.message, true);
   }

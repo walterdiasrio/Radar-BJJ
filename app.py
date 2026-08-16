@@ -223,6 +223,29 @@ def home():
     return send_from_directory("static", "home.html")
 
 
+@app.get("/api/home-resumo")
+@api_login_necessario
+def api_home_resumo():
+    usuario_id = session["usuario_id"]
+    usuario = auth.buscar_por_id(usuario_id)
+    perfil = carreira.obter_perfil(usuario_id)
+    nome = (perfil.get("nome") or "").strip() or usuario["nome_usuario"] or usuario["email"].split("@")[0]
+
+    tem_assinatura = _usuario_atual_tem_assinatura()
+    resposta = {
+        "nome": nome,
+        "tem_assinatura": tem_assinatura,
+        "proximas_competicoes": agenda.listar(usuario_id)[:5],
+    }
+    if tem_assinatura:
+        resposta["tem_filtro_salvo"] = bool(auth.obter_filtro_padrao(usuario_id))
+        stats = carreira.calcular_estatisticas(usuario_id)
+        resposta["medalhas"] = {
+            "ouros": stats["ouros"], "pratas": stats["pratas"], "bronzes": stats["bronzes"],
+        }
+    return jsonify(resposta)
+
+
 @app.get("/buscador")
 @assinatura_necessaria
 def index():

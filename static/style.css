@@ -786,9 +786,26 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
   flex-wrap: wrap;
 }
 
-.home-cartao-boasvindas {
+.home-coluna-principal {
   flex: 1 1 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+.home-cartao-boasvindas {
   margin: 0;
+}
+
+.home-proximas-competicoes .cartao-alerta {
+  text-align: left;
+}
+
+.home-quadro-medalhas .stats-grid {
+  grid-template-columns: repeat(3, 1fr);
+  margin-top: 12px;
+  margin-bottom: 0;
 }
 
 .destaques-home {
