@@ -79,7 +79,7 @@ def _detalhes_evento(evento_id):
 def buscar_atletas(evento_id, filtros):
     checagem_url = f"{PORTAL}/views/checagem/checagem_atleta.php?ID_EVENTO={evento_id}"
     resp = get(checagem_url, allow_redirects=True)
-    resultados = _parsear_categoria(resp.text, "CBJJO")
+    resultados = _parsear_checagem(resp.text, "CBJJO")
     if resultados:
         return resultados
 
@@ -88,6 +88,54 @@ def buscar_atletas(evento_id, filtros):
     apuracao_url = f"{PORTAL}/views/evento/evento_apuracao_categoria.php?ID_EVENTO={evento_id}"
     resp2 = get(apuracao_url, allow_redirects=True)
     return _parsear_categoria(resp2.text, "CBJJO")
+
+
+def _parsear_checagem(html, federacao):
+    """Página de checagem (pré-evento, inscritos) — layout novo do portal
+    (reformulado em 2026), diferente da página de apuração pós-evento:
+    categorias em ".ck-cat-section"/".ck-cat-name" e tabela com colunas
+    Equipe/Atleta (nessa ordem, ao contrário da apuração)."""
+    soup = BeautifulSoup(html, "lxml")
+    resultados = []
+
+    for secao in soup.select(".ck-cat-section"):
+        nome_cat_el = secao.select_one(".ck-cat-name")
+        if not nome_cat_el:
+            continue
+        categoria_texto = re.sub(r"\s+", " ", nome_cat_el.get_text(" ", strip=True))
+
+        genero = "MASCULINO" if "MASCULINO" in categoria_texto.upper() else (
+            "FEMININO" if "FEMININO" in categoria_texto.upper() else "")
+        m_faixa = re.search(
+            r"BRANCA|CINZA|AMARELA|LARANJA|VERDE|AZUL|ROXA|MARROM|PRETA",
+            categoria_texto.upper(),
+        )
+        faixa = m_faixa.group(0) if m_faixa else ""
+        categoria_idade = categoria_texto.split(genero)[0].strip() if genero else categoria_texto
+
+        tabela = secao.select_one("table.ck-table") or secao.find_next("table")
+        if not tabela:
+            continue
+
+        for linha in tabela.select("tbody tr"):
+            cols = linha.find_all("td")
+            if len(cols) < 2:
+                continue
+            equipe = cols[0].get_text(strip=True)
+            nome_el = cols[1].select_one(".ck-atleta-nome")
+            nome = nome_el.get_text(strip=True) if nome_el else cols[1].get_text(strip=True)
+            if not nome:
+                continue
+            resultados.append({
+                "federacao": federacao,
+                "nome": nome,
+                "equipe": equipe,
+                "categoria_idade": categoria_idade,
+                "genero": genero,
+                "peso": "",
+                "faixa": faixa,
+            })
+    return resultados
 
 
 def _parsear_categoria(html, federacao):
