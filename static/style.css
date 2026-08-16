@@ -966,8 +966,9 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
 
 .plano-card-banner img {
   display: block;
-  width: 100%;
+  width: 80%;
   height: auto;
+  margin: 0 auto;
 }
 
 .plano-card-banner:hover {

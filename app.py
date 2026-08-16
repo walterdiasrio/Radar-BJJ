@@ -29,7 +29,7 @@ INTERVALO_ALERTAS_SEGUNDOS = int(os.environ.get("INTERVALO_ALERTAS_SEGUNDOS", 30
 
 app = Flask(__name__, static_folder="static", static_url_path="")
 
-ADMIN_EMAIL = "walterdiasrio@gmail.com"
+ADMIN_EMAILS = {"walterdiasrio@gmail.com", "sac@radarbjj.com"}
 
 # Em produção (Render), DATA_DIR aponta pro disco persistente (ex: /var/data)
 # — sem isso, cadastros e competições importadas do ADCC somem a cada deploy.
@@ -52,10 +52,30 @@ turmas.init_db()
 noticias.remover_noticias_expiradas()  # limpa logo na subida, não só no próximo ciclo
 
 
+def _cancelar_alertas_de_atleta_sem_assinatura():
+    """Alerta de atleta é exclusivo do Plano PRO — quem cria durante o teste
+    grátis e não vira assinante perde o acesso pra ver/apagar o alerta pela
+    tela (rotas exigem assinatura), mas sem isso o alerta continuava rodando
+    e mandando e-mail pra sempre, porque a verificação periódica não olhava
+    pra assinatura. Roda antes de alertas.verificar_todos() pra já não
+    checar/mandar e-mail de alertas cancelados nesse mesmo ciclo."""
+    for usuario_id in alertas.usuarios_com_alerta_de_atleta_ativo():
+        usuario = auth.buscar_por_id(usuario_id)
+        if usuario and usuario["email"] in ADMIN_EMAILS:
+            continue
+        if pagamentos.usuario_tem_acesso(usuario_id):
+            continue
+        alertas.cancelar_alertas_de_atleta(usuario_id)
+
+
 def _iniciar_verificacao_periodica_de_alertas():
     def loop():
         while True:
             time.sleep(INTERVALO_ALERTAS_SEGUNDOS)
+            try:
+                _cancelar_alertas_de_atleta_sem_assinatura()
+            except Exception:
+                traceback.print_exc()
             try:
                 alertas.verificar_todos()
             except Exception:
@@ -124,7 +144,7 @@ def _usuario_atual_eh_admin():
     if not usuario_id:
         return False
     usuario = auth.buscar_por_id(usuario_id)
-    return bool(usuario) and usuario["email"] == ADMIN_EMAIL
+    return bool(usuario) and usuario["email"] in ADMIN_EMAILS
 
 
 def _usuario_atual_eh_mestre():
@@ -136,7 +156,7 @@ def _usuario_atual_eh_mestre():
     usuario = auth.buscar_por_id(usuario_id)
     if not usuario:
         return False
-    return usuario["email"] == ADMIN_EMAIL or usuario["tipo_perfil"] == "mestre"
+    return usuario["email"] in ADMIN_EMAILS or usuario["tipo_perfil"] == "mestre"
 
 
 def admin_necessario(view):
@@ -574,7 +594,7 @@ def api_sessao():
     if not usuario:
         session.clear()
         return jsonify({"logado": False})
-    eh_admin = usuario["email"] == ADMIN_EMAIL
+    eh_admin = usuario["email"] in ADMIN_EMAILS
     assinatura = pagamentos.obter_assinatura(usuario["id"])
     return jsonify({
         "logado": True,
@@ -1145,7 +1165,7 @@ def api_buscar_alunos_por_academia():
     atletas = []
     for perfil in candidatos:
         usuario = auth.buscar_por_id(perfil["usuario_id"])
-        if not usuario or usuario["tipo_perfil"] == "mestre" or usuario["email"] == ADMIN_EMAIL:
+        if not usuario or usuario["tipo_perfil"] == "mestre" or usuario["email"] in ADMIN_EMAILS:
             continue
         atletas.append(perfil)
     return jsonify({"academia": academia, "atletas": atletas})
@@ -1455,7 +1475,7 @@ def api_adicionar_meu_mestre():
     mestre = auth.buscar_por_nome_usuario(dados.get("nome_usuario"))
     if not mestre:
         return jsonify({"erro": "nenhum usuário encontrado com esse nome de usuário"}), 404
-    if mestre["tipo_perfil"] != "mestre" and mestre["email"] != ADMIN_EMAIL:
+    if mestre["tipo_perfil"] != "mestre" and mestre["email"] not in ADMIN_EMAILS:
         return jsonify({"erro": "esse usuário não é um perfil Mestre"}), 400
     ok, erro = carreira.criar_vinculo(mestre_id=mestre["id"], aluno_id=session["usuario_id"])
     if not ok:

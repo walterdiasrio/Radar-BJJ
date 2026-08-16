@@ -221,6 +221,33 @@ def remover_alerta(usuario_id, alerta_id):
         return cursor.rowcount > 0
 
 
+def usuarios_com_alerta_de_atleta_ativo():
+    """IDs distintos de usuários com pelo menos um alerta de atleta ativo —
+    usado periodicamente (ver app.py) pra cancelar quem não tem mais
+    assinatura (alerta de atleta é exclusivo do Plano PRO)."""
+    with _conn() as conn:
+        linhas = conn.execute("SELECT DISTINCT usuario_id FROM alertas WHERE ativo = 1").fetchall()
+    return [linha["usuario_id"] for linha in linhas]
+
+
+def cancelar_alertas_de_atleta(usuario_id):
+    """Cancela (apaga) todos os alertas de atleta de um usuário — chamado
+    quando ele deixa de ter assinatura ativa (volta pro Plano Free, que só
+    permite alerta de competição). Retorna quantos foram cancelados."""
+    with _conn() as conn:
+        ids = [
+            linha["id"] for linha in
+            conn.execute("SELECT id FROM alertas WHERE usuario_id = ?", (usuario_id,))
+        ]
+        if not ids:
+            return 0
+        conn.execute("DELETE FROM alertas WHERE usuario_id = ?", (usuario_id,))
+        conn.executemany(
+            "DELETE FROM alertas_vistos WHERE alerta_id = ?", [(aid,) for aid in ids]
+        )
+    return len(ids)
+
+
 # ---------------------------------------------------------------------------
 # Alertas de "competição nova" — criados na aba Competições, avisam por
 # e-mail quando uma competição nova aparece pra federação/público
