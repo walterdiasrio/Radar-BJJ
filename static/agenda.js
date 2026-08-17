@@ -255,28 +255,16 @@ async function gerarImagemAgendaStory() {
     const xTexto = margem + 36;
     const larguraTexto = larguraCartao - 72;
 
-    ctx.font = "bold 30px -apple-system, Arial, sans-serif";
-    ctx.fillStyle = CIANO;
-    ctx.fillText(truncarTexto(ctx, item.data || "", larguraTexto), xTexto, y + 46);
-
-    ctx.font = "bold 36px -apple-system, Arial, sans-serif";
-    ctx.fillStyle = "#ffffff";
-    const linhaEvento = `${item.federacao} — ${item.nome}`;
-    ctx.fillText(truncarTexto(ctx, linhaEvento, larguraTexto), xTexto, y + 92);
-
-    if (item.local) {
-      ctx.font = "26px -apple-system, Arial, sans-serif";
-      ctx.fillStyle = CINZA_AZULADO;
-      ctx.fillText(truncarTexto(ctx, item.local, larguraTexto - 260), xTexto, y + 128);
-    }
-
+    // Badge fica na mesma linha da data, no canto direito — desenhado
+    // primeiro pra já saber a largura disponível pro texto da data (evita
+    // sobrepor um no outro em nomes de evento/data mais longos).
     const textoBadge = item.status === "inscrito" ? "INSCRITO" : "INTERESSE";
     const corBadge = item.status === "inscrito" ? "#3fd17e" : "#7fd4ff";
     ctx.font = "bold 22px -apple-system, Arial, sans-serif";
     ctx.letterSpacing = "1px";
     const larguraBadge = ctx.measureText(textoBadge).width + 40;
     const xBadge = margem + larguraCartao - larguraBadge - 30;
-    const yBadge = y + alturaCartao - 58;
+    const yBadge = y + 24;
     ctx.strokeStyle = corBadge;
     ctx.lineWidth = 2;
     roundRect(ctx, xBadge, yBadge, larguraBadge, 42, 21);
@@ -286,6 +274,22 @@ async function gerarImagemAgendaStory() {
     ctx.fillText(textoBadge, xBadge + larguraBadge / 2, yBadge + 28);
     ctx.letterSpacing = "0px";
     ctx.textAlign = "left";
+
+    const larguraData = xBadge - xTexto - 24;
+    ctx.font = "bold 30px -apple-system, Arial, sans-serif";
+    ctx.fillStyle = CIANO;
+    ctx.fillText(truncarTexto(ctx, item.data || "", larguraData), xTexto, y + 50);
+
+    ctx.font = "bold 36px -apple-system, Arial, sans-serif";
+    ctx.fillStyle = "#ffffff";
+    const linhaEvento = `${item.federacao} — ${item.nome}`;
+    ctx.fillText(truncarTexto(ctx, linhaEvento, larguraTexto), xTexto, y + 96);
+
+    if (item.local) {
+      ctx.font = "26px -apple-system, Arial, sans-serif";
+      ctx.fillStyle = CINZA_AZULADO;
+      ctx.fillText(truncarTexto(ctx, item.local, larguraTexto), xTexto, y + 132);
+    }
   });
   ctx.textAlign = "center";
 
