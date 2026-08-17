@@ -15,6 +15,7 @@ Editor nas pastas abaixo) na variável de ambiente GOOGLE_SERVICE_ACCOUNT_JSON
 (o JSON inteiro da chave, como texto) — sem ela, verificar_e_importar() só
 avisa que está desativado e não faz nada (não é erro fatal pro site subir).
 """
+import base64
 import json
 import os
 import threading
@@ -39,7 +40,7 @@ FEDERACOES = [
 
 
 def _cliente_drive():
-    bruto = os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON")
+    bruto = (os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON") or "").strip()
     if not bruto:
         return None
     # Import tardio: essas libs só existem em produção (requirements.txt),
@@ -47,7 +48,19 @@ def _cliente_drive():
     from google.oauth2 import service_account
     from googleapiclient.discovery import build
 
-    info = json.loads(bruto)
+    try:
+        info = json.loads(bruto)
+    except json.JSONDecodeError:
+        # Aceita a chave em base64 também — mais à prova de erro de colagem
+        # em campos de variável de ambiente que engasgam com texto grande
+        # de várias linhas (o painel do Render, por exemplo).
+        try:
+            info = json.loads(base64.b64decode(bruto).decode("utf-8"))
+        except Exception:
+            raise ValueError(
+                f"GOOGLE_SERVICE_ACCOUNT_JSON não é um JSON válido nem base64 válido "
+                f"(recebi {len(bruto)} caractere(s) — confere se colou o conteúdo certo no Render)"
+            )
     credenciais = service_account.Credentials.from_service_account_info(
         info, scopes=["https://www.googleapis.com/auth/drive"]
     )
