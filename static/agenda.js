@@ -238,7 +238,7 @@ async function gerarImagemAgendaStory() {
   // limitado de cartões no Stories; o resto vira um resumo "+N outras".
   const margem = 60;
   const larguraCartao = W - margem * 2;
-  const alturaCartao = 150;
+  const alturaCartao = 185;
   const gap = 22;
   const yListaTopo = yTopo + 50;
   const alturaDisponivel = H - yListaTopo - 220; // reserva espaço pro rodapé
@@ -264,31 +264,35 @@ async function gerarImagemAgendaStory() {
     ctx.letterSpacing = "1px";
     const larguraBadge = ctx.measureText(textoBadge).width + 40;
     const xBadge = margem + larguraCartao - larguraBadge - 30;
-    const yBadge = y + 24;
+    const yBadge = y + 26;
+    const alturaBadge = 44;
     ctx.strokeStyle = corBadge;
     ctx.lineWidth = 2;
-    roundRect(ctx, xBadge, yBadge, larguraBadge, 42, 21);
+    roundRect(ctx, xBadge, yBadge, larguraBadge, alturaBadge, alturaBadge / 2);
     ctx.stroke();
     ctx.fillStyle = corBadge;
     ctx.textAlign = "center";
-    ctx.fillText(textoBadge, xBadge + larguraBadge / 2, yBadge + 28);
+    ctx.fillText(textoBadge, xBadge + larguraBadge / 2, yBadge + 29);
     ctx.letterSpacing = "0px";
     ctx.textAlign = "left";
 
     const larguraData = xBadge - xTexto - 24;
     ctx.font = "bold 30px -apple-system, Arial, sans-serif";
     ctx.fillStyle = CIANO;
-    ctx.fillText(truncarTexto(ctx, item.data || "", larguraData), xTexto, y + 50);
+    ctx.fillText(truncarTexto(ctx, item.data || "", larguraData), xTexto, y + 54);
 
+    // Linha do evento começa bem abaixo do fundo do balão de status (y +
+    // 70), pra nunca encostar nele mesmo com fontes/métricas diferentes
+    // entre navegadores.
     ctx.font = "bold 36px -apple-system, Arial, sans-serif";
     ctx.fillStyle = "#ffffff";
     const linhaEvento = `${item.federacao} — ${item.nome}`;
-    ctx.fillText(truncarTexto(ctx, linhaEvento, larguraTexto), xTexto, y + 96);
+    ctx.fillText(truncarTexto(ctx, linhaEvento, larguraTexto), xTexto, y + 116);
 
     if (item.local) {
       ctx.font = "26px -apple-system, Arial, sans-serif";
       ctx.fillStyle = CINZA_AZULADO;
-      ctx.fillText(truncarTexto(ctx, item.local, larguraTexto), xTexto, y + 132);
+      ctx.fillText(truncarTexto(ctx, item.local, larguraTexto), xTexto, y + 156);
     }
   });
   ctx.textAlign = "center";
