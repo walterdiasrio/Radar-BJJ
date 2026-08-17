@@ -310,7 +310,8 @@ header {
 
   /* Botão "Menu Atleta" agrupado é só pra mobile (ver bloco max-width abaixo) —
      no desktop cada link continua solto no menu, como sempre. */
-  .nav-menu-atleta-mobile { display: none; }
+  .menu-lateral .nav-menu-atleta-mobile { display: none; }
+  .painel-menu-atleta { display: none !important; }
 }
 
 @media (max-width: 900px) {
@@ -320,6 +321,10 @@ header {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
+    /* Altura fixa e explícita (em vez de intrínseca) pra o painel do "Menu
+       Atleta" (abaixo) saber exatamente onde começar, sem precisar medir
+       nada via JS — só CSS, então não depende de scroll/toque/timing. */
+    height: 52px;
   }
   .menu-lateral::-webkit-scrollbar { display: none; }
   .menu-lateral a { flex-shrink: 0; }
@@ -342,8 +347,49 @@ header {
 
   /* Links individuais (Radar de Atletas, Competições, Minha Agenda, Minha
      Carreira) somem no mobile — viram itens dentro do botão agrupado
-     "Menu Atleta" (.nav-menu-atleta-mobile), que só existe aqui. */
-  .nav-item-atleta { display: none; }
+     "Menu Atleta" (.painel-menu-atleta), que só existe aqui. */
+  .menu-lateral .nav-item-atleta { display: none; }
+
+  /* Painel do "Menu Atleta": ao contrário do .nav-admin-submenu (Admin/
+     Turmas), aqui NÃO tem cálculo de posição via JS. position:fixed com
+     top fixo ficaria errado no topo da página (o menu só "gruda" em y:0
+     depois de rolar — antes disso ele fica mais abaixo, logo depois do
+     banner). Por isso o painel usa position:sticky com o MESMO top:52px
+     (altura do menu, ver .menu-lateral nesse bloco): dois elementos sticky
+     empilhados (menu em top:0, painel em top:52px) sempre ficam um logo
+     abaixo do outro, em qualquer posição de scroll, sem depender de JS. */
+  .painel-menu-atleta {
+    display: none;
+    position: sticky;
+    top: 52px;
+    left: 0;
+    width: 100%;
+    max-height: calc(100vh - 52px);
+    overflow-y: auto;
+    background: #ffffff;
+    border-top: 1px solid var(--borda);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.25);
+    z-index: 45;
+    flex-direction: column;
+    gap: 0;
+  }
+  .painel-menu-atleta.aberto { display: flex; }
+  .painel-menu-atleta a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 15px 20px;
+    color: var(--azul);
+    text-decoration: none;
+    border-bottom: 1px solid var(--borda);
+    font-family: var(--fonte-menu-topo);
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .painel-menu-atleta a svg { width: 18px; height: 18px; flex-shrink: 0; stroke: currentColor; }
+  .painel-menu-atleta a:hover, .painel-menu-atleta a:active { background: #eef4fa; }
 }
 
 /* Réplica do menu principal no rodapé — mas ao contrário do menu do topo,

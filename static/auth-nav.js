@@ -192,6 +192,24 @@ function configurarDropdowns(escopo) {
 }
 configurarDropdowns(document);
 
+// Botão "Menu Atleta" (mobile) — painel único, fora do menu, posicionado só
+// via CSS (top:52px fixo, ver style.css), sem cálculo de posição em JS. Um
+// listener delegado no document cobre tanto o toggle do topo quanto o clone
+// do rodapé (mesma classe), e fecha o painel ao clicar fora dele.
+document.addEventListener("click", (ev) => {
+  const elPainel = document.getElementById("painel-menu-atleta");
+  if (!elPainel) return;
+  const elToggle = ev.target.closest(".menu-atleta-toggle");
+  if (elToggle) {
+    ev.preventDefault();
+    elPainel.classList.toggle("aberto");
+    return;
+  }
+  if (elPainel.classList.contains("aberto") && !elPainel.contains(ev.target)) {
+    elPainel.classList.remove("aberto");
+  }
+});
+
 // Réplica do menu principal fixa no rodapé (mesmos links, dropdowns e
 // estado de login) — clona só depois que o menu do topo está pronto de
 // verdade (sessão carregada e submenu de Turmas populado), pra não duplicar
