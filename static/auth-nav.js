@@ -130,19 +130,30 @@ function configurarDropdowns(escopo) {
     const elSubmenu = elDropdown.querySelector(".nav-admin-submenu");
     if (!elToggle || !elSubmenu) return;
 
+    // left "clampado" pra nunca vazar pra fora da tela — essencial no
+    // celular, onde o toggle (Admin/Turmas) costuma estar perto do fim da
+    // faixa rolável, então r.left sozinho jogaria o submenu pra fora da
+    // largura da tela. Só funciona chamado DEPOIS do submenu virar
+    // display:flex (senão a largura medida é 0), por isso a ordem no
+    // listener de clique abaixo importa: primeiro adiciona "aberto",
+    // depois posiciona.
+    const calcularLeftClampado = (r) => {
+      const largura = elSubmenu.offsetWidth || 220;
+      return Math.max(8, Math.min(r.left, window.innerWidth - largura - 8));
+    };
     // No rodapé abre pra cima (ancorado por "bottom", não "top" — assim não
     // precisa saber a altura do submenu antes dele estar visível pra medir).
     const posicionarParaCima = () => {
       const r = elToggle.getBoundingClientRect();
       elSubmenu.style.top = "auto";
       elSubmenu.style.bottom = `${window.innerHeight - r.top}px`;
-      elSubmenu.style.left = `${r.left}px`;
+      elSubmenu.style.left = `${calcularLeftClampado(r)}px`;
     };
     const posicionarNormal = () => {
       const r = elToggle.getBoundingClientRect();
       elSubmenu.style.bottom = "auto";
       elSubmenu.style.top = `${r.bottom}px`;
-      elSubmenu.style.left = `${r.left}px`;
+      elSubmenu.style.left = `${calcularLeftClampado(r)}px`;
     };
     const ehRodape = elDropdown.closest(".menu-lateral-rodape") !== null;
 
@@ -155,19 +166,22 @@ function configurarDropdowns(escopo) {
     // sem essa checagem o primeiro toque navegava direto pra página sem
     // nunca abrir o submenu — agora o primeiro toque só abre, e um
     // segundo toque (ou tocar num item já visível dentro dele) navega.
+    // Sempre marca "aberto" ANTES de posicionar (não depois) — o cálculo
+    // do left clampado (acima) precisa medir a largura real do submenu já
+    // visível, senão mede 0.
     elToggle.addEventListener("click", (ev) => {
       const semDestinoProprio = elToggle.getAttribute("href") === "#";
       const noMobile = window.matchMedia("(max-width: 900px)").matches;
       if (semDestinoProprio) {
         ev.preventDefault();
-        (ehRodape ? posicionarParaCima : posicionarNormal)();
         elDropdown.classList.toggle("aberto");
+        if (elDropdown.classList.contains("aberto")) (ehRodape ? posicionarParaCima : posicionarNormal)();
         return;
       }
       if (noMobile && !elDropdown.classList.contains("aberto")) {
         ev.preventDefault();
-        (ehRodape ? posicionarParaCima : posicionarNormal)();
         elDropdown.classList.add("aberto");
+        (ehRodape ? posicionarParaCima : posicionarNormal)();
       }
     });
 

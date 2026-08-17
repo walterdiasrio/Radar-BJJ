@@ -320,24 +320,20 @@ header {
   .menu-lateral::-webkit-scrollbar { display: none; }
   .menu-lateral a { flex-shrink: 0; }
   /* Sem hover de verdade no toque — e a faixa horizontal tem overflow-x,
-     que corta qualquer coisa posicionada fora do fluxo normal. Por isso,
-     no celular o submenu não flutua: ele abre como mais itens na própria
-     faixa, ao lado do "Admin"/"Turmas", só quando tocado (.aberto). */
+     que corta qualquer coisa posicionada fora do fluxo normal. Por isso o
+     submenu usa position:fixed aqui também (mesmo truque do desktop, ver
+     bloco @media (min-width: 901px) acima) — abre pra baixo, por cima de
+     tudo, escapando do corte, em vez de abrir "de lado" dentro da própria
+     faixa (like foi tentado antes e ficou ruim: os itens abriam esticados
+     na horizontal, ao lado do toggle, em vez de num menu vertical normal). */
   .nav-admin-dropdown { flex-shrink: 0; }
   .nav-admin-dropdown:hover .nav-admin-submenu { display: none; }
   .nav-admin-submenu {
-    position: static;
-    flex-direction: row;
-    background: transparent;
-    box-shadow: none;
-    padding: 0;
+    position: fixed;
+    top: 0;
+    left: 0;
   }
   .nav-admin-dropdown.aberto .nav-admin-submenu { display: flex; }
-  .nav-admin-submenu a {
-    border-left: 1px solid rgba(255, 255, 255, 0.12);
-    color: #ffffff;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85), 0 0 6px rgba(0, 0, 0, 0.5);
-  }
   .nav-usuario { flex-shrink: 0; }
 }
 
