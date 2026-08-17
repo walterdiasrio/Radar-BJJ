@@ -56,6 +56,27 @@
   <div id="status"></div>
 
   <div id="lista-agenda"></div>
+
+  <div class="card-carreira" style="max-width:360px; margin-top:24px;">
+    <h3 style="margin-top:0; color:var(--azul);">Compartilhar no Instagram</h3>
+    <p style="color:#7c8894; font-size:0.85rem; margin-top:0;">
+      Gere uma imagem com suas próximas competições, no formato certo pro Stories (1080×1920).
+    </p>
+    <div class="campo">
+      <label for="agenda_export_filtro">Quais competições incluir?</label>
+      <select id="agenda_export_filtro">
+        <option value="todas">Todas (inscrito + tenho interesse)</option>
+        <option value="inscrito">Só as inscrições confirmadas</option>
+      </select>
+    </div>
+    <button type="button" id="btn-gerar-agenda-story">Gerar imagem</button>
+    <canvas id="canvas-agenda-story" width="1080" height="1920" style="width:100%; height:auto; border-radius:10px; display:none; margin-top:14px;"></canvas>
+    <div style="margin-top:14px;">
+      <button type="button" id="btn-baixar-agenda-story" class="hidden">Baixar imagem</button>
+      <button type="button" class="btn-secundario hidden" id="btn-compartilhar-agenda-story">Compartilhar</button>
+    </div>
+    <div id="status-agenda-story" class="status-importacao"></div>
+  </div>
   </main>
 </div>
 
