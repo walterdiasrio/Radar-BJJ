@@ -307,6 +307,10 @@ header {
     top: 0;
     left: 0;
   }
+
+  /* Botão "Menu Atleta" agrupado é só pra mobile (ver bloco max-width abaixo) —
+     no desktop cada link continua solto no menu, como sempre. */
+  .nav-menu-atleta-mobile { display: none; }
 }
 
 @media (max-width: 900px) {
@@ -335,6 +339,11 @@ header {
   }
   .nav-admin-dropdown.aberto .nav-admin-submenu { display: flex; }
   .nav-usuario { flex-shrink: 0; }
+
+  /* Links individuais (Radar de Atletas, Competições, Minha Agenda, Minha
+     Carreira) somem no mobile — viram itens dentro do botão agrupado
+     "Menu Atleta" (.nav-menu-atleta-mobile), que só existe aqui. */
+  .nav-item-atleta { display: none; }
 }
 
 /* Réplica do menu principal no rodapé — mas ao contrário do menu do topo,
