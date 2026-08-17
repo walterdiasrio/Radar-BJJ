@@ -773,7 +773,7 @@ def _categoria_completa(federacao, ano_nascimento, peso_kg, genero, data_nascime
         if not data_nascimento:
             return resultado
         if not evento_id or evento_id == TODAS:
-            resultado["aviso_categoria"] = "selecione uma competição específica"
+            resultado["aviso_categoria"] = "varia por competição — calculada automaticamente na busca"
             return resultado
         data_referencia = modulo.data_referencia_evento(evento_id)
         idade_exata = modulo.idade_exata(data_nascimento, data_referencia)
