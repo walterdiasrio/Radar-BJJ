@@ -637,7 +637,11 @@ def api_ajp_importar_atletas():
 def api_drive_import_verificar_agora():
     """Roda a checagem da pasta do Drive na hora, sem esperar os 20h —
     botão manual pro admin, além da verificação diária automática."""
-    return jsonify({"log": drive_import.verificar_e_importar()})
+    try:
+        return jsonify({"log": drive_import.verificar_e_importar()})
+    except Exception as exc:
+        traceback.print_exc()
+        return jsonify({"log": [f"Erro inesperado: {exc}"]}), 500
 
 
 @app.get("/api/sessao")

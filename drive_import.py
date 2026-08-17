@@ -111,8 +111,15 @@ def _processar_pasta(drive, federacao, modulo, origem_folder_id, destino_folder_
 
 def verificar_e_importar():
     """Roda uma verificação completa (chamada pelo agendador diário, ou
-    manualmente via admin). Retorna a lista de mensagens de log."""
-    drive = _cliente_drive()
+    manualmente via admin). Nunca deixa uma exceção escapar — sempre volta
+    uma lista de mensagens de log, mesmo em caso de erro (a chave mal
+    configurada, biblioteca faltando, etc.), pra aparecer na tela do admin
+    em vez de virar um erro 500 genérico."""
+    try:
+        drive = _cliente_drive()
+    except Exception as exc:
+        traceback.print_exc()
+        return [f"Erro ao conectar no Google Drive: {exc}"]
     if not drive:
         return ["GOOGLE_SERVICE_ACCOUNT_JSON não configurada — importação automática do Drive desativada."]
     log = []
