@@ -1,15 +1,62 @@
 // ---------- Abas internas ----------
+// Perfil é liberado pro Plano Free — as outras abas (aqui embaixo) exigem
+// assinatura; sem ela, ficam bloqueadas com o banner do Plano PRO
+// correspondente em vez do conteúdo real (ver aplicarBloqueioPro).
+const ABAS_COM_ASSINATURA = new Set(["registrar", "historico", "pesquisa", "estatisticas", "compartilhar"]);
+let temAssinaturaCarreira = true; // otimista até checarSessaoCarreira() responder
+
 document.querySelectorAll(".tab-carreira-btn").forEach(btn => {
   btn.addEventListener("click", () => {
     document.querySelectorAll(".tab-carreira-btn").forEach(b => b.classList.remove("ativo"));
     document.querySelectorAll(".tab-carreira-content").forEach(c => c.classList.remove("ativo"));
     btn.classList.add("ativo");
     document.getElementById(`tab-${btn.dataset.tab}`).classList.add("ativo");
+    if (ABAS_COM_ASSINATURA.has(btn.dataset.tab) && !temAssinaturaCarreira) return;
     if (btn.dataset.tab === "historico") carregarHistorico();
     if (btn.dataset.tab === "estatisticas") carregarEstatisticas();
     if (btn.dataset.tab === "compartilhar") gerarImagemStory();
   });
 });
+
+function bannerProPara(tipoPerfil) {
+  return tipoPerfil === "mestre"
+    ? { imagem: "img/banner-plano-mestre-pro.jpg", nome: "Mestre PRO" }
+    : { imagem: "img/banner-plano-atleta-pro.jpg", nome: "Atleta PRO" };
+}
+
+function aplicarBloqueioPro(tipoPerfil) {
+  const { imagem, nome } = bannerProPara(tipoPerfil);
+  document.querySelectorAll(".bloqueio-pro").forEach(elBloqueio => {
+    elBloqueio.innerHTML = `
+      <div class="card-carreira" style="text-align:center; max-width:480px; margin:0 auto;">
+        <img src="${imagem}" alt="Plano ${nome}" style="width:100%; border-radius:10px; margin-bottom:12px;">
+        <p style="color:#7c8894; font-size:0.9rem;">
+          Essa área é exclusiva de quem assina o <strong>Plano ${nome}</strong>.
+        </p>
+        <a href="/assinatura"><button type="button">Assinar ${nome}</button></a>
+      </div>
+    `;
+    elBloqueio.style.display = "block";
+    const conteudo = elBloqueio.nextElementSibling;
+    if (conteudo && conteudo.classList.contains("conteudo-pro")) conteudo.style.display = "none";
+  });
+}
+
+async function checarSessaoCarreira() {
+  try {
+    const resp = await fetch("/api/sessao");
+    const dados = await resp.json();
+    temAssinaturaCarreira = !!(dados.assinatura && dados.assinatura.tem_acesso);
+
+    const elCardMestre = document.getElementById("card-meu-mestre");
+    if (elCardMestre) elCardMestre.style.display = dados.mestre ? "none" : "";
+
+    if (!temAssinaturaCarreira) aplicarBloqueioPro(dados.tipo_perfil);
+  } catch (err) {
+    // sessão não carregou — segue sem bloquear nem esconder nada, os
+    // próprios endpoints continuam protegidos no servidor de qualquer forma
+  }
+}
 
 function mostrarStatus(elId, texto, ehErro = false) {
   const el = document.getElementById(elId);
@@ -834,3 +881,4 @@ document.getElementById("e_data").valueAsDate = new Date();
 carregarPerfil();
 carregarNomeUsuario();
 carregarMestres();
+checarSessaoCarreira();

@@ -86,7 +86,7 @@
       <div id="status-nome-usuario" class="status-importacao"></div>
     </div>
 
-    <div class="card-carreira" style="margin-bottom: 16px;">
+    <div class="card-carreira" style="margin-bottom: 16px;" id="card-meu-mestre">
       <h3 style="margin-top: 0; color: var(--azul);">Meu(s) Mestre(s)</h3>
       <form id="form-add-mestre" style="display: flex; gap: 8px; align-items: flex-end;">
         <div class="campo" style="flex: 1; margin-bottom: 0;">
@@ -170,6 +170,8 @@
 
   <!-- REGISTRAR -->
   <section id="tab-registrar" class="tab-carreira-content">
+    <div class="bloqueio-pro" style="display:none"></div>
+    <div class="conteudo-pro">
     <form id="form-competicao" class="card-carreira">
       <input type="hidden" id="e_editing_id" value="">
       <div class="campo">
@@ -208,6 +210,7 @@
       </div>
     </form>
     <div id="status-competicao" class="status-importacao"></div>
+    </div>
   </section>
 
   <template id="template-luta-row">
@@ -231,11 +234,16 @@
 
   <!-- HISTÓRICO -->
   <section id="tab-historico" class="tab-carreira-content">
+    <div class="bloqueio-pro" style="display:none"></div>
+    <div class="conteudo-pro">
     <div id="lista-historico"></div>
+    </div>
   </section>
 
   <!-- PESQUISA -->
   <section id="tab-pesquisa" class="tab-carreira-content">
+    <div class="bloqueio-pro" style="display:none"></div>
+    <div class="conteudo-pro">
     <form id="form-pesquisa" class="card-carreira">
       <div class="campo">
         <label for="s_campeonato">Campeonato</label>
@@ -258,19 +266,25 @@
     </form>
     <div id="contagem-pesquisa" class="status-importacao"></div>
     <div id="lista-pesquisa"></div>
+    </div>
   </section>
 
   <!-- ESTATÍSTICAS -->
   <section id="tab-estatisticas" class="tab-carreira-content">
+    <div class="bloqueio-pro" style="display:none"></div>
+    <div class="conteudo-pro">
     <div class="stats-grid" id="grade-estatisticas"></div>
     <div class="card-carreira">
       <h3 style="color: var(--azul); margin-top: 0;">Evolução de vitórias ao longo do tempo</h3>
       <svg id="grafico-evolucao" viewBox="0 0 600 240" preserveAspectRatio="xMidYMid meet"></svg>
     </div>
+    </div>
   </section>
 
   <!-- COMPARTILHAR -->
   <section id="tab-compartilhar" class="tab-carreira-content">
+    <div class="bloqueio-pro" style="display:none"></div>
+    <div class="conteudo-pro">
     <p style="color: #7c8894; font-size: 0.9rem; max-width: 480px;">
       Gere uma imagem com o resumo da sua carreira, no formato certo para o Stories do Instagram (1080×1920).
       Baixe ou compartilhe direto pelo celular.
@@ -283,6 +297,7 @@
       <button type="button" class="btn-secundario hidden" id="btn-compartilhar-story">Compartilhar</button>
     </div>
     <div id="status-story" class="status-importacao"></div>
+    </div>
   </section>
 </main>
 </div>

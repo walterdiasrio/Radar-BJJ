@@ -1087,8 +1087,11 @@ def api_remover_alerta_competicao(alerta_id):
 
 
 @app.get("/carreira")
-@assinatura_necessaria
+@login_necessario
 def pagina_carreira():
+    # A aba Perfil é liberada pro Plano Free (só as outras — Registrar,
+    # Histórico, Pesquisa, Estatísticas, Compartilhar — exigem assinatura,
+    # bloqueadas no próprio front com o banner do Plano PRO).
     return send_from_directory("static", "carreira.html")
 
 
@@ -1102,13 +1105,13 @@ def _com_foto_url(perfil):
 
 
 @app.get("/api/carreira/perfil")
-@api_assinatura_necessaria
+@api_login_necessario
 def api_carreira_obter_perfil():
     return jsonify(_com_foto_url(carreira.obter_perfil(session["usuario_id"])))
 
 
 @app.post("/api/carreira/perfil")
-@api_assinatura_necessaria
+@api_login_necessario
 def api_carreira_salvar_perfil():
     dados = request.get_json(silent=True) or {}
     perfil = carreira.salvar_perfil(session["usuario_id"], dados)
@@ -1121,7 +1124,7 @@ def servir_foto_perfil(nome_arquivo):
 
 
 @app.post("/api/carreira/foto")
-@api_assinatura_necessaria
+@api_login_necessario
 def api_carreira_upload_foto():
     arquivo = request.files.get("foto")
     if not arquivo or not arquivo.filename:
@@ -1133,7 +1136,7 @@ def api_carreira_upload_foto():
 
 
 @app.delete("/api/carreira/foto")
-@api_assinatura_necessaria
+@api_login_necessario
 def api_carreira_remover_foto():
     carreira.remover_foto_perfil(session["usuario_id"])
     return jsonify({"ok": True})
@@ -1564,14 +1567,14 @@ def api_planner_email(turma_id):
 
 
 @app.get("/api/carreira/meu-mestre")
-@api_assinatura_necessaria
+@api_login_necessario
 def api_listar_meus_mestres():
     ids = carreira.listar_ids_mestres_do_aluno(session["usuario_id"])
     return jsonify([_perfil_publico_vinculo(mestre_id) for mestre_id in ids])
 
 
 @app.post("/api/carreira/meu-mestre")
-@api_assinatura_necessaria
+@api_login_necessario
 def api_adicionar_meu_mestre():
     dados = request.get_json(silent=True) or {}
     mestre = auth.buscar_por_nome_usuario(dados.get("nome_usuario"))
@@ -1586,7 +1589,7 @@ def api_adicionar_meu_mestre():
 
 
 @app.delete("/api/carreira/meu-mestre/<int:mestre_id>")
-@api_assinatura_necessaria
+@api_login_necessario
 def api_remover_meu_mestre(mestre_id):
     carreira.remover_vinculo(mestre_id=mestre_id, aluno_id=session["usuario_id"])
     return jsonify({"ok": True})
