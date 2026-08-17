@@ -148,13 +148,28 @@ function configurarDropdowns(escopo) {
 
     elDropdown.addEventListener("mouseenter", ehRodape ? posicionarParaCima : posicionarNormal);
 
-    if (elToggle.classList.contains("nav-admin-toggle")) {
-      elToggle.addEventListener("click", (ev) => {
+    // "Admin" não tem destino próprio (href="#") — sempre só abre/fecha o
+    // submenu. "Turmas" tem destino de verdade (href="/turmas"): no
+    // desktop o hover já deixa espiar o submenu antes de clicar (clicar
+    // navega direto, como sempre foi); no celular não existe hover, então
+    // sem essa checagem o primeiro toque navegava direto pra página sem
+    // nunca abrir o submenu — agora o primeiro toque só abre, e um
+    // segundo toque (ou tocar num item já visível dentro dele) navega.
+    elToggle.addEventListener("click", (ev) => {
+      const semDestinoProprio = elToggle.getAttribute("href") === "#";
+      const noMobile = window.matchMedia("(max-width: 900px)").matches;
+      if (semDestinoProprio) {
         ev.preventDefault();
         (ehRodape ? posicionarParaCima : posicionarNormal)();
         elDropdown.classList.toggle("aberto");
-      });
-    }
+        return;
+      }
+      if (noMobile && !elDropdown.classList.contains("aberto")) {
+        ev.preventDefault();
+        (ehRodape ? posicionarParaCima : posicionarNormal)();
+        elDropdown.classList.add("aberto");
+      }
+    });
 
     document.addEventListener("click", (ev) => {
       if (!elDropdown.contains(ev.target)) elDropdown.classList.remove("aberto");
