@@ -18,8 +18,10 @@ async function carregarSessaoNoMenu() {
   }
 
   const elNavAdmin = document.getElementById("nav-admin");
+  const elNavAdminMobile = document.getElementById("nav-admin-toggle-mobile");
   const elMeusAlunos = document.getElementById("nav-meus-alunos");
   const elTurmas = document.getElementById("nav-turmas");
+  const elTurmasMobile = document.getElementById("nav-turmas-toggle-mobile");
   const elPlanos = document.getElementById("nav-planos");
 
   const ICONE_LOGOUT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>';
@@ -67,8 +69,10 @@ async function carregarSessaoNoMenu() {
         });
       });
       if (elNavAdmin) elNavAdmin.style.display = dados.admin ? "" : "none";
+      if (elNavAdminMobile) elNavAdminMobile.style.display = dados.admin ? "" : "none";
       if (elMeusAlunos) elMeusAlunos.style.display = dados.mestre ? "" : "none";
       if (elTurmas) elTurmas.style.display = dados.mestre ? "" : "none";
+      if (elTurmasMobile) elTurmasMobile.style.display = dados.mestre ? "" : "none";
       if (elPlanos) elPlanos.style.display = "none";
       if (dados.mestre) await carregarSubmenuTurmas();
       aplicarSessao({ logado: true, mestre: !!dados.mestre, admin: !!dados.admin, email: dados.email });
@@ -80,8 +84,10 @@ async function carregarSessaoNoMenu() {
       el.innerHTML = `<a href="/login" title="Entrar">${ICONE_LOGIN}<span>Entrar</span></a><a href="/cadastro" title="Cadastrar">${ICONE_CADASTRO}<span>Cadastrar</span></a>`;
       if (elMobile) { elMobile.style.display = "none"; elMobile.innerHTML = ""; }
       if (elNavAdmin) elNavAdmin.style.display = "none";
+      if (elNavAdminMobile) elNavAdminMobile.style.display = "none";
       if (elMeusAlunos) elMeusAlunos.style.display = "none";
       if (elTurmas) elTurmas.style.display = "none";
+      if (elTurmasMobile) elTurmasMobile.style.display = "none";
       if (elPlanos) elPlanos.style.display = "";
       aplicarSessao({ logado: false, mestre: false, admin: false });
     }
@@ -90,8 +96,10 @@ async function carregarSessaoNoMenu() {
     el.innerHTML = `<a href="/login">Entrar</a><a href="/cadastro">Cadastrar</a>`;
     if (elMobile) { elMobile.style.display = "none"; elMobile.innerHTML = ""; }
     if (elNavAdmin) elNavAdmin.style.display = "none";
+    if (elNavAdminMobile) elNavAdminMobile.style.display = "none";
     if (elMeusAlunos) elMeusAlunos.style.display = "none";
     if (elTurmas) elTurmas.style.display = "none";
+    if (elTurmasMobile) elTurmasMobile.style.display = "none";
     if (elPlanos) elPlanos.style.display = "";
     aplicarSessao({ logado: false, mestre: false, admin: false });
   }
@@ -101,15 +109,18 @@ async function carregarSessaoNoMenu() {
 // pra cada uma dentro de /turmas.
 async function carregarSubmenuTurmas() {
   const elSubmenu = document.getElementById("nav-turmas-submenu");
-  if (!elSubmenu) return;
+  const elPainelMobile = document.getElementById("painel-nav-turmas");
+  if (!elSubmenu && !elPainelMobile) return;
   try {
     const resp = await fetch("/api/turmas");
     if (!resp.ok) return;
     const turmas = await resp.json();
     const itemNova = `<a href="/turmas?nova=1"><strong>+ Nova turma</strong></a>`;
-    elSubmenu.innerHTML = itemNova + (turmas.length
+    const html = itemNova + (turmas.length
       ? turmas.map(t => `<a href="/turmas?turma=${t.id}">${t.nome ? t.nome + " — " : ""}${t.categoria}</a>`).join("")
       : "");
+    if (elSubmenu) elSubmenu.innerHTML = html;
+    if (elPainelMobile) elPainelMobile.innerHTML = html;
   } catch {
     // silencioso — submenu só é um atalho, a página /turmas continua acessível
   }
@@ -192,22 +203,40 @@ function configurarDropdowns(escopo) {
 }
 configurarDropdowns(document);
 
-// Botão "Menu Atleta" (mobile) — painel único, fora do menu, posicionado só
-// via CSS (top:52px fixo, ver style.css), sem cálculo de posição em JS. Um
-// listener delegado no document cobre tanto o toggle do topo quanto o clone
-// do rodapé (mesma classe), e fecha o painel ao clicar fora dele.
+// Botões "Menu Atleta" / "Turmas" / "Admin" (mobile) — painéis fora do menu,
+// posicionados só via CSS (position:sticky, ver style.css), sem cálculo de
+// posição em JS (o cálculo via getBoundingClientRect no clique, usado pelos
+// dropdowns clássicos — configurarDropdowns acima — segue funcionando no
+// desktop, mas se mostrou pouco confiável em celular real). Um listener
+// delegado no document cobre tanto os toggles do topo quanto os clones do
+// rodapé (mesma classe), fecha os outros painéis ao abrir um novo, e fecha
+// tudo ao clicar fora.
+const MAPA_TOGGLE_PAINEL_MOBILE = [
+  [".menu-atleta-toggle", "painel-menu-atleta"],
+  [".turmas-toggle-mobile", "painel-nav-turmas"],
+  [".admin-toggle-mobile", "painel-nav-admin"],
+];
 document.addEventListener("click", (ev) => {
-  const elPainel = document.getElementById("painel-menu-atleta");
-  if (!elPainel) return;
-  const elToggle = ev.target.closest(".menu-atleta-toggle");
-  if (elToggle) {
+  for (const [seletorToggle, idPainel] of MAPA_TOGGLE_PAINEL_MOBILE) {
+    const elToggle = ev.target.closest(seletorToggle);
+    if (!elToggle) continue;
     ev.preventDefault();
-    elPainel.classList.toggle("aberto");
+    const elPainel = document.getElementById(idPainel);
+    if (!elPainel) return;
+    const jaAberto = elPainel.classList.contains("aberto");
+    MAPA_TOGGLE_PAINEL_MOBILE.forEach(([, id]) => {
+      const p = document.getElementById(id);
+      if (p) p.classList.remove("aberto");
+    });
+    if (!jaAberto) elPainel.classList.add("aberto");
     return;
   }
-  if (elPainel.classList.contains("aberto") && !elPainel.contains(ev.target)) {
-    elPainel.classList.remove("aberto");
-  }
+  MAPA_TOGGLE_PAINEL_MOBILE.forEach(([, idPainel]) => {
+    const elPainel = document.getElementById(idPainel);
+    if (elPainel && elPainel.classList.contains("aberto") && !elPainel.contains(ev.target)) {
+      elPainel.classList.remove("aberto");
+    }
+  });
 });
 
 // Réplica do menu principal fixa no rodapé (mesmos links, dropdowns e
