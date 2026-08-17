@@ -198,7 +198,7 @@ function renderizarPlanoIA(turma) {
           <button type="button" class="btn-gerar-plano-ia" data-id="${turma.id}" ${estado.carregando ? "disabled" : ""}>
             ${estado.carregando ? "Gerando..." : "Gerar sugestão com IA"}
           </button>
-          <div style="color:#7c8894; font-size:0.78rem; margin-top:4px;">Limite: 1 geração com IA por dia, por turma.</div>
+          <div style="color:#7c8894; font-size:0.78rem; margin-top:4px;">Limite: 2 gerações com IA por dia, por turma.</div>
 
           ${estado.erro ? `<div class="status-importacao erro" style="margin-top:8px;">${estado.erro}</div>` : ""}
 
@@ -282,7 +282,7 @@ function renderizarPlanner(turma) {
             ${estado.carregando ? "Gerando..." : (planner ? "Gerar de novo (substitui os dias)" : "Gerar planner")}
           </button>
           <div style="color:#7c8894; font-size:0.78rem; margin-top:4px;">
-            Compartilha o mesmo limite do Plano de Aula IA: 1 geração por dia, por turma.
+            Compartilha o mesmo limite do Plano de Aula IA: 2 gerações por dia, por turma.
             ${iaEstado.foco ? ` Foco: ${iaEstado.foco}.` : ""}
           </div>
 

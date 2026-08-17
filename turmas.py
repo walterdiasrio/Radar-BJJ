@@ -109,13 +109,16 @@ def init_db():
         """)
         conn.execute("CREATE INDEX IF NOT EXISTS idx_planos_aula_turma ON planos_aula(turma_id)")
 
-        # Controla o limite de 1 geração de Plano de Aula IA por turma por
-        # dia (a chamada à API da Claude é paga) — ver gerar_plano_ia.
+        # Controla o limite de LIMITE_DIARIO_PLANO_IA gerações de Plano de
+        # Aula IA por turma por dia (a chamada à API da Claude é paga) — ver
+        # gerar_plano_ia. "contagem" é quantas vezes já usou HOJE (ver
+        # data) — em outro dia, conta como 0 até a primeira geração.
         conn.execute("""
             CREATE TABLE IF NOT EXISTS plano_ia_uso (
                 mestre_id INTEGER NOT NULL,
                 turma_id INTEGER NOT NULL,
                 data TEXT NOT NULL,
+                contagem INTEGER NOT NULL DEFAULT 1,
                 PRIMARY KEY (mestre_id, turma_id)
             )
         """)
@@ -131,9 +134,15 @@ def init_db():
                     mestre_id INTEGER NOT NULL,
                     turma_id INTEGER NOT NULL,
                     data TEXT NOT NULL,
+                    contagem INTEGER NOT NULL DEFAULT 1,
                     PRIMARY KEY (mestre_id, turma_id)
                 )
             """)
+        elif "contagem" not in colunas_plano_ia:
+            # Bancos de antes do limite virar 2x/dia — a coluna nova entra
+            # com default 1 (equivalente ao comportamento antigo de 1x/dia)
+            # pra quem já tinha usado hoje continuar contando certo.
+            conn.execute("ALTER TABLE plano_ia_uso ADD COLUMN contagem INTEGER NOT NULL DEFAULT 1")
 
         # Planner mensal de aulas (calendário do mês inteiro, um por
         # turma+mês+ano) — ver gerar_planner_mensal. "dias" guarda a lista
@@ -472,21 +481,28 @@ Responda APENAS com um JSON válido, sem nenhum texto antes ou depois, exatament
 LIMITE_CARACTERES_RESUMO_IA = 200
 
 
+LIMITE_DIARIO_PLANO_IA = 2
+
+
 def _pode_usar_plano_ia_hoje(mestre_id, turma_id):
     hoje = date.today().isoformat()
     with _conn() as conn:
         linha = conn.execute(
-            "SELECT data FROM plano_ia_uso WHERE mestre_id = ? AND turma_id = ?", (mestre_id, turma_id)
+            "SELECT data, contagem FROM plano_ia_uso WHERE mestre_id = ? AND turma_id = ?", (mestre_id, turma_id)
         ).fetchone()
-    return not linha or linha["data"] != hoje
+    if not linha or linha["data"] != hoje:
+        return True
+    return linha["contagem"] < LIMITE_DIARIO_PLANO_IA
 
 
 def _registrar_uso_plano_ia(mestre_id, turma_id):
     hoje = date.today().isoformat()
     with _conn() as conn:
         conn.execute(
-            """INSERT INTO plano_ia_uso (mestre_id, turma_id, data) VALUES (?, ?, ?)
-               ON CONFLICT(mestre_id, turma_id) DO UPDATE SET data = excluded.data""",
+            """INSERT INTO plano_ia_uso (mestre_id, turma_id, data, contagem) VALUES (?, ?, ?, 1)
+               ON CONFLICT(mestre_id, turma_id) DO UPDATE SET
+                 contagem = CASE WHEN plano_ia_uso.data = excluded.data THEN plano_ia_uso.contagem + 1 ELSE 1 END,
+                 data = excluded.data""",
             (mestre_id, turma_id, hoje),
         )
 
@@ -497,7 +513,7 @@ def gerar_plano_ia(mestre_id, turma_id, foco, resumo, posicoes_por_aula=2):
     LIMITE_CARACTERES_RESUMO_IA caracteres). Cai pra sugestão determinística
     (sugerir_plano_mensal) — sem chamar a API, então sem custo — se: a API não
     estiver configurada (sem ANTHROPIC_API_KEY), o Mestre já tiver usado a IA
-    hoje (1x/dia — a chamada é paga) ou a chamada falhar. Retorna
+    hoje (2x/dia por padrão — a chamada é paga) ou a chamada falhar. Retorna
     (resultado, erro); resultado tem uma chave 'ia' indicando se veio da IA de
     fato ou do fallback, e 'aviso' quando o motivo do fallback é o limite
     diário (pra avisar o Mestre na tela)."""
@@ -541,7 +557,8 @@ def gerar_plano_ia(mestre_id, turma_id, foco, resumo, posicoes_por_aula=2):
         resultado, erro = _fallback()
         if resultado:
             resultado["aviso"] = (
-                "Essa turma já usou o Plano de Aula IA hoje (limite de 1x por dia por turma) — "
+                f"Essa turma já usou o Plano de Aula IA {LIMITE_DIARIO_PLANO_IA}x hoje "
+                f"(limite de {LIMITE_DIARIO_PLANO_IA}x por dia por turma) — "
                 "essa sugestão foi gerada automaticamente, sem IA. Tente de novo amanhã."
             )
         return resultado, erro
