@@ -129,7 +129,7 @@ header {
   min-width: 220px;
   background: #ffffff;
   border: 1px solid var(--borda);
-  z-index: 20;
+  z-index: 40;
   flex-direction: column;
   gap: 0;
   padding: 0;
