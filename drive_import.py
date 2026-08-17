@@ -4,8 +4,12 @@ importação manual (páginas /importar-adcc e /importar-ajp), mesma lógica de
 parsing, só que os arquivos HTML vêm do Drive em vez de upload manual.
 
 Estrutura esperada na pasta do Drive (uma por federação, ids fixos abaixo):
-  Nome do Evento.html            → página do evento (Passo 1 manual)
-  Nome do Evento - atletas.html  → página "Athletes"/inscritos (Passo 2 manual)
+  página do evento (Passo 1 manual) e página "Athletes"/participantes (Passo
+  2 manual), salvas do navegador ("Salvar como") sem precisar renomear —
+  o casamento entre as duas é tolerante ao nome que o navegador gera
+  sozinho (baseado no <title> de cada página, que vem diferente entre elas;
+  ver _nome_normalizado). Basta a de atletas ter "participants"/"atletas"/
+  "athletes" em algum lugar do nome, o que já é o padrão do Smoothcomp.
 Depois de importado com sucesso, os dois arquivos são movidos pra dentro da
 subpasta "Processados" daquela federação — assim a pasta principal sempre
 mostra só o que ainda falta processar, e nada é reimportado por engano.
@@ -18,6 +22,7 @@ avisa que está desativado e não faz nada (não é erro fatal pro site subir).
 import base64
 import json
 import os
+import re
 import threading
 import time
 import traceback
@@ -30,8 +35,6 @@ FOLDER_ADCC = "1RqVHMayyyGm_kyoGnMc9oHs4PzByonz8"
 FOLDER_ADCC_PROCESSADOS = "11ep8NCPFV0sms5Ps8hs6Gx2GppWihdLg"
 FOLDER_AJP = "1Ri7xeHSodSug1G-lgeSo9jNAdzkeCQqL"
 FOLDER_AJP_PROCESSADOS = "1z5D71hc5b4i2VndmbYSZyR-fEWo35kOr"
-
-SUFIXO_ATLETAS = " - atletas"
 
 FEDERACOES = [
     ("ADCC", adcc, FOLDER_ADCC, FOLDER_ADCC_PROCESSADOS),
@@ -86,9 +89,30 @@ def _mover_para_processados(drive, file_id, origem_folder_id, destino_folder_id)
     ).execute()
 
 
-def _nome_arquivo_atletas(nome_evento):
-    base, ext = os.path.splitext(nome_evento)
-    return f"{base}{SUFIXO_ATLETAS}{ext or '.html'}"
+# Casamento por nome tolerante: o "Salvar como" do navegador nomeia o
+# arquivo pelo <title> de cada página, que vem diferente entre a página do
+# evento e a de participantes/atletas (ex: "ADCC Brazil Open - Petrópolis -
+# Smoothcomp.html" vs "Participants - ADCC Brazil Open - Petrópolis -
+# Atletas.html") — bem diferente de "mesmo nome + sufixo" se o usuário não
+# renomear na mão. Em vez de exigir isso, tira prefixo/sufixo de ruído
+# comuns dos dois lados e casa pelo que sobra.
+_PREFIXO_ATLETAS = re.compile(r"^participants\s*-\s*", re.I)
+_SUFIXOS_RUIDO = re.compile(r"\s*-\s*(atletas|athletes|smoothcomp)\s*$", re.I)
+_PALAVRAS_ATLETAS = re.compile(r"participants|atletas|athletes", re.I)
+
+
+def _nome_normalizado(nome_arquivo):
+    base = re.sub(r"\.html?$", "", nome_arquivo, flags=re.I)
+    anterior = None
+    while anterior != base:
+        anterior = base
+        base = _PREFIXO_ATLETAS.sub("", base)
+        base = _SUFIXOS_RUIDO.sub("", base)
+    return re.sub(r"\s+", " ", base).strip().lower()
+
+
+def _eh_arquivo_atletas(nome_arquivo):
+    return bool(_PALAVRAS_ATLETAS.search(nome_arquivo))
 
 
 def _processar_par(drive, modulo, arquivo_evento, arquivo_atletas, origem_folder_id, destino_folder_id, log):
@@ -112,12 +136,20 @@ def _processar_par(drive, modulo, arquivo_evento, arquivo_atletas, origem_folder
 
 def _processar_pasta(drive, federacao, modulo, origem_folder_id, destino_folder_id, log):
     arquivos = _listar_htmls(drive, origem_folder_id)
-    por_nome = {a["name"]: a for a in arquivos}
-    eventos = [a for a in arquivos if not a["name"].endswith(f"{SUFIXO_ATLETAS}.html")]
-    for arquivo_evento in eventos:
-        arquivo_atletas = por_nome.get(_nome_arquivo_atletas(arquivo_evento["name"]))
-        if not arquivo_atletas:
-            log.append(f"{federacao} pendente: {arquivo_evento['name']} sem o arquivo ' - atletas' ainda")
+    grupos = {}
+    for arquivo in arquivos:
+        chave = _nome_normalizado(arquivo["name"])
+        papel = "atletas" if _eh_arquivo_atletas(arquivo["name"]) else "evento"
+        grupos.setdefault(chave, {})[papel] = arquivo
+
+    for grupo in grupos.values():
+        arquivo_evento = grupo.get("evento")
+        arquivo_atletas = grupo.get("atletas")
+        if arquivo_evento and not arquivo_atletas:
+            log.append(f"{federacao} pendente: {arquivo_evento['name']} sem o arquivo de atletas ainda")
+            continue
+        if arquivo_atletas and not arquivo_evento:
+            log.append(f"{federacao} pendente: {arquivo_atletas['name']} sem o arquivo do evento correspondente")
             continue
         _processar_par(drive, modulo, arquivo_evento, arquivo_atletas, origem_folder_id, destino_folder_id, log)
 
