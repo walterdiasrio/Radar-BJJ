@@ -17,6 +17,7 @@ from pathlib import Path
 from bs4 import BeautifulSoup
 
 from . import datas as datas_mod
+from . import soucompetidor
 
 DATA_DIR = Path(os.environ.get("DATA_DIR", Path(__file__).parent.parent))
 DIR_DADOS = DATA_DIR / "dados_ajp"
@@ -57,11 +58,34 @@ def listar_eventos():
     return eventos
 
 
+def _chave_dedup(texto):
+    return re.sub(r"\s+", " ", (texto or "").strip().lower())
+
+
 def buscar_atletas(evento_id, filtros):
     arquivo = DIR_ATLETAS / f"{evento_id}.json"
-    if not arquivo.exists():
-        return []
-    return json.loads(arquivo.read_text(encoding="utf-8"))
+    atletas = json.loads(arquivo.read_text(encoding="utf-8")) if arquivo.exists() else []
+
+    # Soma os atletas inscritos pelo SouCompetidor (ver connectors/
+    # soucompetidor.py) — best-effort: se a busca ao vivo falhar (site fora
+    # do ar, evento não encontrado lá, etc.), a busca continua funcionando
+    # só com o que já tem do Smoothcomp em vez de quebrar de vez.
+    evento = next((e for e in _ler_eventos() if e["id"] == evento_id), None)
+    if evento:
+        try:
+            extras = soucompetidor.atletas_do_evento(evento.get("nome", ""), evento.get("local", ""))
+        except Exception:
+            extras = []
+        if extras:
+            vistos = {(_chave_dedup(a["nome"]), _chave_dedup(a.get("equipe"))) for a in atletas}
+            for extra in extras:
+                chave = (_chave_dedup(extra["nome"]), _chave_dedup(extra.get("equipe")))
+                if chave in vistos:
+                    continue
+                vistos.add(chave)
+                atletas.append(extra)
+
+    return atletas
 
 
 def _extrair_id_evento(html):
