@@ -74,23 +74,24 @@ def buscar_atletas(evento_id, filtros):
     return resultados
 
 
-_CAMPO_NOME = re.compile(r'name="m_nomeatleta"[^>]*value="([^"]*)"')
-_CAMPO_ACADEMIA = re.compile(r'name="m_nomeacademia"[^>]*value="([^"]*)"')
-_CAMPO_PESO = re.compile(r'name="m_peso"[^>]*value="([^"]*)"')
-# Só existe na página "geral" (não na "absoluto"): logo abaixo do título da
-# categoria vem uma segunda linha preta só com a faixa de peso, tipo
-# "- 22,000" ou "+ 45,300" — vale pra turma inteira daquela categoria.
-_PESO_CABECALHO = re.compile(r">([+-]\s*[\d.,]+)</font>")
-
-
-def _texto_categoria(bloco):
-    # O texto da categoria (ex: "BRANCA - PRE-MIRIM 3 (6 anos)") vem logo no
-    # começo do bloco, antes da primeira tag </font> que fecha o cabeçalho.
-    m = re.search(r"^(.*?)</font>", bloco, re.S)
+def _partes_categoria(bloco):
+    """O cabeçalho de cada categoria (ex: "FAIXA: BRANCA | PRE-MIRIM 3 (6
+    anos) | - 22,000") vem logo no começo do bloco, antes da primeira tag
+    <font> (que abre o trecho de "Área 0"/horário — puro ruído, sem <font>
+    fechando antes dele por causa das dezenas de tags aninhadas nunca
+    fechadas). Faixa, divisão e peso vêm separados por "|"; na página
+    "absoluto" o terceiro campo é o texto "TODOS OS PESOS" em vez de um
+    peso numérico."""
+    m = re.search(r"^(.*?)<font", bloco, re.S)
     if not m:
-        return ""
+        return "", "", ""
     bruto = re.sub(r"<[^>]+>", " ", m.group(1))
-    return " ".join(bruto.split()).lstrip("- ").strip()
+    partes = [" ".join(p.split()) for p in bruto.split("|")]
+    partes = [p for p in partes if p]
+    faixa = partes[0].lstrip(":").strip() if len(partes) > 0 else ""
+    divisao = partes[1] if len(partes) > 1 else ""
+    peso_bruto = partes[2] if len(partes) > 2 else ""
+    return faixa, divisao, peso_bruto
 
 
 def _idade_da_divisao(divisao):
@@ -134,40 +135,44 @@ def _nome_peso(divisao, genero, bruto):
     return peso_mod.categoria_peso_para("cbjjd", idade, numero, genero) or ""
 
 
+_LINHA_ATLETA = re.compile(r'<div class="linha-atleta">(.*?)<!-- MOBILE -->', re.S)
+_VALUE = re.compile(r'value="([^"]*)"')
+
+
 def _parsear_checagem(html, genero):
     """A página é HTML muito antigo, com tags nunca fechadas (ex: dezenas de
     <font> aninhados sem par) — isso quebra qualquer parser de árvore DOM,
     que acaba enfiando o documento inteiro dentro do primeiro <td>. Por isso
     trabalhamos direto no texto bruto: cada categoria começa com a palavra
-    "FAIXA", então dividimos o HTML por ela; dentro de cada bloco, os dados
-    do atleta não estão em texto de célula, e sim em <input readonly
-    value="..."> (name="m_nomeatleta", "m_nomeacademia", "m_peso" — só existe
-    na página de absoluto). Categorias sem ninguém marcado continuam
-    aparecendo como linhas "molde" com o <input> vazio — por isso pulamos
-    qualquer nome vazio em vez de tratá-lo como atleta."""
+    "FAIXA", então dividimos o HTML por ela; dentro de cada bloco, cada
+    atleta vem num <div class="linha-atleta"> com uma tabela de <input
+    readonly value="..."> SEM atributo "name" (o site abandonou os names
+    antigos numa reforma visual) — só dá pra saber o que é cada campo pela
+    ORDEM: Qtd, Nome, Número, Academia, ABS, Observação. Cortamos o bloco no
+    comentário "<!-- MOBILE -->" pra não recontar os mesmos dados que se
+    repetem em texto simples no card mobile logo depois. Categorias sem
+    ninguém marcado continuam aparecendo como linhas "molde" com o <input>
+    vazio — por isso pulamos qualquer nome vazio em vez de tratá-lo como
+    atleta."""
     resultados = []
     for bloco in html.split("FAIXA")[1:]:
-        categoria = _texto_categoria(bloco)
-        faixa, _, divisao = categoria.partition(" - ")
-        idade = _idade_da_divisao(divisao or categoria)
-        nomes = _CAMPO_NOME.findall(bloco)
-        academias = _CAMPO_ACADEMIA.findall(bloco)
-        pesos_atleta = _CAMPO_PESO.findall(bloco)
-        m_cabecalho = _PESO_CABECALHO.search(bloco)
-        peso_cabecalho = m_cabecalho.group(1) if m_cabecalho else ""
+        faixa, divisao, peso_bruto = _partes_categoria(bloco)
+        idade = _idade_da_divisao(divisao or faixa)
 
-        for i, nome in enumerate(nomes):
-            nome = nome.strip()
+        for linha in _LINHA_ATLETA.findall(bloco):
+            valores = _VALUE.findall(linha)
+            if len(valores) < 4:
+                continue
+            nome = valores[1].strip()
             if not nome:
                 continue
-            peso_bruto = pesos_atleta[i].strip() if i < len(pesos_atleta) and pesos_atleta[i].strip() else peso_cabecalho
             resultados.append({
                 "federacao": "CBJJD",
                 "nome": nome,
-                "equipe": academias[i].strip() if i < len(academias) else "",
-                "categoria_idade": _categoria_idade_padrao(idade) or divisao or categoria,
+                "equipe": valores[3].strip(),
+                "categoria_idade": _categoria_idade_padrao(idade) or divisao or faixa,
                 "genero": genero,
-                "peso": _nome_peso(divisao or categoria, genero, peso_bruto),
+                "peso": _nome_peso(divisao or faixa, genero, peso_bruto),
                 "faixa": faixa.strip().title(),
             })
     return resultados
