@@ -53,19 +53,50 @@ function renderizarResumo(resumo) {
 
 function renderizarTabela(usuarios) {
   if (!usuarios.length) {
-    elCorpoTabela.innerHTML = '<tr><td colspan="5">Nenhum usuário encontrado.</td></tr>';
+    elCorpoTabela.innerHTML = '<tr><td colspan="6">Nenhum usuário encontrado.</td></tr>';
     return;
   }
-  elCorpoTabela.innerHTML = usuarios.map(u => `
+  elCorpoTabela.innerHTML = usuarios.map(u => {
+    const novoPerfil = u.tipo_perfil === "mestre" ? "atleta" : "mestre";
+    return `
     <tr>
       <td>${u.email}</td>
       <td>${u.tipo_perfil === "mestre" ? "Mestre" : "Atleta"}</td>
       <td>${u.nome_usuario || "—"}</td>
       <td>${badgeAssinatura(u)}</td>
       <td>${formatarData(u.criado_em)}</td>
+      <td><button type="button" class="btn-secundario btn-alternar-perfil" data-id="${u.id}" data-novo-perfil="${novoPerfil}">Tornar ${novoPerfil === "mestre" ? "Mestre" : "Atleta"}</button></td>
     </tr>
-  `).join("");
+  `;
+  }).join("");
 }
+
+async function alternarPerfil(usuario, novoPerfil, botao) {
+  const rotulo = novoPerfil === "mestre" ? "Mestre" : "Atleta";
+  if (!confirm(`Mudar o perfil de ${usuario.email} para ${rotulo}?`)) return;
+
+  botao.disabled = true;
+  try {
+    const resp = await fetchAutenticado(`/api/usuarios/${usuario.id}/tipo-perfil`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tipo_perfil: novoPerfil }),
+    });
+    const dados = await resp.json();
+    if (!resp.ok) throw new Error(dados.erro || "erro ao mudar o perfil");
+    await carregarUsuarios();
+  } catch (err) {
+    mostrarStatus(`Erro: ${err.message}`, true);
+    botao.disabled = false;
+  }
+}
+
+elCorpoTabela.addEventListener("click", (ev) => {
+  const botao = ev.target.closest(".btn-alternar-perfil");
+  if (!botao) return;
+  const usuario = usuariosCarregados.find(u => String(u.id) === botao.dataset.id);
+  if (usuario) alternarPerfil(usuario, botao.dataset.novoPerfil, botao);
+});
 
 function aplicarFiltro() {
   const termo = elFiltroBusca.value.trim().toLowerCase();

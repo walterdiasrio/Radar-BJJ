@@ -542,6 +542,18 @@ def api_listar_usuarios():
     return jsonify({"resumo": resumo, "usuarios": lista})
 
 
+@app.post("/api/usuarios/<int:usuario_id>/tipo-perfil")
+@api_admin_necessario
+def api_definir_tipo_perfil_usuario(usuario_id):
+    dados = request.get_json(silent=True) or {}
+    tipo_perfil = dados.get("tipo_perfil")
+    if tipo_perfil not in auth.TIPOS_PERFIL:
+        return jsonify({"erro": "tipo de perfil inválido"}), 400
+    if not auth.definir_tipo_perfil(usuario_id, tipo_perfil):
+        return jsonify({"erro": "usuário não encontrado"}), 404
+    return jsonify({"ok": True})
+
+
 @app.get("/importar-adcc")
 @admin_necessario
 def pagina_importar_adcc():
