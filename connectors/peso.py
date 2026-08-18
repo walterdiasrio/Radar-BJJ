@@ -23,6 +23,16 @@ Fontes oficiais (tabelas de peso vigentes, 2026):
   (ex: não tem "Galo" para Mirim) — nesse caso o peso mais leve disponível
   absorve os atletas mais leves.
 
+- CBJJC: "Tabela de Peso Com Kimono" oficial (cbjjc.com.br/tabela-de-peso-
+  com-kimono, imagem lida manualmente em 18/08/2026). Categorias em faixas
+  de 2 anos (não uma tabela por idade exata como as outras), com peso
+  diferente por gênero desde a categoria de base (Pré-Mirim) — por isso usa
+  o mesmo esquema de tabela explícita da CBJJE/FPJJ em vez do helper
+  unissex `_tabela()`. "Pesadíssimo" tem limite fechado nas categorias de
+  base (kids/juvenil) e um "Extra pesadíssimo" aberto acima dele — nas
+  outras federações essas duas viram uma coisa só (o pesadíssimo já é
+  aberto). Adulto feminino não tem categoria "Galo" (a mais leve é Pluma).
+
 Master sempre usa a mesma tabela de peso do Adulto (todas as federações).
 """
 
@@ -302,6 +312,92 @@ def _fpjj(idade, genero):
     return _FPJJ_POR_IDADE[max(chaves_validas)][genero_chave]
 
 
+# ---------------------------------------------------------------------------
+# CBJJC
+# ---------------------------------------------------------------------------
+def _tabela_cbjjc(*pares):
+    return list(zip(pares[0::2], pares[1::2]))
+
+
+_CBJJC_POR_IDADE = {
+    4: {
+        "masculino": _tabela_cbjjc("Galo", 17, "Pluma", 19, "Pena", 22, "Leve", 25, "Médio", 28.3,
+                                    "Meio Pesado", 31.3, "Pesado", 34.5, "Super Pesado", 37.5,
+                                    "Pesadíssimo", 42.5, "Extra Pesadíssimo", None),
+        "feminino": _tabela_cbjjc("Galo", 15, "Pluma", 17, "Pena", 20, "Leve", 23, "Médio", 26,
+                                   "Meio Pesado", 29.5, "Pesado", 32.3, "Super Pesado", 35.3,
+                                   "Pesadíssimo", 38.5, "Extra Pesadíssimo", None),
+    },
+    6: {
+        "masculino": _tabela_cbjjc("Galo", 18, "Pluma", 20, "Pena", 23, "Leve", 26, "Médio", 29.3,
+                                    "Meio Pesado", 32.3, "Pesado", 35.5, "Super Pesado", 38.5,
+                                    "Pesadíssimo", 44, "Extra Pesadíssimo", None),
+        "feminino": _tabela_cbjjc("Galo", 16, "Pluma", 18, "Pena", 21, "Leve", 24, "Médio", 27,
+                                   "Meio Pesado", 30.5, "Pesado", 33.3, "Super Pesado", 36.3,
+                                   "Pesadíssimo", 40, "Extra Pesadíssimo", None),
+    },
+    8: {
+        "masculino": _tabela_cbjjc("Galo", 23, "Pluma", 26, "Pena", 29.3, "Leve", 32.3, "Médio", 35.5,
+                                    "Meio Pesado", 38.5, "Pesado", 41.7, "Super Pesado", 44.7,
+                                    "Pesadíssimo", 48, "Extra Pesadíssimo", None),
+        "feminino": _tabela_cbjjc("Galo", 18, "Pluma", 20, "Pena", 23, "Leve", 26, "Médio", 29.3,
+                                   "Meio Pesado", 32.3, "Pesado", 35.5, "Super Pesado", 38.5,
+                                   "Pesadíssimo", 44, "Extra Pesadíssimo", None),
+    },
+    10: {
+        "masculino": _tabela_cbjjc("Galo", 29.3, "Pluma", 32.3, "Pena", 35.5, "Leve", 38.5, "Médio", 41.7,
+                                    "Meio Pesado", 44.7, "Pesado", 47.7, "Super Pesado", 51,
+                                    "Pesadíssimo", 55, "Extra Pesadíssimo", None),
+        "feminino": _tabela_cbjjc("Galo", 23, "Pluma", 26, "Pena", 29.3, "Leve", 32.3, "Médio", 35.5,
+                                   "Meio Pesado", 38.5, "Pesado", 41.7, "Super Pesado", 44.7,
+                                   "Pesadíssimo", 48, "Extra Pesadíssimo", None),
+    },
+    12: {
+        "masculino": _tabela_cbjjc("Galo", 34.5, "Pluma", 38.5, "Pena", 42.7, "Leve", 46.7, "Médio", 51,
+                                    "Meio Pesado", 55.5, "Pesado", 59.5, "Super Pesado", 63.5,
+                                    "Pesadíssimo", 67.5, "Extra Pesadíssimo", None),
+        "feminino": _tabela_cbjjc("Galo", 29.3, "Pluma", 32.3, "Pena", 35.5, "Leve", 38.5, "Médio", 41.7,
+                                   "Meio Pesado", 44.7, "Pesado", 47.7, "Super Pesado", 51,
+                                   "Pesadíssimo", 55, "Extra Pesadíssimo", None),
+    },
+    14: {
+        "masculino": _tabela_cbjjc("Galo", 44, "Pluma", 48, "Pena", 52.5, "Leve", 56.5, "Médio", 60.5,
+                                    "Meio Pesado", 64.5, "Pesado", 69, "Super Pesado", 73,
+                                    "Pesadíssimo", 77, "Extra Pesadíssimo", None),
+        "feminino": _tabela_cbjjc("Galo", 35.5, "Pluma", 39.5, "Pena", 43.7, "Leve", 48, "Médio", 52.5,
+                                   "Meio Pesado", 56.5, "Pesado", 60.5, "Super Pesado", 65,
+                                   "Pesadíssimo", 69, "Extra Pesadíssimo", None),
+    },
+    16: {
+        "masculino": _tabela_cbjjc("Galo", 53.5, "Pluma", 58.5, "Pena", 64, "Leve", 69, "Médio", 74,
+                                    "Meio Pesado", 79.3, "Pesado", 84.3, "Super Pesado", 89.3,
+                                    "Pesadíssimo", None),
+        "feminino": _tabela_cbjjc("Galo", 43.7, "Pluma", 48, "Pena", 52.5, "Leve", 56.5, "Médio", 60.5,
+                                   "Meio Pesado", 65, "Pesado", 69, "Super Pesado", 73,
+                                   "Pesadíssimo", None),
+    },
+}
+
+_CBJJC_ADULTO_MASTER = {
+    "masculino": _tabela_cbjjc("Galo", 58, "Pluma", 64, "Pena", 70, "Leve", 76, "Médio", 82.3,
+                                "Meio Pesado", 88.3, "Pesado", 94.3, "Super Pesado", 100.5,
+                                "Pesadíssimo", None),
+    "feminino": _tabela_cbjjc("Pluma", 53.5, "Pena", 58.5, "Leve", 64, "Médio", 69,
+                               "Meio Pesado", 74, "Pesado", 80, "Super Pesado", 85,
+                               "Pesadíssimo", None),
+}
+
+
+def _cbjjc(idade, genero):
+    genero_chave = "feminino" if genero == "feminino" else "masculino"
+    if idade >= 18:
+        return _CBJJC_ADULTO_MASTER[genero_chave]
+    chaves_validas = [k for k in _CBJJC_POR_IDADE if k <= idade]
+    if not chaves_validas:
+        return None
+    return _CBJJC_POR_IDADE[max(chaves_validas)][genero_chave]
+
+
 _FUNCOES = {
     "cbjj": _cbjj_fjjrio,
     "fjjrio": _cbjj_fjjrio,
@@ -309,6 +405,7 @@ _FUNCOES = {
     "cbjjo": _cbjjo,
     "cbjje": _cbjje,
     "fpjj": _fpjj,
+    "cbjjc": _cbjjc,
 }
 
 

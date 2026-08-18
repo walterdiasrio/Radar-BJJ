@@ -16,6 +16,12 @@ Fontes (tabelas de peso/idade oficiais, 2026):
   adultos — usamos a mesma convenção padrão (Master 1 a 6) por ser a
   praticada em todo o jiu-jitsu brasileiro; trate como aproximado até
   confirmar com uma checagem real aberta.
+- CBJJC: "Tabela de Peso Com Kimono" oficial (cbjjc.com.br/tabela-de-peso-
+  com-kimono, imagem lida manualmente em 18/08/2026 — sem link de texto/PDF
+  disponível). Rótulos conferidos contra uma checagem real aberta (Brasileiro
+  de Jiu-Jitsu 2026): batem exatamente, inclusive o hífen de "Infanto
+  Juvenil-A/B" (a checagem usa espaço em vez de hífen, mas a comparação de
+  categoria no site ignora essa diferença).
 """
 from datetime import date
 
@@ -137,6 +143,23 @@ _FPJJ = [
     (56, None, "Master 6"),
 ]
 
+_CBJJC = [
+    (4, 5, "Pré-Mirim"),
+    (6, 7, "Mirim"),
+    (8, 9, "Infantil-A"),
+    (10, 11, "Infantil-B"),
+    (12, 13, "Infanto Juvenil-A"),
+    (14, 15, "Infanto Juvenil-B"),
+    (16, 17, "Juvenil"),
+    (18, 29, "Adulto"),
+    (30, 35, "Master 1"),
+    (36, 40, "Master 2"),
+    (41, 45, "Master 3"),
+    (46, 50, "Master 4"),
+    (51, 55, "Master 5"),
+    (56, None, "Master 6"),
+]
+
 TABELAS = {
     "cbjj": _CBJJ_FJJRIO,
     "fjjrio": _CBJJ_FJJRIO,
@@ -144,6 +167,7 @@ TABELAS = {
     "cbjjo": _CBJJO,
     "cbjje": _CBJJE,
     "fpjj": _FPJJ,
+    "cbjjc": _CBJJC,
 }
 
 
