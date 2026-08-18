@@ -30,6 +30,18 @@ elForm.addEventListener("submit", async (ev) => {
     if (!resp.ok) throw new Error(dados.erro || "erro ao cadastrar");
 
     elForm.style.display = "none";
+    if (dados.email_enviado === false) {
+      elStatus.className = "aviso-alerta";
+      elStatus.innerHTML = `
+        <span style="font-size:1.4rem; line-height:1;">⚠️</span>
+        <span>
+          <strong>Sua conta foi criada, mas não conseguimos enviar o e-mail de confirmação agora.</strong>
+          Tente entrar com <strong>${escapeHtml(dados.email)}</strong> em alguns minutos — a tela de login
+          oferece reenviar o link de confirmação.
+        </span>
+      `;
+      return;
+    }
     elStatus.className = "aviso-sucesso";
     elStatus.innerHTML = `
       <span style="font-size:1.4rem; line-height:1;">📩</span>

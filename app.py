@@ -350,7 +350,7 @@ def _enviar_email_confirmacao(usuario_id, email):
         f'<p><a href="{link}">Clique aqui pra confirmar seu e-mail</a></p>'
         "<p>Esse link vale por 24 horas. Se você não se cadastrou no Radar BJJ, pode ignorar este e-mail.</p>"
     )
-    alertas.enviar_email(email, "Radar BJJ — confirme seu e-mail", corpo)
+    return alertas.enviar_email(email, "Radar BJJ — confirme seu e-mail", corpo)
 
 
 @app.get("/confirmar-email")
@@ -678,10 +678,13 @@ def api_cadastro():
         return jsonify({"erro": erro}), 400
 
     email = dados.get("email", "").strip().lower()
-    _enviar_email_confirmacao(usuario_id, email)
+    email_enviado = _enviar_email_confirmacao(usuario_id, email)
     # Sem login automático — o cadastro só é efetivado depois de confirmar
-    # o e-mail (ver auth.autenticar, que bloqueia login não confirmado).
-    return jsonify({"ok": True, "email": email, "precisa_confirmar": True})
+    # o e-mail (ver auth.autenticar, que bloqueia login não confirmado). A
+    # conta já foi criada mesmo se o envio falhar (não descartamos o
+    # cadastro por isso) — email_enviado avisa o front pra não mentir "te
+    # mandamos um link" quando na verdade não mandou (ver static/cadastro.js).
+    return jsonify({"ok": True, "email": email, "precisa_confirmar": True, "email_enviado": email_enviado})
 
 
 @app.post("/api/entrar")
