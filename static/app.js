@@ -17,7 +17,7 @@ const elStatusAlerta = document.getElementById("status-alerta");
 const elBtnSalvarFiltroPadrao = document.getElementById("btn-salvar-filtro-padrao");
 const elStatusFiltroPadrao = document.getElementById("status-filtro-padrao");
 
-const LABEL_FEDERACAO = { cbjj: "CBJJ", fjjrio: "FJJRio", cbjjd: "CBJJD", cbjjo: "CBJJO", cbjje: "CBJJE", fpjj: "FPJJ", adcc: "ADCC", ajp: "AJP" };
+const LABEL_FEDERACAO = { cbjj: "CBJJ", fjjrio: "FJJRio", cbjjd: "CBJJD", cbjjo: "CBJJO", cbjje: "CBJJE", fpjj: "FPJJ", cbjjc: "CBJJC", adcc: "ADCC", ajp: "AJP" };
 
 // Federações Smoothcomp: categorizam pela idade exata no dia da competição
 // (não por ano de nascimento), então a categoria/peso calculados têm um

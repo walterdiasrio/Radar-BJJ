@@ -5,7 +5,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date
 
-from . import cbjj, fjjrio, cbjjd, cbjjo, cbjje, fpjj, adcc, ajp, idade as idade_mod, peso as peso_mod, datas as datas_mod
+from . import cbjj, fjjrio, cbjjd, cbjjo, cbjje, fpjj, cbjjc, adcc, ajp, idade as idade_mod, peso as peso_mod, datas as datas_mod
 
 # Quantas buscas em paralelo por vez. O Render Starter só tem 512MB de RAM
 # — muitas threads simultâneas fazendo scraping (cada resposta pode ser
@@ -24,6 +24,7 @@ FEDERACOES = {
     "cbjjo": {"label": "CBJJO", "module": cbjjo},
     "cbjje": {"label": "CBJJE", "module": cbjje},
     "fpjj": {"label": "FPJJ", "module": fpjj},
+    "cbjjc": {"label": "CBJJC", "module": cbjjc},
     "adcc": {"label": "ADCC", "module": adcc},
     "ajp": {"label": "AJP", "module": ajp},
 }

@@ -3,7 +3,7 @@ const elLista = document.getElementById("lista-alertas");
 const elStatusCompeticao = document.getElementById("status-competicao");
 const elListaCompeticao = document.getElementById("lista-alertas-competicao");
 
-const LABEL_FEDERACAO = { cbjj: "CBJJ", fjjrio: "FJJRio", cbjjd: "CBJJD", cbjjo: "CBJJO", cbjje: "CBJJE", fpjj: "FPJJ", adcc: "ADCC", ajp: "AJP", todas: "Todas as federações" };
+const LABEL_FEDERACAO = { cbjj: "CBJJ", fjjrio: "FJJRio", cbjjd: "CBJJD", cbjjo: "CBJJO", cbjje: "CBJJE", fpjj: "FPJJ", cbjjc: "CBJJC", adcc: "ADCC", ajp: "AJP", todas: "Todas as federações" };
 const LABEL_PUBLICO = { todos: "Adulto e Kids", adulto: "Adulto", kids: "Kids" };
 
 function mostrarStatus(texto, ehErro = false) {
