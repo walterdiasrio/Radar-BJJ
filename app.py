@@ -31,7 +31,7 @@ INTERVALO_ALERTAS_SEGUNDOS = int(os.environ.get("INTERVALO_ALERTAS_SEGUNDOS", 30
 
 app = Flask(__name__, static_folder="static", static_url_path="")
 
-ADMIN_EMAILS = {"walterdiasrio@gmail.com", "sac@radarbjj.com"}
+ADMIN_EMAILS = {"sac@radarbjj.com"}
 
 # Em produção (Render), DATA_DIR aponta pro disco persistente (ex: /var/data)
 # — sem isso, cadastros e competições importadas do ADCC somem a cada deploy.
