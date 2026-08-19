@@ -179,8 +179,8 @@ function renderizarPlanoIA(turma) {
       ${expandido ? `
         <div style="margin-top:12px;">
           <p style="color:#7c8894; font-size:0.85rem; margin-top:0;">
-            A IA monta uma sugestão de aulas pro próximo mês, priorizando o que essa turma menos treinou
-            (e já sem posições de adulto, se a turma for Baby/Kids). Foco e resumo são opcionais, mas ajudam a IA.
+            A Inteligência Artificial analisa o histórico de aulas de sua turma, e com base nos objetivos
+            traçados e no foco desejado, planeja as próximas aulas.
           </p>
           <div class="campo" style="max-width:420px;">
             <label>Foco (opcional)</label>
