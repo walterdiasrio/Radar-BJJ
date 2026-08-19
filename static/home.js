@@ -30,6 +30,12 @@ async function carregarDestaques() {
 
 const MEDALHA_EMOJI = { ouro: "🥇", prata: "🥈", bronze: "🥉" };
 
+function formatarDataMedalhista(data) {
+  if (!data) return "";
+  const [ano, mes, dia] = data.split("-");
+  return `${dia}/${mes}/${ano}`;
+}
+
 async function carregarUltimosMedalhistas() {
   const elCard = document.getElementById("home-ultimos-medalhistas");
   const elLista = document.getElementById("lista-ultimos-medalhistas");
@@ -47,7 +53,7 @@ async function carregarUltimosMedalhistas() {
             ${MEDALHA_EMOJI[m.medalha] || ""} ${m.nome}
           </a>
         </div>
-        <div class="cartao-alerta-federacao">${m.campeonato || "Competição"}</div>
+        <div class="cartao-alerta-federacao">${m.campeonato || "Competição"}${m.data ? " · " + formatarDataMedalhista(m.data) : ""}</div>
       </div>
     `).join("");
   } catch (err) {
