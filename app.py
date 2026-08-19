@@ -1285,6 +1285,30 @@ def api_buscar_alunos_por_academia():
     return jsonify({"academia": academia, "atletas": atletas})
 
 
+@app.get("/api/meus-alunos/competidores")
+@api_assinatura_necessaria
+def api_alunos_competidores():
+    """Não é "quem tem conta no Radar BJJ" (isso é /api/meus-alunos/buscar,
+    que olha o perfil de Minha Carreira) — aqui é a mesma busca agregada do
+    Radar de Atletas (connectors.buscar_atletas_agregado), filtrada pela
+    academia/equipe do Mestre em todas as federações: atletas realmente
+    inscritos em competições, tenham conta aqui ou não."""
+    if not _usuario_atual_eh_mestre():
+        return jsonify({"erro": "exclusivo do perfil Mestre"}), 403
+
+    academia = (carreira.obter_perfil(session["usuario_id"]).get("academia") or "").strip()
+    if not academia:
+        return jsonify({"erro": "cadastre sua academia/equipe em Minha Carreira → Perfil primeiro"}), 400
+
+    try:
+        atletas, erros, _total_eventos = buscar_atletas_agregado(TODAS, TODAS, {"equipe": academia})
+    except Exception as exc:
+        traceback.print_exc()
+        return jsonify({"erro": f"não foi possível buscar atletas: {exc}"}), 502
+
+    return jsonify({"academia": academia, "atletas": atletas, "avisos": erros})
+
+
 @app.delete("/api/meus-alunos/<int:aluno_id>")
 @api_assinatura_necessaria
 def api_remover_aluno(aluno_id):

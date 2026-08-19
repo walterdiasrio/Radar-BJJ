@@ -136,4 +136,56 @@ async function adicionarAlunoPorId(alunoId, botao) {
   }
 }
 
+const elStatusCompetidores = document.getElementById("status-competidores");
+const elListaCompetidores = document.getElementById("lista-competidores");
+
+function mostrarStatusCompetidores(texto, ehErro = false) {
+  elStatusCompetidores.textContent = texto;
+  elStatusCompetidores.className = "status-importacao" + (ehErro ? " erro" : "");
+}
+
+document.getElementById("btn-alunos-competidores").addEventListener("click", async () => {
+  elListaCompetidores.innerHTML = "";
+  mostrarStatusCompetidores("Buscando em todas as federações... pode demorar um pouco.");
+  try {
+    const resp = await fetchAutenticado("/api/meus-alunos/competidores");
+    const dados = await resp.json();
+    if (!resp.ok) throw new Error(dados.erro || "não consegui buscar");
+
+    if (!dados.atletas.length) {
+      mostrarStatusCompetidores(`Nenhum atleta encontrado com a academia/equipe "${dados.academia}".`);
+      return;
+    }
+    mostrarStatusCompetidores(`${dados.atletas.length} inscrição(ões) encontrada(s) com a academia/equipe "${dados.academia}".`);
+
+    const porFederacao = new Map();
+    for (const a of dados.atletas) {
+      const chave = a.federacao || "—";
+      if (!porFederacao.has(chave)) porFederacao.set(chave, []);
+      porFederacao.get(chave).push(a);
+    }
+
+    elListaCompetidores.innerHTML = [...porFederacao.entries()].map(([federacao, atletas]) => `
+      <div class="card-carreira" style="margin-top: 10px;">
+        <h4 style="margin-top:0; color: var(--azul);">${federacao} <span class="contagem">(${atletas.length})</span></h4>
+        ${atletas.map(a => `
+          <div class="cartao-alerta" style="margin-top:6px; padding:10px 14px;">
+            <div class="cartao-alerta-topo">
+              <div>
+                <strong>${a.nome || ""}</strong>
+                <div class="cartao-alerta-federacao">${a.evento || ""}${a.data ? ` · ${a.data}` : ""}</div>
+              </div>
+            </div>
+            <div style="color:#7c8894; font-size:0.85rem; margin-top:4px;">
+              ${[a.categoria_idade, a.genero, a.faixa, a.peso].filter(Boolean).join(" · ")}
+            </div>
+          </div>
+        `).join("")}
+      </div>
+    `).join("");
+  } catch (err) {
+    mostrarStatusCompetidores(`Erro: ${err.message}`, true);
+  }
+});
+
 carregarAlunos();
