@@ -51,6 +51,11 @@ async function checarSessaoCarreira() {
     const elCardMestre = document.getElementById("card-meu-mestre");
     if (elCardMestre) elCardMestre.style.display = dados.mestre ? "none" : "";
 
+    const elTextoInstrucao = document.getElementById("texto-nome-usuario-instrucao");
+    if (elTextoInstrucao && dados.mestre) {
+      elTextoInstrucao.textContent = "Compartilhe o seu login com seus alunos e peça-os para o adicionar como Mestre no Perfil.";
+    }
+
     if (!temAssinaturaCarreira) aplicarBloqueioPro(dados.tipo_perfil);
   } catch (err) {
     // sessão não carregou — segue sem bloquear nem esconder nada, os
@@ -92,7 +97,15 @@ async function carregarPerfil() {
     document.getElementById("p_academia").value = p.academia || "";
     document.getElementById("p_inicio").value = p.inicio || "";
     atualizarFotoPerfilUI(p.foto_url);
-    atualizarLembretePerfil(p);
+
+    let nomeUsuario = "";
+    try {
+      const respNU = await fetchAutenticado("/api/conta/nome-usuario");
+      nomeUsuario = (await respNU.json()).nome_usuario || "";
+    } catch (err) {
+      // segue sem nome de usuário carregado
+    }
+    atualizarLembretePerfil(p, nomeUsuario);
   } catch (err) {
     // segue com os campos vazios
   }
@@ -129,15 +142,13 @@ document.getElementById("btn-remover-foto").addEventListener("click", async () =
   }
 });
 
-// Aviso fixo (visível em qualquer aba) enquanto faltar nome, faixa ou
-// academia — sem esses três preenchidos, o vínculo com Mestre/Alunos e o
-// resumo para o Stories saem incompletos. Nome de usuário do Mestre fica de
-// fora de propósito: o aluno pode não ter o Mestre cadastrado ainda.
-function atualizarLembretePerfil(perfil) {
+// Aviso fixo (visível em qualquer aba) enquanto faltar nome de usuário ou
+// academia — sem os dois preenchidos, o vínculo com Mestre/Alunos não
+// funciona.
+function atualizarLembretePerfil(perfil, nomeUsuario) {
   const elAviso = document.getElementById("lembrete-perfil");
   const faltando = [];
-  if (!(perfil.nome || "").trim()) faltando.push("nome completo");
-  if (!(perfil.faixa || "").trim()) faltando.push("faixa");
+  if (!(nomeUsuario || "").trim()) faltando.push("nome de usuário");
   if (!(perfil.academia || "").trim()) faltando.push("academia");
 
   if (!faltando.length) {
@@ -145,7 +156,7 @@ function atualizarLembretePerfil(perfil) {
     return;
   }
   document.getElementById("lembrete-perfil-texto").textContent =
-    `Falta preencher: ${faltando.join(", ")}. Isso é essencial para o vínculo com Mestre/Alunos funcionar direito.`;
+    `Falta preencher: ${faltando.join(" e ")}. Isso é essencial para o vínculo Mestre/Alunos funcionar corretamente.`;
   elAviso.style.display = "flex";
 }
 
@@ -171,7 +182,7 @@ document.getElementById("form-perfil").addEventListener("submit", async (ev) => 
     });
     if (!resp.ok) throw new Error("não consegui salvar o perfil");
     mostrarStatus("status-perfil", "Perfil salvo! 🥋");
-    atualizarLembretePerfil(dados);
+    atualizarLembretePerfil(dados, document.getElementById("nome_usuario").value);
   } catch (err) {
     mostrarStatus("status-perfil", `Erro: ${err.message}`, true);
   }
@@ -200,6 +211,7 @@ document.getElementById("form-nome-usuario").addEventListener("submit", async (e
     const dados = await resp.json();
     if (!resp.ok) throw new Error(dados.erro || "não consegui salvar");
     mostrarStatus("status-nome-usuario", "Nome de usuário salvo!");
+    atualizarLembretePerfil({ academia: document.getElementById("p_academia").value }, nomeUsuario);
   } catch (err) {
     mostrarStatus("status-nome-usuario", `Erro: ${err.message}`, true);
   }
