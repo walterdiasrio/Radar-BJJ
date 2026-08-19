@@ -1104,6 +1104,47 @@ def pagina_carreira():
     return send_from_directory("static", "carreira.html")
 
 
+@app.get("/atleta/<nome_usuario>")
+def pagina_atleta_publico(nome_usuario):
+    # Pública de propósito — sem @login_necessario. É a página que os
+    # links de "Últimos Medalhistas" (home) e de compartilhamento apontam;
+    # 404 genérico (não revela nada) quando o nome de usuário não existe.
+    if not auth.buscar_por_nome_usuario(nome_usuario):
+        return "Página não encontrada", 404
+    return send_from_directory("static", "atleta-publico.html")
+
+
+@app.get("/api/atleta-publico/<nome_usuario>")
+def api_atleta_publico(nome_usuario):
+    usuario = auth.buscar_por_nome_usuario(nome_usuario)
+    if not usuario:
+        return jsonify({"erro": "atleta não encontrado"}), 404
+    perfil = _com_foto_url(carreira.obter_perfil(usuario["id"]))
+    perfil["nome_usuario"] = usuario["nome_usuario"]
+    competicoes = carreira.listar_competicoes(usuario["id"])
+    return jsonify({"perfil": perfil, "competicoes": competicoes})
+
+
+@app.get("/api/home/medalhas-recentes")
+def api_medalhas_recentes():
+    # Pública — alimenta o quadro "Últimos Medalhistas" da home, visível
+    # mesmo sem login.
+    resultado = []
+    for m in carreira.medalhas_recentes(5):
+        usuario = auth.buscar_por_id(m["usuario_id"])
+        if not usuario or not usuario.get("nome_usuario"):
+            continue  # sem nome de usuário não tem como linkar o perfil público
+        perfil = carreira.obter_perfil(m["usuario_id"])
+        resultado.append({
+            "nome": perfil.get("nome") or usuario["nome_usuario"],
+            "nome_usuario": usuario["nome_usuario"],
+            "medalha": m["medalha"],
+            "campeonato": m["campeonato"],
+            "data": m["data"],
+        })
+    return jsonify(resultado)
+
+
 def _com_foto_url(perfil):
     """Acrescenta foto_url (rota pública da foto) a um dict de perfil,
     a partir do foto_arquivo salvo — mesmo padrão do imagem_url das

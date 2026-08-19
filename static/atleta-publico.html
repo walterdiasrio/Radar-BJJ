@@ -13,17 +13,17 @@
 
 <link rel="icon" type="image/png" href="/img/favicon.png?v=2">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Radar BJJ — Home</title>
-<link rel="stylesheet" href="style.css?v=6">
+<title>Radar BJJ — Perfil do Atleta</title>
+<link rel="stylesheet" href="/style.css?v=6">
 </head>
 <body>
 <header>
-  <img src="img/banner.jpg" alt="Radar BJJ — Busque atletas, encontre resultados. CBJJ, FJJRio, CBJJD, CBJJO, CBJJE, FPJJ, CBJJC" class="banner">
+  <img src="/img/banner.jpg" alt="Radar BJJ" class="banner">
 </header>
 
 <div class="layout">
   <nav class="menu-lateral">
-    <a href="/" class="ativo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7"/><path d="M9 22V12h6v10"/><path d="M5 10v10a1 1 0 0 0 1 1h3M19 10v10a1 1 0 0 1-1 1h-3"/></svg><span>Home</span></a>
+    <a href="/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7"/><path d="M9 22V12h6v10"/><path d="M5 10v10a1 1 0 0 0 1 1h3M19 10v10a1 1 0 0 1-1 1h-3"/></svg><span>Home</span></a>
     <a href="#" class="menu-atleta-toggle nav-menu-atleta-mobile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg><span>Menu Atleta</span><span class="nav-admin-seta">▾</span></a>
     <a href="#" id="nav-turmas-toggle-mobile" class="turmas-toggle-mobile nav-menu-atleta-mobile" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Turmas</span><span class="nav-admin-seta">▾</span></a>
     <a href="#" id="nav-admin-toggle-mobile" class="admin-toggle-mobile nav-menu-atleta-mobile" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/></svg><span>Admin</span><span class="nav-admin-seta">▾</span></a>
@@ -71,78 +71,22 @@
 
 
 <main>
-  <div class="home-grid">
-    <div class="home-coluna-principal">
-    <div class="form-auth home-cartao-boasvindas" style="text-align: center;">
-      <h2 id="home-titulo">O maior agregador de competições de Jiu-Jitsu</h2>
-      <p id="home-subtitulo-nome" style="color: var(--azul-claro); font-size: 1.15rem; font-weight: 700; display:none;"></p>
-      <div id="home-texto-marketing">
-        <p style="color: #7c8894; font-size: 0.9rem;">
-          Ache em poucos cliques adversários nas principais federações brasileiras em tempo real.
-        </p>
-        <p style="color: #7c8894; font-size: 0.9rem;">
-          Organize seu calendário, não se perca nas Federações.
-        </p>
-        <p style="color: #7c8894; font-size: 0.9rem;">
-          Crie alertas automáticos por e-mail.
-        </p>
-        <p style="color: var(--azul-claro); font-size: 1.1rem; font-weight: 700;">
-          Concentre-se no treino!<br>O resto fica por nossa conta!
-        </p>
-      </div>
-      <div id="home-botoes-logado">
-        <p id="home-botao-busca-rapida"></p>
-        <p>
-          <a href="/competicoes"><button type="button" class="btn-secundario">Ver Competições</button></a>
-          <a href="/carreira"><button type="button" class="btn-secundario">Minha Carreira</button></a>
-        </p>
-      </div>
+  <div id="status" class="status-importacao"></div>
 
-      <div id="home-cta-cadastro" style="display:none;">
-        <p style="color: var(--azul-claro); font-size: 1.05rem; font-weight: 600;">
-          Crie um histórico de todas as suas lutas, gere estatísticas e compartilhe suas conquistas.
-        </p>
-        <p>
-          <a href="/cadastro"><button type="button" style="font-size: 1.05rem; padding: 14px 32px;">Criar Conta Grátis</button></a>
-        </p>
-        <p>
-          <a href="/login"><button type="button" class="btn-secundario" style="margin-left:0;">Entrar</button></a>
-        </p>
-      </div>
-    </div>
-
-    <div id="home-proximas-competicoes" class="card-carreira home-proximas-competicoes" style="display:none;">
-      <h3 style="color: var(--azul); margin-top:0;">Próximas competições</h3>
-      <div id="lista-proximas-home"></div>
-      <p style="margin-bottom:0;"><a href="/agenda">Ver Minha Agenda completa →</a></p>
-    </div>
-
-    <div id="home-quadro-medalhas" class="card-carreira home-quadro-medalhas" style="display:none;">
-      <h3 style="color: var(--azul); margin-top:0;">🏅 Quadro de Medalhas</h3>
-      <div class="stats-grid" id="grade-medalhas-home"></div>
-      <p style="margin-bottom:0; margin-top:12px;"><a href="/carreira">Ver Minha Carreira completa →</a></p>
-    </div>
-    </div>
-
-    <div class="home-lateral">
-      <a href="https://br.brausfight.com/vinibulbabjj" target="_blank" rel="noopener sponsored" class="banner-braus-link">
-        <img src="img/banner-braus.jpg" alt="Braus Fight — produtos com 10% de desconto" class="banner-braus">
-      </a>
-
-      <div id="home-ultimos-medalhistas" class="card-carreira" style="display:none;">
-        <h3 style="color: var(--azul); margin-top:0;">🏅 Últimos Medalhistas</h3>
-        <div id="lista-ultimos-medalhistas"></div>
-      </div>
-    </div>
+  <div id="cartao-perfil" class="card-carreira" style="display:none; text-align:center; max-width: 420px; margin: 0 auto 20px;">
+    <div id="perfil-foto"></div>
+    <h2 id="perfil-nome" style="color: var(--azul); margin-bottom: 2px;"></h2>
+    <div id="perfil-faixa" style="color: #7c8894;"></div>
+    <div id="perfil-academia" style="color: #7c8894; font-size: 0.9rem;"></div>
   </div>
 
-  <div id="destaques" class="destaques destaques-full"></div>
-  </main>
+  <h3 id="titulo-competicoes" style="color: var(--azul); margin-bottom: 4px; display:none;">Histórico de Competições</h3>
+  <div id="lista-competicoes"></div>
+</main>
 </div>
 
-<script src="auth-nav.js?v=4"></script>
-<script src="noticias-modal.js"></script>
-<script src="home.js"></script>
+<script src="/auth-nav.js?v=4"></script>
+<script src="/atleta-publico.js"></script>
 <nav class="menu-lateral menu-lateral-rodape" id="menu-rodape"></nav>
 </body>
 </html>

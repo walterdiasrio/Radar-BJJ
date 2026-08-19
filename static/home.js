@@ -28,6 +28,33 @@ async function carregarDestaques() {
   }
 }
 
+const MEDALHA_EMOJI = { ouro: "🥇", prata: "🥈", bronze: "🥉" };
+
+async function carregarUltimosMedalhistas() {
+  const elCard = document.getElementById("home-ultimos-medalhistas");
+  const elLista = document.getElementById("lista-ultimos-medalhistas");
+  if (!elCard) return;
+  try {
+    const resp = await fetch("/api/home/medalhas-recentes");
+    const medalhistas = await resp.json();
+    if (!resp.ok || !medalhistas.length) return;
+
+    elCard.style.display = "block";
+    elLista.innerHTML = medalhistas.map(m => `
+      <div class="cartao-alerta" style="padding:10px 14px;">
+        <div>
+          <a href="/atleta/${encodeURIComponent(m.nome_usuario)}" style="color: var(--azul); font-weight:600; text-decoration:none;">
+            ${MEDALHA_EMOJI[m.medalha] || ""} ${m.nome}
+          </a>
+        </div>
+        <div class="cartao-alerta-federacao">${m.campeonato || "Competição"}</div>
+      </div>
+    `).join("");
+  } catch (err) {
+    // sem medalhistas recentes — quadro fica escondido
+  }
+}
+
 function badgeStatusAgenda(status) {
   return status === "inscrito"
     ? '<span class="badge-inscricao badge-aberta">Inscrição Confirmada</span>'
@@ -124,3 +151,4 @@ async function ajustarCartaoBoasVindas() {
 
 carregarDestaques();
 ajustarCartaoBoasVindas();
+carregarUltimosMedalhistas();

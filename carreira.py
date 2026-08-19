@@ -409,6 +409,21 @@ def listar_competicoes(usuario_id, filtros=None):
         return _competicoes_com_lutas(conn, usuario_id, filtros)
 
 
+def medalhas_recentes(limite=5):
+    """As últimas inserções de medalha, de QUALQUER atleta (não só o usuário
+    logado) — ordenadas pela data DA COMPETIÇÃO (não de quando foi
+    registrada no site), mais recente primeiro. Usado no quadro "Últimos
+    Medalhistas" da home; o nome/link de cada atleta é resolvido depois,
+    em app.py (carreira.py não tem acesso à tabela de usuários)."""
+    with _conn() as conn:
+        linhas = conn.execute(
+            """SELECT usuario_id, campeonato, data, medalha FROM competicoes
+               WHERE medalha IS NOT NULL ORDER BY data DESC, id DESC LIMIT ?""",
+            (limite,),
+        ).fetchall()
+    return [dict(linha) for linha in linhas]
+
+
 def calcular_estatisticas(usuario_id):
     with _conn() as conn:
         competicoes = _competicoes_com_lutas(conn, usuario_id)
