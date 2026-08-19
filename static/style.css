@@ -940,9 +940,13 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
   margin-bottom: 0;
 }
 
-.destaques-home {
+.home-lateral {
   flex: 1.3 1 420px;
   margin-bottom: 0;
+}
+
+.destaques-full {
+  margin-top: 28px;
 }
 
 .banner-braus-link {
@@ -958,12 +962,12 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
   height: auto;
 }
 
-.destaques-home .destaques-grade {
+.destaques-full .destaques-grade {
   grid-template-columns: 1fr;
   gap: 20px;
 }
 
-.destaques-home .destaque-manchete {
+.destaques-full .destaque-manchete {
   padding: 16px 18px;
   font-size: 1.5rem;
 }
@@ -986,18 +990,18 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
   gap: 16px;
 }
 
-.destaques:not(.destaques-home) .destaques-grade {
+.destaques:not(.destaques-home):not(.destaques-full) .destaques-grade {
   grid-template-columns: repeat(2, 1fr);
   gap: 28px;
 }
 
-.destaques:not(.destaques-home) .destaque-manchete {
+.destaques:not(.destaques-home):not(.destaques-full) .destaque-manchete {
   padding: 16px 18px;
   font-size: 1.5rem;
 }
 
 @media (max-width: 640px) {
-  .destaques:not(.destaques-home) .destaques-grade {
+  .destaques:not(.destaques-home):not(.destaques-full) .destaques-grade {
     grid-template-columns: 1fr;
   }
 }
