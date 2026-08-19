@@ -89,10 +89,14 @@ def _combina_exata(texto, termo):
 
 
 def _atleta_combina(atleta, filtros_fed):
-    modulo_smoothcomp = FEDERACOES.get(atleta.get("federacao", "").lower(), {}).get("module")
+    # A maioria das federações compara a faixa por substring simples
+    # (_combina) — algumas têm regra própria (module.faixa_combina), ex:
+    # AJP/ADCC (nível Smoothcomp x nome de faixa) ou CBJJC (faixas
+    # Cinza/Amarela/Laranja/Verde contam como "Colorida" na busca).
+    modulo = FEDERACOES.get(atleta.get("federacao", "").lower(), {}).get("module")
     combina_faixa = (
-        modulo_smoothcomp.faixa_combina(atleta, filtros_fed.get("faixa"))
-        if modulo_smoothcomp is not None and atleta.get("federacao", "").lower() in FEDERACOES_SMOOTHCOMP
+        modulo.faixa_combina(atleta, filtros_fed.get("faixa"))
+        if modulo is not None and hasattr(modulo, "faixa_combina")
         else _combina(atleta.get("faixa"), filtros_fed.get("faixa"))
     )
     return (

@@ -137,6 +137,20 @@ def _faixa_normalizada(faixa_bruta):
     return faixa_bruta
 
 
+def faixa_combina(atleta, termo_busca):
+    """Como o dado já vem normalizado pra "Colorida" (ver
+    _faixa_normalizada), buscar por "Cinza"/"Amarela"/"Laranja"/"Verde"
+    também precisa achar esses atletas — sem isso, a busca por substring
+    simples (_combina) não bate "cinza" contra "colorida" e some com eles."""
+    if not termo_busca:
+        return True
+    termo = termo_busca.strip().lower()
+    faixa_atleta = (atleta.get("faixa") or "").strip().lower()
+    if termo in _FAIXAS_COLORIDAS:
+        termo = "colorida"
+    return termo in faixa_atleta
+
+
 def _monta_atleta(linha):
     if "nogi" in linha["categoria"].lower().replace("-", "").replace(" ", ""):
         return None
