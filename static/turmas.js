@@ -36,6 +36,7 @@ let meusAlunos = [];
 let turmasAtuais = [];
 let posicoesPorGrupo = {};
 const planosExpandidos = new Set();
+const pendentesExpandidos = new Set();
 const historicoPorTurma = {}; // turmaId -> { mesAno: "YYYY-MM", aulas: [...] }
 const pendentesPorTurma = {}; // turmaId -> [iso, ...] (dias de aula sem registro ainda)
 const planoEditando = {}; // turmaId -> { id, data, posicoes } da aula em edição, ou undefined
@@ -103,11 +104,10 @@ function mesAnoAtual() {
 function renderizarPlanoAula(turma) {
   const expandido = planosExpandidos.has(turma.id);
   const historico = historicoPorTurma[turma.id] || { mesAno: mesAnoAtual(), aulas: [] };
-  const pendentes = pendentesPorTurma[turma.id] || [];
   const edicao = planoEditando[turma.id];
 
   return `
-    <div style="margin-top:12px; border-top:1px solid var(--borda); padding-top:12px;">
+    <div id="historico-turma-${turma.id}" style="margin-top:12px; border-top:1px solid var(--borda); padding-top:12px;">
       <button type="button" class="btn-secundario btn-plano-aula" data-id="${turma.id}">
         ${expandido ? "Esconder Histórico de Aulas" : "Histórico de Aulas"}
       </button>
@@ -154,17 +154,32 @@ function renderizarPlanoAula(turma) {
               </div>
             `).join("")}
           </div>
+        </div>
+      ` : ""}
+    </div>
+  `;
+}
 
-          <div style="margin-top:20px; border-top:1px solid var(--borda); padding-top:12px;">
-            <strong>Próximas aulas (ainda não registradas)${pendentes.length ? ` (${pendentes.length})` : ""}:</strong>
-            ${pendentes.length ? "" : " nenhuma — todos os dias de aula do mês atual e do seguinte já têm registro, ou a turma não tem dias da semana cadastrados."}
-            ${pendentes.map(iso => `
-              <div class="cartao-alerta" style="margin-top:8px; padding:10px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px;">
-                <span>${formatarDataDiaSemana(iso)}</span>
-                <button type="button" class="btn-secundario btn-registrar-pendente" data-turma-id="${turma.id}" data-data="${iso}">Registrar aula</button>
-              </div>
-            `).join("")}
-          </div>
+function renderizarAulasFuturas(turma) {
+  const expandido = pendentesExpandidos.has(turma.id);
+  const pendentes = pendentesPorTurma[turma.id] || [];
+
+  return `
+    <div style="margin-top:12px; border-top:1px solid var(--borda); padding-top:12px;">
+      <button type="button" class="btn-secundario btn-aulas-futuras" data-id="${turma.id}">
+        ${expandido ? "Esconder Aulas Futuras" : "Aulas Futuras"}
+      </button>
+
+      ${expandido ? `
+        <div style="margin-top:12px;">
+          <strong>Próximas aulas (ainda não registradas)${pendentes.length ? ` (${pendentes.length})` : ""}:</strong>
+          ${pendentes.length ? "" : " nenhuma — todos os dias de aula do mês atual e do seguinte já têm registro, ou a turma não tem dias da semana cadastrados."}
+          ${pendentes.map(iso => `
+            <div class="cartao-alerta" style="margin-top:8px; padding:10px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px;">
+              <span>${formatarDataDiaSemana(iso)}</span>
+              <button type="button" class="btn-secundario btn-registrar-pendente" data-turma-id="${turma.id}" data-data="${iso}">Registrar aula</button>
+            </div>
+          `).join("")}
         </div>
       ` : ""}
     </div>
@@ -416,6 +431,7 @@ function renderizarTurmas(turmas) {
         </form>
 
         ${renderizarPlanoAula(t)}
+        ${renderizarAulasFuturas(t)}
         ${renderizarPlanoIA(t)}
       </div>
     `;
@@ -440,6 +456,9 @@ function renderizarTurmas(turmas) {
   });
   elLista.querySelectorAll(".btn-plano-aula").forEach(btn => {
     btn.addEventListener("click", () => alternarPlanoAula(Number(btn.dataset.id)));
+  });
+  elLista.querySelectorAll(".btn-aulas-futuras").forEach(btn => {
+    btn.addEventListener("click", () => alternarAulasFuturas(Number(btn.dataset.id)));
   });
   elLista.querySelectorAll(".form-plano-aula").forEach(form => {
     form.addEventListener("submit", (ev) => {
@@ -568,6 +587,27 @@ async function carregarPendentes(turmaId) {
   pendentesPorTurma[turmaId] = pendentes;
 }
 
+// Recarrega Histórico/Aulas Futuras só se a seção correspondente estiver
+// aberta (senão limpa o cache pra recarregar na próxima vez que abrir) —
+// chamado depois de criar/editar/remover uma aula, ou salvar uma sugestão
+// do Plano de Aula IA, já que qualquer uma dessas ações pode mudar as
+// duas listas (uma aula nova sai da lista de pendentes, por exemplo).
+async function atualizarListasAulas(turmaId) {
+  const tarefas = [];
+  if (planosExpandidos.has(turmaId)) {
+    const mesAno = (historicoPorTurma[turmaId] || {}).mesAno || mesAnoAtual();
+    tarefas.push(carregarHistorico(turmaId, mesAno));
+  } else {
+    delete historicoPorTurma[turmaId];
+  }
+  if (pendentesExpandidos.has(turmaId)) {
+    tarefas.push(carregarPendentes(turmaId));
+  } else {
+    delete pendentesPorTurma[turmaId];
+  }
+  await Promise.all(tarefas);
+}
+
 async function alternarPlanoAula(turmaId) {
   if (planosExpandidos.has(turmaId)) {
     planosExpandidos.delete(turmaId);
@@ -577,8 +617,23 @@ async function alternarPlanoAula(turmaId) {
   await carregarPosicoes();
   try {
     const mesAno = (historicoPorTurma[turmaId] || {}).mesAno || mesAnoAtual();
-    await Promise.all([carregarHistorico(turmaId, mesAno), carregarPendentes(turmaId)]);
+    await carregarHistorico(turmaId, mesAno);
     planosExpandidos.add(turmaId);
+    renderizarTurmas(turmasAtuais);
+  } catch (err) {
+    mostrarStatus(`Erro: ${err.message}`, true);
+  }
+}
+
+async function alternarAulasFuturas(turmaId) {
+  if (pendentesExpandidos.has(turmaId)) {
+    pendentesExpandidos.delete(turmaId);
+    renderizarTurmas(turmasAtuais);
+    return;
+  }
+  try {
+    await carregarPendentes(turmaId);
+    pendentesExpandidos.add(turmaId);
     renderizarTurmas(turmasAtuais);
   } catch (err) {
     mostrarStatus(`Erro: ${err.message}`, true);
@@ -607,10 +662,25 @@ function cancelarEdicaoPlano(turmaId) {
   renderizarTurmas(turmasAtuais);
 }
 
-function registrarPendente(turmaId, iso) {
+async function registrarPendente(turmaId, iso) {
   delete planoEditando[turmaId];
   planoDataRapida[turmaId] = iso;
+
+  if (!planosExpandidos.has(turmaId)) {
+    await carregarPosicoes();
+    try {
+      const mesAno = (historicoPorTurma[turmaId] || {}).mesAno || mesAnoAtual();
+      await carregarHistorico(turmaId, mesAno);
+    } catch (err) {
+      mostrarStatus(`Erro: ${err.message}`, true);
+      return;
+    }
+    planosExpandidos.add(turmaId);
+  }
+
   renderizarTurmas(turmasAtuais);
+  const elForm = document.querySelector(`.form-plano-aula[data-turma-id="${turmaId}"]`);
+  if (elForm) elForm.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
 async function salvarPlanoAula(turmaId, form) {
@@ -635,8 +705,7 @@ async function salvarPlanoAula(turmaId, form) {
 
     delete planoEditando[turmaId];
     delete planoDataRapida[turmaId];
-    const mesAno = (historicoPorTurma[turmaId] || {}).mesAno || mesAnoAtual();
-    await Promise.all([carregarHistorico(turmaId, mesAno), carregarPendentes(turmaId)]);
+    await atualizarListasAulas(turmaId);
     mostrarStatus(editandoId ? "Aula atualizada!" : "Aula registrada!");
     renderizarTurmas(turmasAtuais);
   } catch (err) {
@@ -649,8 +718,7 @@ async function removerPlanoAula(turmaId, planoId) {
   try {
     const resp = await fetchAutenticado(`/api/turmas/${turmaId}/planos-aula/${planoId}`, { method: "DELETE" });
     if (!resp.ok) throw new Error("não consegui remover");
-    const mesAno = (historicoPorTurma[turmaId] || {}).mesAno || mesAnoAtual();
-    await Promise.all([carregarHistorico(turmaId, mesAno), carregarPendentes(turmaId)]);
+    await atualizarListasAulas(turmaId);
     renderizarTurmas(turmasAtuais);
   } catch (err) {
     mostrarStatus(`Erro: ${err.message}`, true);
@@ -701,13 +769,7 @@ async function salvarSugestaoIA(turmaId, indice) {
     const dados = await resp.json();
     if (!resp.ok) throw new Error(dados.erro || "não consegui salvar");
     aula.salvo = true;
-    if (planosExpandidos.has(turmaId)) {
-      const mesAno = (historicoPorTurma[turmaId] || {}).mesAno || mesAnoAtual();
-      await Promise.all([carregarHistorico(turmaId, mesAno), carregarPendentes(turmaId)]);
-    } else {
-      delete historicoPorTurma[turmaId]; // força recarregar na próxima vez que abrir
-      delete pendentesPorTurma[turmaId];
-    }
+    await atualizarListasAulas(turmaId);
     mostrarStatus("Aula salva no histórico!");
     renderizarTurmas(turmasAtuais);
   } catch (err) {
