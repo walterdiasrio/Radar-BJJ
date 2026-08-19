@@ -705,6 +705,8 @@ button {
 
 .btn-secundario:hover { background: #eef6fb; }
 
+.btn-secundario.ativo { background: var(--azul-claro); color: #fff; }
+
 button:hover:not(:disabled) {
   background: var(--azul);
   transform: translateY(-1px);

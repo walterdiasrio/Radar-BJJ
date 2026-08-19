@@ -317,6 +317,31 @@ def listar_planos_aula(mestre_id, turma_id):
     return planos
 
 
+def atualizar_plano_aula(mestre_id, turma_id, plano_id, dados):
+    """Retorna (ok, erro). Permite corrigir data/posições de uma aula já
+    registrada (manualmente ou salva a partir de uma sugestão do Plano de
+    Aula IA — as duas caem na mesma tabela, ver criar_plano_aula)."""
+    if not turma_pertence_ao_mestre(mestre_id, turma_id):
+        return False, "turma não encontrada"
+
+    data = (dados.get("data") or "").strip()
+    if not data:
+        return False, "informe a data da aula"
+
+    posicoes = [p for p in (dados.get("posicoes") or []) if p in _TODAS_POSICOES]
+    if not posicoes:
+        return False, "selecione pelo menos uma posição"
+
+    with _conn() as conn:
+        cursor = conn.execute(
+            "UPDATE planos_aula SET data = ?, posicoes = ? WHERE id = ? AND turma_id = ?",
+            (data, json.dumps(posicoes, ensure_ascii=False), plano_id, turma_id),
+        )
+        if cursor.rowcount == 0:
+            return False, "aula não encontrada"
+    return True, None
+
+
 def remover_plano_aula(mestre_id, turma_id, plano_id):
     if not turma_pertence_ao_mestre(mestre_id, turma_id):
         return False
@@ -325,6 +350,66 @@ def remover_plano_aula(mestre_id, turma_id, plano_id):
             "DELETE FROM planos_aula WHERE id = ? AND turma_id = ?", (plano_id, turma_id)
         )
         return cursor.rowcount > 0
+
+
+def listar_historico_aulas(mestre_id, turma_id, mes, ano):
+    """Aulas já dadas (data <= hoje) da turma, filtradas por mês/ano — usado
+    na aba Histórico. O lado "ainda não dadas" fica em
+    proximas_aulas_pendentes."""
+    if not turma_pertence_ao_mestre(mestre_id, turma_id):
+        return []
+    hoje = date.today().isoformat()
+    with _conn() as conn:
+        linhas = conn.execute(
+            """SELECT * FROM planos_aula WHERE turma_id = ? AND data <= ?
+               AND strftime('%m', data) = ? AND strftime('%Y', data) = ?
+               ORDER BY data DESC, id DESC""",
+            (turma_id, hoje, f"{mes:02d}", str(ano)),
+        ).fetchall()
+    planos = []
+    for linha in linhas:
+        plano = dict(linha)
+        plano["posicoes"] = json.loads(plano["posicoes"]) if plano["posicoes"] else []
+        planos.append(plano)
+    return planos
+
+
+def proximas_aulas_pendentes(mestre_id, turma_id):
+    """Dias de aula da turma (do resto do mês atual + o mês seguinte
+    inteiro, pelos dias da semana cadastrados — mesma lógica do Plano de
+    Aula IA/Planner) que ainda NÃO têm uma aula registrada em planos_aula.
+    Retorna uma lista de datas ISO, mais antiga primeiro — um checklist do
+    que falta dar/planejar. Sem dias da semana cadastrados, vem vazia."""
+    if not turma_pertence_ao_mestre(mestre_id, turma_id):
+        return []
+
+    with _conn() as conn:
+        turma = conn.execute("SELECT dias_semana FROM turmas WHERE id = ?", (turma_id,)).fetchone()
+        if not turma:
+            return []
+        dias_semana = json.loads(turma["dias_semana"]) if turma["dias_semana"] else []
+
+        hoje = date.today()
+        datas_mes_atual = [d for d in _datas_do_mes(dias_semana, hoje.month, hoje.year) if d >= hoje]
+        if hoje.month == 12:
+            mes_seguinte, ano_seguinte = 1, hoje.year + 1
+        else:
+            mes_seguinte, ano_seguinte = hoje.month + 1, hoje.year
+        datas_mes_seguinte = _datas_do_mes(dias_semana, mes_seguinte, ano_seguinte)
+
+        todas_datas = datas_mes_atual + datas_mes_seguinte
+        if not todas_datas:
+            return []
+
+        datas_iso = [d.isoformat() for d in todas_datas]
+        placeholders = ",".join("?" * len(datas_iso))
+        linhas = conn.execute(
+            f"SELECT DISTINCT data FROM planos_aula WHERE turma_id = ? AND data IN ({placeholders})",
+            (turma_id, *datas_iso),
+        ).fetchall()
+        datas_com_aula = {linha["data"] for linha in linhas}
+
+    return [iso for iso in datas_iso if iso not in datas_com_aula]
 
 
 def _proximas_datas_do_mes(dias_semana, limite=8):
