@@ -970,8 +970,8 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
 }
 
 .destaques-full .destaque-manchete {
-  padding: 16px 18px;
-  font-size: 1.5rem;
+  padding: 40px 18px 28px;
+  font-size: 1.8rem;
 }
 
 @media (max-width: 900px) {
