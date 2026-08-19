@@ -271,7 +271,7 @@ function montarRodapeLegal(elRodape) {
   if (document.querySelector(".rodape-legal")) return;
   elRodape.insertAdjacentHTML(
     "afterend",
-    '<div class="rodape-legal">© Radar BJJ · <a href="/termos">Termos de Uso</a> · <a href="/privacidade">Política de Privacidade</a></div>'
+    '<div class="rodape-legal">© Radar BJJ · CNPJ 68.684.119/0001-64 · <a href="/termos">Termos de Uso</a> · <a href="/privacidade">Política de Privacidade</a></div>'
   );
 }
 
