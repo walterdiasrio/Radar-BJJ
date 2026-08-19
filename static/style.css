@@ -754,7 +754,7 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .bloco-federacao .contagem {
   font-weight: 400;
-  color: #7c8894;
+  color: #55606b;
   font-size: 0.85rem;
 }
 
@@ -838,7 +838,7 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
 
 .badge-aberta { background: #e3f6e8; color: #1a7d3a; }
 .badge-fechada { background: #fdeceb; color: #b3261e; }
-.badge-desconhecida { background: #eef2f6; color: #7c8894; }
+.badge-desconhecida { background: #eef2f6; color: #55606b; }
 
 .botoes-agenda {
   display: flex;
@@ -860,7 +860,7 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
 }
 
 .btn-agenda:hover:not(:disabled) { background: #eef6fb; transform: none; box-shadow: none; }
-.btn-agenda.btn-agenda-interesse.ativo { background: #eef2f6; border-color: #7c8894; color: #55606b; }
+.btn-agenda.btn-agenda-interesse.ativo { background: #eef2f6; border-color: #55606b; color: #55606b; }
 .btn-agenda.btn-agenda-inscrito.ativo { background: #e3f6e8; border-color: #1a7d3a; color: #1a7d3a; }
 
 .cartao-alerta {
@@ -1214,7 +1214,7 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
 
 .plano-desc {
   font-size: 0.85rem;
-  color: #7c8894;
+  color: #55606b;
   margin: 0 0 14px;
   min-height: 2.4em;
 }
@@ -1231,7 +1231,7 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
 
 .plano-preco-periodo {
   font-size: 0.9rem;
-  color: #7c8894;
+  color: #55606b;
 }
 
 .plano-anual {
@@ -1240,7 +1240,7 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
   justify-content: space-between;
   margin-top: 10px;
   font-size: 0.85rem;
-  color: #7c8894;
+  color: #55606b;
 }
 
 .plano-anual button { margin-top: 0; }
@@ -1459,7 +1459,7 @@ tr:hover td { background: #f8fafc; }
 
 .stat-label {
   font-size: 0.78rem;
-  color: #7c8894;
+  color: #55606b;
   margin-top: 2px;
 }
 
