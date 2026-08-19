@@ -124,6 +124,19 @@ def _genero_normalizado(genero_bruto):
     return g
 
 
+_FAIXAS_COLORIDAS = {"cinza", "amarela", "laranja", "verde"}
+
+
+def _faixa_normalizada(faixa_bruta):
+    # Cinza/Amarela/Laranja/Verde são as faixas infantis intermediárias — a
+    # própria CBJJC já usa "Colorida" pra agrupar essas faixas em algumas
+    # categorias (mistura com faixas soltas em outras); normaliza aqui pra
+    # sempre virar "Colorida" e a busca/filtro tratar igual dos dois jeitos.
+    if faixa_bruta.strip().lower() in _FAIXAS_COLORIDAS:
+        return "Colorida"
+    return faixa_bruta
+
+
 def _monta_atleta(linha):
     if "nogi" in linha["categoria"].lower().replace("-", "").replace(" ", ""):
         return None
@@ -149,7 +162,7 @@ def _monta_atleta(linha):
         "categoria_idade": idade,
         "genero": _genero_normalizado(genero),
         "peso": peso,
-        "faixa": faixa,
+        "faixa": _faixa_normalizada(faixa),
     }
 
 
