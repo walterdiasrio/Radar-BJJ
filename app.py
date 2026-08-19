@@ -915,12 +915,6 @@ def api_atletas():
         return jsonify({"erro": f"não foi possível buscar atletas: {exc}"}), 502
 
     avisos = list(erros)
-    if not atletas:
-        avisos.append(
-            "Nenhum atleta encontrado. Se for CBJJD ou CBJJO, a lista de "
-            "inscritos só fica disponível enquanto a checagem do evento "
-            "está aberta."
-        )
 
     return jsonify({
         "total": len(atletas),
