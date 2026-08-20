@@ -21,7 +21,7 @@ async function carregarLista() {
         <img src="${n.imagem_url}" alt="${n.manchete}">
         <div class="noticia-manchete">
           ${n.manchete}
-          ${n.data_limite ? `<div style="font-weight:400; font-size:0.8rem; color:#7c8894;">expira em ${n.data_limite.split("-").reverse().join("/")}</div>` : ""}
+          ${n.data_limite ? `<div style="font-weight:400; font-size:0.8rem; color:#55606b;">expira em ${n.data_limite.split("-").reverse().join("/")}</div>` : ""}
         </div>
         <button class="btn-remover" data-id="${n.id}">Remover</button>
       </div>

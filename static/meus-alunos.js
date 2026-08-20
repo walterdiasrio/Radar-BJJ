@@ -176,7 +176,7 @@ document.getElementById("btn-alunos-competidores").addEventListener("click", asy
                 <div class="cartao-alerta-federacao">${a.evento || ""}${a.data ? ` · ${a.data}` : ""}</div>
               </div>
             </div>
-            <div style="color:#7c8894; font-size:0.85rem; margin-top:4px;">
+            <div style="color:#55606b; font-size:0.85rem; margin-top:4px;">
               ${[a.categoria_idade, a.genero, a.faixa, a.peso].filter(Boolean).join(" · ")}
             </div>
           </div>

@@ -92,12 +92,12 @@ async function carregar() {
     elConteudo.innerHTML = `
       <div class="card-carreira" style="max-width: 480px;">
         <h2 style="margin-top: 0; color: var(--azul);">${p.nome || "(sem nome)"}</h2>
-        <p style="color: #7c8894; margin: 0 0 4px;">
+        <p style="color: #55606b; margin: 0 0 4px;">
           Faixa ${p.faixa}${Number(p.grau) > 0 ? " · " + p.grau + "º grau" : ""}
           ${p.categoria ? " · " + p.categoria : ""}
         </p>
-        ${p.academia ? `<p style="color: #7c8894; margin: 0;">${p.academia}</p>` : ""}
-        ${dados.email ? `<p style="color: #7c8894; margin: 4px 0 0; font-size: 0.85rem;">${dados.email}</p>` : ""}
+        ${p.academia ? `<p style="color: #55606b; margin: 0;">${p.academia}</p>` : ""}
+        ${dados.email ? `<p style="color: #55606b; margin: 4px 0 0; font-size: 0.85rem;">${dados.email}</p>` : ""}
       </div>
 
       <h3 style="color: var(--azul); margin: 24px 0 12px;">Estatísticas</h3>
@@ -115,7 +115,7 @@ async function carregar() {
 
       <h3 style="color: var(--azul); margin: 24px 0 12px;">Histórico de competições</h3>
       <div id="lista-historico-aluno">
-        ${dados.competicoes.length ? dados.competicoes.map(cardCompeticao).join("") : '<p style="color:#7c8894;">Nenhum registro ainda.</p>'}
+        ${dados.competicoes.length ? dados.competicoes.map(cardCompeticao).join("") : '<p style="color:#55606b;">Nenhum registro ainda.</p>'}
       </div>
     `;
 

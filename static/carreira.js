@@ -30,7 +30,7 @@ function aplicarBloqueioPro(tipoPerfil) {
     elBloqueio.innerHTML = `
       <div class="card-carreira" style="text-align:center; max-width:480px; margin:0 auto;">
         <img src="${imagem}" alt="Plano ${nome}" style="width:100%; border-radius:10px; margin-bottom:12px;">
-        <p style="color:#7c8894; font-size:0.9rem;">
+        <p style="color:#55606b; font-size:0.9rem;">
           Essa área é exclusiva de quem assina o <strong>Plano ${nome}</strong>.
         </p>
         <a href="/assinatura"><button type="button">Assinar ${nome}</button></a>
@@ -430,7 +430,7 @@ async function carregarHistorico() {
     const resp = await fetchAutenticado("/api/carreira/competicoes");
     const competicoes = await resp.json();
     if (!competicoes.length) {
-      el.innerHTML = '<p style="color:#7c8894;">Nenhum registro ainda. Vai lá registrar sua primeira competição!</p>';
+      el.innerHTML = '<p style="color:#55606b;">Nenhum registro ainda. Vai lá registrar sua primeira competição!</p>';
       return;
     }
     el.innerHTML = competicoes.map(c => cardCompeticao(c)).join("");
@@ -457,7 +457,7 @@ document.getElementById("form-pesquisa").addEventListener("submit", async (ev) =
     elContagem.textContent = `${competicoes.length} resultado(s)`;
     elLista.innerHTML = competicoes.length
       ? competicoes.map(c => cardCompeticao(c)).join("")
-      : '<p style="color:#7c8894;">Nenhuma competição encontrada com esses filtros.</p>';
+      : '<p style="color:#55606b;">Nenhuma competição encontrada com esses filtros.</p>';
     ligarBotoesCard(elLista, competicoes);
   } catch (err) {
     elContagem.textContent = "";
