@@ -77,6 +77,49 @@
   </p>
 
   <div class="grade-planos grade-planos-full">
+    <div class="plano-card" id="plano-card-free">
+      <h3>Free</h3>
+      <p class="plano-desc">Perfil, Competições, BJJ News, Minha Agenda e Alerta de Competição.</p>
+      <div class="plano-preco">
+        <span class="plano-preco-valor">R$ 0</span><span class="plano-preco-periodo">/sempre</span>
+      </div>
+      <button type="button" class="btn-plano-free" data-href-logado="/buscador" data-href-visitante="/cadastro">Criar conta grátis</button>
+    </div>
+
+    <div class="plano-card" id="plano-card-atleta">
+      <h3>Atleta PRO</h3>
+      <p class="plano-desc">Tudo do Free + busca de atletas e alertas de competição por atleta.</p>
+      <div class="plano-preco">
+        <span class="plano-preco-valor">R$ 9,90</span><span class="plano-preco-periodo">/mês</span>
+      </div>
+      <button type="button" class="btn-assinar" data-plano="atleta" data-periodicidade="mensal">Assinar mensal</button>
+      <div class="plano-anual">
+        <span>ou R$ 99,90/ano</span>
+        <button type="button" class="btn-secundario btn-assinar" data-plano="atleta" data-periodicidade="anual">Assinar anual</button>
+      </div>
+    </div>
+
+    <div class="plano-card plano-destaque" id="plano-card-mestre">
+      <h3>Mestre PRO</h3>
+      <p class="plano-desc">Tudo do Atleta + busca e alertas por equipe/academia.</p>
+      <div class="plano-preco">
+        <span class="plano-preco-valor">R$ 19,90</span><span class="plano-preco-periodo">/mês</span>
+      </div>
+      <button type="button" class="btn-assinar" data-plano="mestre" data-periodicidade="mensal">Assinar mensal</button>
+      <div class="plano-anual">
+        <span>ou R$ 199,90/ano</span>
+        <button type="button" class="btn-secundario btn-assinar" data-plano="mestre" data-periodicidade="anual">Assinar anual</button>
+      </div>
+    </div>
+  </div>
+
+  <p style="color: #55606b; font-size: 0.85rem; margin-top: 18px;">
+    7 dias de teste grátis em qualquer plano pago. Cancele quando quiser.
+    Ainda não tem conta? <a href="/cadastro">Cadastre-se gratuitamente</a>.
+  </p>
+  <div id="status" class="status-importacao"></div>
+
+  <div class="grade-planos grade-planos-full" style="margin-top: 28px;">
     <a href="/cadastro" class="plano-card plano-card-banner" id="banner-plano-free" data-href-logado="/buscador" data-href-visitante="/cadastro">
       <img src="img/banner-plano-free.jpg" alt="Plano Free">
     </a>
@@ -88,40 +131,6 @@
     <a href="/cadastro?plano=mestre&amp;periodicidade=mensal" class="plano-card plano-card-banner plano-destaque" id="banner-plano-mestre" data-plano="mestre" data-periodicidade="mensal">
       <img src="img/banner-plano-mestre-pro.jpg" alt="Plano Mestre PRO">
     </a>
-  </div>
-
-  <p style="color: #55606b; font-size: 0.85rem; margin-top: 18px;">
-    7 dias de teste grátis em qualquer plano pago. Cancele quando quiser.
-    Ainda não tem conta? <a href="/cadastro">Cadastre-se gratuitamente</a>.
-  </p>
-  <div id="status" class="status-importacao"></div>
-
-  <div class="grade-planos grade-planos-full" style="margin-top: 28px;">
-    <div class="plano-card">
-      <h3>Free</h3>
-      <p class="plano-desc">Perfil, Competições, BJJ News, Minha Agenda e Alerta de Competição.</p>
-      <div class="plano-preco">
-        <span class="plano-preco-valor">R$ 0</span><span class="plano-preco-periodo">/sempre</span>
-      </div>
-    </div>
-
-    <div class="plano-card">
-      <h3>Atleta PRO</h3>
-      <p class="plano-desc">Tudo do Free + busca de atletas e alertas de competição por atleta.</p>
-      <div class="plano-preco">
-        <span class="plano-preco-valor">R$ 9,90</span><span class="plano-preco-periodo">/mês</span>
-      </div>
-      <p class="plano-desc" style="margin-bottom: 0;">ou R$ 99,90/ano</p>
-    </div>
-
-    <div class="plano-card plano-destaque">
-      <h3>Mestre PRO</h3>
-      <p class="plano-desc">Tudo do Atleta + busca e alertas por equipe/academia.</p>
-      <div class="plano-preco">
-        <span class="plano-preco-valor">R$ 19,90</span><span class="plano-preco-periodo">/mês</span>
-      </div>
-      <p class="plano-desc" style="margin-bottom: 0;">ou R$ 199,90/ano</p>
-    </div>
   </div>
 </main>
 </div>

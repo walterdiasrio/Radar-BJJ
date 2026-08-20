@@ -31,6 +31,27 @@ async function iniciar() {
     // segue tratando como visitante
   }
 
+  // Botões "Assinar" dos cards de texto (com preço/benefícios reais).
+  document.querySelectorAll(".btn-assinar").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const plano = btn.dataset.plano;
+      const periodicidade = btn.dataset.periodicidade;
+      if (logado) {
+        iniciarCheckout(plano, periodicidade);
+      } else {
+        window.location.href = `/cadastro?plano=${plano}&periodicidade=${periodicidade}`;
+      }
+    });
+  });
+
+  const btnFree = document.querySelector(".btn-plano-free");
+  if (btnFree) {
+    btnFree.addEventListener("click", () => {
+      window.location.href = logado ? btnFree.dataset.hrefLogado : btnFree.dataset.hrefVisitante;
+    });
+  }
+
+  // Banners de imagem (mesma ação dos botões acima, como atalho visual).
   document.querySelectorAll(".plano-card-banner[data-plano]").forEach(link => {
     link.addEventListener("click", (ev) => {
       if (!logado) return; // deixa o navegador seguir o href pro /cadastro
