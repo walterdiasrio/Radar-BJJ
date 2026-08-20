@@ -97,10 +97,17 @@ def _extrair_id_evento(html):
     return m.group(1) if m else None
 
 
+_SUFIXOS_TITULO = re.compile(r"\s*[|\-–]\s*(Smoothcomp|Abu Dhabi Jiu Jitsu Pro)\s*$", re.I)
+
+
 def _extrair_nome(soup):
     titulo = soup.find("title")
     if titulo and titulo.text:
-        bruto = re.split(r"\s*[|\-–]\s*Smoothcomp", titulo.text, flags=re.I)[0]
+        bruto = titulo.text
+        anterior = None
+        while anterior != bruto:
+            anterior = bruto
+            bruto = _SUFIXOS_TITULO.sub("", bruto)
         nome = re.sub(r"\s+", " ", bruto).strip()
         if nome:
             return nome
@@ -108,14 +115,46 @@ def _extrair_nome(soup):
     return h2.get_text(strip=True) if h2 else "Evento AJP"
 
 
-def _extrair_local(soup):
+# Fallback pro card "Location" (abaixo) não achar nada — seja porque a
+# página foi salva antes do card terminar de carregar (é preenchido via
+# JS/XHR, então salvar rápido demais no navegador perde essa parte), seja
+# porque o evento não tem esse card. Os eventos "AJP Tour"/"AJP No-Gi"
+# sempre trazem o local embutido no próprio nome (ex: "AJP Tour Tubarão
+# International...", "AJP No-Gi Madrid International..."), e alguns outros
+# (ex: "Abu Dhabi Grand Slam ... - Moscow") trazem como sufixo depois do
+# último hífen. Sem nenhum dos dois padrões, o campo fica vazio mesmo (não
+# há como adivinhar com segurança).
+_LOCAL_NO_NOME = re.compile(
+    r"\bAJP\s+(?:TOUR|NO-GI)\s+(.+?)\s+(?:INTERNATIONAL|NATIONAL|REGIONAL|CONTINENTAL)\b", re.I
+)
+_SUFIXO_GENERICO = re.compile(r"^(GI(\s*&\s*NO-?GI)?|NO-?GI|\d{4}(\s*-\s*\d{4})?)$", re.I)
+
+
+def _extrair_local_do_nome(nome):
+    m = _LOCAL_NO_NOME.search(nome)
+    if m:
+        return m.group(1).strip().title()
+
+    partes = nome.rsplit(" - ", 1)
+    if len(partes) == 2 and partes[1].strip() and not _SUFIXO_GENERICO.match(partes[1].strip()):
+        return partes[1].strip().title()
+
+    return ""
+
+
+def _extrair_local(soup, nome_evento):
     for card in soup.select(".sc-card"):
         header = card.select_one(".sc-card-header h3")
         if header and header.get_text(strip=True).lower() == "location":
-            spans = [s.get_text(strip=True) for s in card.select(".sc-list-item-text span")]
-            partes = [s for s in spans if s and s != "Brazil"]
-            return ", ".join(partes[:2])
-    return ""
+            # O 1º span já vem pronto como "Local, Cidade, País" (endereço
+            # completo formatado) — os spans seguintes são a MESMA cidade/
+            # país quebrados à parte (pro link do Google Maps), não itens
+            # adicionais. Juntar os dois (bug antigo) duplicava a cidade
+            # no fim (ex: "..., Tubarão, Brazil, Tubarão").
+            spans = [s.get_text(strip=True) for s in card.select(".sc-list-item-text span") if s.get_text(strip=True)]
+            if spans:
+                return spans[0]
+    return _extrair_local_do_nome(nome_evento)
 
 
 def _data_inicio_json_ld(soup):
@@ -265,11 +304,12 @@ def parse_evento_html(html):
         )
     data_inicio = _data_inicio_json_ld(soup)
     prazo_inscricao = _extrair_prazo_inscricao(soup, data_inicio.year if data_inicio else None)
+    nome_evento = _extrair_nome(soup)
     return {
         "id": f"ajp-{evento_id}",
-        "nome": _extrair_nome(soup),
+        "nome": nome_evento,
         "data": _extrair_data(soup, data_inicio),
-        "local": _extrair_local(soup),
+        "local": _extrair_local(soup, nome_evento),
         "tabela_idade": _extrair_tabela_idade(soup),
         "prazo_inscricao": prazo_inscricao.isoformat() if prazo_inscricao else None,
     }
