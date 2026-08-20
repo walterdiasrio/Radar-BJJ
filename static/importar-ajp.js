@@ -76,3 +76,21 @@ elArquivoAtletas.addEventListener("change", async () => {
     mostrarStatus(elStatusAtletas, `Erro: ${err.message}`, true);
   }
 });
+
+const elBtnVerificarDrive = document.getElementById("btn-verificar-drive");
+const elStatusDriveImport = document.getElementById("status-drive-import");
+
+elBtnVerificarDrive.addEventListener("click", async () => {
+  elBtnVerificarDrive.disabled = true;
+  mostrarStatus(elStatusDriveImport, "Verificando pasta do Drive...");
+  try {
+    const resp = await fetchAutenticado("/api/drive-import/verificar-agora", { method: "POST" });
+    const dados = await resp.json();
+    if (!resp.ok) throw new Error(dados.erro || "não consegui verificar");
+    mostrarStatus(elStatusDriveImport, (dados.log || []).join("\n"));
+  } catch (err) {
+    mostrarStatus(elStatusDriveImport, `Erro: ${err.message}`, true);
+  } finally {
+    elBtnVerificarDrive.disabled = false;
+  }
+});
