@@ -47,6 +47,8 @@ elForm.addEventListener("submit", async (ev) => {
     const dados = await resp.json();
     if (!resp.ok) throw new Error(dados.erro || "erro ao cadastrar");
 
+    if (typeof fbq === "function") fbq("track", "Lead");
+
     elForm.style.display = "none";
     if (dados.email_enviado === false) {
       elStatus.className = "aviso-alerta";
