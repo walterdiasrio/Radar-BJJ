@@ -42,7 +42,16 @@ def _salvar_eventos(eventos):
 
 
 def listar_eventos():
-    return _ler_eventos()
+    # inscricoes_abertas é calculado aqui (não gravado no JSON) pra
+    # continuar correto com o passar do tempo sem precisar reimportar —
+    # só o prazo em si (capturado na importação) fica salvo.
+    eventos = []
+    for evento in _ler_eventos():
+        evento = dict(evento)
+        prazo = evento.get("prazo_inscricao")
+        evento["inscricoes_abertas"] = date.today() <= date.fromisoformat(prazo) if prazo else None
+        eventos.append(evento)
+    return eventos
 
 
 def buscar_atletas(evento_id, filtros):
@@ -57,32 +66,81 @@ def _extrair_id_evento(html):
     return m.group(1) if m else None
 
 
+_SUFIXOS_TITULO = re.compile(r"\s*[|\-–]\s*Smoothcomp\s*$", re.I)
+
+
 def _extrair_nome(soup):
     titulo = soup.find("title")
     if titulo and titulo.text:
-        nome = re.split(r"\s*[|\-–]\s*Smoothcomp", titulo.text, flags=re.I)[0].strip()
+        bruto = titulo.text
+        anterior = None
+        while anterior != bruto:
+            anterior = bruto
+            bruto = _SUFIXOS_TITULO.sub("", bruto)
+        nome = re.sub(r"\s+", " ", bruto).strip()
         if nome:
             return nome
     h2 = soup.select_one(".event-cms-page h2")
     return h2.get_text(strip=True) if h2 else "Evento ADCC"
 
 
-def _extrair_local(soup):
+# Fallback pro card "Location" não achar nada — seja porque a página foi
+# salva antes do card terminar de carregar (é preenchido via JS/XHR, então
+# salvar rápido demais no navegador perde essa parte), seja porque o
+# evento não tem esse card. Os eventos ADCC Brazil Open seguem o padrão
+# "ADCC Brazil Open - Cidade" — o local vem como sufixo depois do último
+# hífen no próprio nome do evento.
+_SUFIXO_GENERICO = re.compile(r"^(GI(\s*&\s*NO-?GI)?|NO-?GI|\d{4}(\s*-\s*\d{4})?)$", re.I)
+
+
+def _extrair_local_do_nome(nome):
+    partes = nome.rsplit(" - ", 1)
+    if len(partes) == 2 and partes[1].strip() and not _SUFIXO_GENERICO.match(partes[1].strip()):
+        return partes[1].strip().title()
+    return ""
+
+
+def _extrair_local(soup, nome_evento):
     for card in soup.select(".sc-card"):
         header = card.select_one(".sc-card-header h3")
         if header and header.get_text(strip=True).lower() == "location":
             spans = [s.get_text(strip=True) for s in card.select(".sc-list-item-text span")]
             partes = [s for s in spans if s and s != "Brazil"]
-            return ", ".join(partes[:2])
-    return ""
+            if partes:
+                return ", ".join(partes[:2])
+    return _extrair_local_do_nome(nome_evento)
 
 
-def _extrair_data(soup):
-    """Acha a data de início da competição na tabela SCHEDULE (linha "Start
-    of Matches"). O ano usado é o mais frequente entre todas as linhas da
-    tabela — vimos casos de linha isolada com ano digitado errado na própria
-    fonte, então a moda entre as outras datas é mais confiável que pegar o
-    ano dessa linha específica."""
+def _data_inicio_json_ld(soup):
+    """A página do evento (smoothcomp.com) traz um bloco JSON-LD
+    (schema.org/SportsEvent) com startDate em ISO 8601 — mais confiável do
+    que procurar a data no texto visível da tabela SCHEDULE."""
+    for script in soup.find_all("script", type="application/ld+json"):
+        if not script.string:
+            continue
+        try:
+            dados = json.loads(script.string)
+        except ValueError:
+            continue
+        inicio = dados.get("startDate") if isinstance(dados, dict) else None
+        if inicio:
+            try:
+                return date.fromisoformat(inicio[:10])
+            except ValueError:
+                continue
+    return None
+
+
+def _extrair_data(soup, data_inicio_json_ld):
+    """Acha a data de início da competição. Prioriza o JSON-LD; se não
+    tiver, cai pra tabela SCHEDULE (linha "Start of Matches"). O ano usado
+    nesse fallback é o mais frequente entre todas as linhas da tabela —
+    vimos casos de linha isolada com ano digitado errado na própria fonte,
+    então a moda entre as outras datas é mais confiável que pegar o ano
+    dessa linha específica."""
+    if data_inicio_json_ld:
+        return data_inicio_json_ld.strftime("%d/%m/%Y")
+
     texto = soup.get_text(" ", strip=True)
     padrao = re.compile(r"([A-Za-z]{3,9})\.?\s+(\d{1,2}),\s*(\d{4})")
     ocorrencias = padrao.findall(texto)
@@ -103,6 +161,41 @@ def _extrair_data(soup):
     return f"{int(dia):02d}/{mes:02d}/{ano_mais_comum}"
 
 
+_SCHEDULE_ITEM_INTERVALO = re.compile(r"(\d{1,2})\s+([A-Za-z]{3,9})\s*-\s*(\d{1,2})\s+([A-Za-z]{3,9})")
+
+
+def _extrair_prazo_inscricao(soup, ano_evento):
+    """As fases de inscrição ("Normal registration", "Late registration")
+    aparecem como .schedule-item na página do evento, com intervalo de
+    datas sem ano (ex: "25 Aug - 08 Sep 18:00") — usa o ano do evento
+    (já resolvido via JSON-LD) pra montar a data completa. Quando há mais
+    de uma fase, o prazo final de inscrição é o fim da fase mais tardia
+    (normalmente "Late registration"). Sem ano do evento, não dá pra
+    montar a data com segurança (o intervalo pode virar o ano)."""
+    if not ano_evento:
+        return None
+    prazos = []
+    for item in soup.select(".schedule-item"):
+        titulo_el = item.select_one(".title")
+        info_el = item.select_one(".info")
+        if not titulo_el or not info_el:
+            continue
+        if "registration" not in titulo_el.get_text(strip=True).lower():
+            continue
+        m = _SCHEDULE_ITEM_INTERVALO.search(info_el.get_text(" ", strip=True))
+        if not m:
+            continue
+        _dia_ini, _mes_ini, dia_fim, mes_fim_txt = m.groups()
+        mes_fim = _MESES_EN.get(mes_fim_txt.strip().lower()[:3])
+        if not mes_fim:
+            continue
+        try:
+            prazos.append(date(ano_evento, mes_fim, int(dia_fim)))
+        except ValueError:
+            continue
+    return max(prazos) if prazos else None
+
+
 def parse_evento_html(html):
     soup = BeautifulSoup(html, "lxml")
     evento_id = _extrair_id_evento(html)
@@ -111,11 +204,15 @@ def parse_evento_html(html):
             "não encontrei o ID do evento nessa página (procurei um link tipo "
             "smoothcomp.com/.../event/12345) — confirma que essa é a página do evento?"
         )
+    data_inicio = _data_inicio_json_ld(soup)
+    prazo_inscricao = _extrair_prazo_inscricao(soup, data_inicio.year if data_inicio else None)
+    nome_evento = _extrair_nome(soup)
     return {
         "id": f"adcc-{evento_id}",
-        "nome": _extrair_nome(soup),
-        "data": _extrair_data(soup),
-        "local": _extrair_local(soup),
+        "nome": nome_evento,
+        "data": _extrair_data(soup, data_inicio),
+        "local": _extrair_local(soup, nome_evento),
+        "prazo_inscricao": prazo_inscricao.isoformat() if prazo_inscricao else None,
     }
 
 
