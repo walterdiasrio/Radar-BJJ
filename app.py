@@ -1517,23 +1517,23 @@ def api_remover_plano_aula(turma_id, plano_id):
     return jsonify({"ok": True})
 
 
-@app.get("/api/turmas/<int:turma_id>/planos-aula/historico")
+@app.get("/api/turmas/<int:turma_id>/planos-aula/futuras")
 @api_assinatura_necessaria
-def api_historico_planos_aula(turma_id):
+def api_aulas_futuras(turma_id):
+    if not _usuario_atual_eh_mestre():
+        return jsonify({"erro": "exclusivo do perfil Mestre"}), 403
+    return jsonify(turmas.listar_aulas_futuras(session["usuario_id"], turma_id))
+
+
+@app.get("/api/turmas/<int:turma_id>/planos-aula/passadas")
+@api_assinatura_necessaria
+def api_aulas_passadas(turma_id):
     if not _usuario_atual_eh_mestre():
         return jsonify({"erro": "exclusivo do perfil Mestre"}), 403
     mes, ano, erro = _mes_ano_da_query()
     if erro:
         return jsonify({"erro": erro}), 400
-    return jsonify(turmas.listar_historico_aulas(session["usuario_id"], turma_id, mes, ano))
-
-
-@app.get("/api/turmas/<int:turma_id>/planos-aula/pendentes")
-@api_assinatura_necessaria
-def api_proximas_aulas_pendentes(turma_id):
-    if not _usuario_atual_eh_mestre():
-        return jsonify({"erro": "exclusivo do perfil Mestre"}), 403
-    return jsonify(turmas.proximas_aulas_pendentes(session["usuario_id"], turma_id))
+    return jsonify(turmas.listar_aulas_passadas(session["usuario_id"], turma_id, mes, ano))
 
 
 @app.post("/api/turmas/<int:turma_id>/plano-ia")
