@@ -24,6 +24,15 @@ async function carregarSessaoNoMenu() {
   const elTurmasMobile = document.getElementById("nav-turmas-toggle-mobile");
   const elPlanos = document.getElementById("nav-planos");
 
+  // Pra quem ainda não tem login, "Planos" é o link mais importante do menu
+  // (é o caminho pra virar assinante) — por isso fica antes de "Radar de
+  // Atletas", não escondido lá no fim da fila.
+  const reordenarPlanosAntesDoRadar = () => {
+    if (!elPlanos) return;
+    const elRadar = document.querySelector('.nav-item-atleta[href="/buscador"]');
+    if (elRadar && elRadar.parentNode) elRadar.parentNode.insertBefore(elPlanos, elRadar);
+  };
+
   const ICONE_LOGOUT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>';
   const ICONE_LOGIN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>';
   const ICONE_CADASTRO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>';
@@ -89,6 +98,7 @@ async function carregarSessaoNoMenu() {
       if (elTurmas) elTurmas.style.display = "none";
       if (elTurmasMobile) elTurmasMobile.style.display = "none";
       if (elPlanos) elPlanos.style.display = "";
+      reordenarPlanosAntesDoRadar();
       aplicarSessao({ logado: false, mestre: false, admin: false });
     }
   } catch (err) {
@@ -101,6 +111,7 @@ async function carregarSessaoNoMenu() {
     if (elTurmas) elTurmas.style.display = "none";
     if (elTurmasMobile) elTurmasMobile.style.display = "none";
     if (elPlanos) elPlanos.style.display = "";
+    reordenarPlanosAntesDoRadar();
     aplicarSessao({ logado: false, mestre: false, admin: false });
   }
 }

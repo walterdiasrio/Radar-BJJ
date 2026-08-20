@@ -31,22 +31,20 @@ async function iniciar() {
     // segue tratando como visitante
   }
 
-  document.querySelectorAll(".btn-assinar").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const plano = btn.dataset.plano;
-      const periodicidade = btn.dataset.periodicidade;
-      if (logado) {
-        iniciarCheckout(plano, periodicidade);
-      } else {
-        window.location.href = `/cadastro?plano=${plano}&periodicidade=${periodicidade}`;
-      }
+  document.querySelectorAll(".plano-card-banner[data-plano]").forEach(link => {
+    link.addEventListener("click", (ev) => {
+      if (!logado) return; // deixa o navegador seguir o href pro /cadastro
+      ev.preventDefault();
+      iniciarCheckout(link.dataset.plano, link.dataset.periodicidade);
     });
   });
 
-  const btnFree = document.querySelector(".btn-plano-free");
-  if (btnFree) {
-    btnFree.addEventListener("click", () => {
-      window.location.href = logado ? btnFree.dataset.hrefLogado : btnFree.dataset.hrefVisitante;
+  const bannerFree = document.getElementById("banner-plano-free");
+  if (bannerFree) {
+    bannerFree.addEventListener("click", (ev) => {
+      if (!logado) return;
+      ev.preventDefault();
+      window.location.href = bannerFree.dataset.hrefLogado;
     });
   }
 }
