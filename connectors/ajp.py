@@ -115,15 +115,53 @@ def _extrair_nome(soup):
     return h2.get_text(strip=True) if h2 else "Evento AJP"
 
 
-# Fallback pro card "Location" (abaixo) não achar nada — seja porque a
-# página foi salva antes do card terminar de carregar (é preenchido via
-# JS/XHR, então salvar rápido demais no navegador perde essa parte), seja
-# porque o evento não tem esse card. Os eventos "AJP Tour"/"AJP No-Gi"
-# sempre trazem o local embutido no próprio nome (ex: "AJP Tour Tubarão
-# International...", "AJP No-Gi Madrid International..."), e alguns outros
-# (ex: "Abu Dhabi Grand Slam ... - Moscow") trazem como sufixo depois do
-# último hífen. Sem nenhum dos dois padrões, o campo fica vazio mesmo (não
-# há como adivinhar com segurança).
+def _sports_event_json_ld(soup):
+    """A página do evento AJP (ajptour.com) traz um bloco JSON-LD
+    (schema.org/SportsEvent) já renderizado no HTML desde o início — ao
+    contrário do card "Location" (preenchido via JS/XHR depois do
+    carregamento, então salvar a página rápido demais no navegador perde
+    essa parte), o JSON-LD está sempre presente e traz tanto a data
+    (startDate) quanto o local (location.name, já formatado como "Local,
+    Cidade, País") prontos."""
+    for script in soup.find_all("script", type="application/ld+json"):
+        if not script.string:
+            continue
+        try:
+            dados = json.loads(script.string)
+        except ValueError:
+            continue
+        if isinstance(dados, dict) and dados.get("@type") == "SportsEvent":
+            return dados
+    return None
+
+
+def _data_inicio_json_ld(dados_json_ld):
+    if not dados_json_ld:
+        return None
+    inicio = dados_json_ld.get("startDate")
+    if not inicio:
+        return None
+    try:
+        return date.fromisoformat(inicio[:10])
+    except ValueError:
+        return None
+
+
+def _local_json_ld(dados_json_ld):
+    if not dados_json_ld:
+        return ""
+    local = dados_json_ld.get("location")
+    nome = local.get("name") if isinstance(local, dict) else None
+    return nome.strip() if nome else ""
+
+
+# Fallbacks pro JSON-LD e pro card "Location" não acharem nada (evento sem
+# nenhum dos dois, ou HTML incompleto por outro motivo). Os eventos "AJP
+# Tour"/"AJP No-Gi" sempre trazem o local embutido no próprio nome (ex:
+# "AJP Tour Tubarão International...", "AJP No-Gi Madrid
+# International..."), e alguns outros (ex: "Abu Dhabi Grand Slam ... -
+# Moscow") trazem como sufixo depois do último hífen. Sem nenhum dos dois
+# padrões, o campo fica vazio mesmo (não há como adivinhar com segurança).
 _LOCAL_NO_NOME = re.compile(
     r"\bAJP\s+(?:TOUR|NO-GI)\s+(.+?)\s+(?:INTERNATIONAL|NATIONAL|REGIONAL|CONTINENTAL)\b", re.I
 )
@@ -142,7 +180,10 @@ def _extrair_local_do_nome(nome):
     return ""
 
 
-def _extrair_local(soup, nome_evento):
+def _extrair_local(soup, nome_evento, local_json_ld):
+    if local_json_ld:
+        return local_json_ld
+
     for card in soup.select(".sc-card"):
         header = card.select_one(".sc-card-header h3")
         if header and header.get_text(strip=True).lower() == "location":
@@ -155,28 +196,6 @@ def _extrair_local(soup, nome_evento):
             if spans:
                 return spans[0]
     return _extrair_local_do_nome(nome_evento)
-
-
-def _data_inicio_json_ld(soup):
-    """A página do evento AJP (ajptour.com) traz um bloco JSON-LD
-    (schema.org/SportsEvent) com startDate em ISO 8601 — bem mais
-    confiável do que procurar a data no texto visível, porque o AJP
-    mostra as datas sem ano ali ("12 Sep - 13 Sep", ano só aparece em
-    outro lugar da página)."""
-    for script in soup.find_all("script", type="application/ld+json"):
-        if not script.string:
-            continue
-        try:
-            dados = json.loads(script.string)
-        except ValueError:
-            continue
-        inicio = dados.get("startDate") if isinstance(dados, dict) else None
-        if inicio:
-            try:
-                return date.fromisoformat(inicio[:10])
-            except ValueError:
-                continue
-    return None
 
 
 def _extrair_data(soup, data_inicio_json_ld):
@@ -302,14 +321,15 @@ def parse_evento_html(html):
             "não encontrei o ID do evento nessa página (procurei um link tipo "
             "smoothcomp.com/.../event/12345) — confirma que essa é a página do evento?"
         )
-    data_inicio = _data_inicio_json_ld(soup)
+    dados_json_ld = _sports_event_json_ld(soup)
+    data_inicio = _data_inicio_json_ld(dados_json_ld)
     prazo_inscricao = _extrair_prazo_inscricao(soup, data_inicio.year if data_inicio else None)
     nome_evento = _extrair_nome(soup)
     return {
         "id": f"ajp-{evento_id}",
         "nome": nome_evento,
         "data": _extrair_data(soup, data_inicio),
-        "local": _extrair_local(soup, nome_evento),
+        "local": _extrair_local(soup, nome_evento, _local_json_ld(dados_json_ld)),
         "tabela_idade": _extrair_tabela_idade(soup),
         "prazo_inscricao": prazo_inscricao.isoformat() if prazo_inscricao else None,
     }
