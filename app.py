@@ -447,6 +447,12 @@ def pagina_fale_conosco():
     return send_from_directory("static", "fale-conosco.html")
 
 
+@app.get("/faq")
+def pagina_faq():
+    # Pública — aberta a todo mundo, logado ou não.
+    return send_from_directory("static", "faq.html")
+
+
 @app.get("/termos")
 def pagina_termos():
     # Pública — aberta a todo mundo, logado ou não.
