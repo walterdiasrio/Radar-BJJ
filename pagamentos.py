@@ -115,7 +115,7 @@ def criar_sessao_checkout(usuario, plano, periodicidade):
         },
         "client_reference_id": str(usuario["id"]),
         "metadata": {"usuario_id": str(usuario["id"]), "plano": plano, "periodicidade": periodicidade},
-        "success_url": f"{URL_SITE}/assinatura/sucesso",
+        "success_url": f"{URL_SITE}/assinatura/sucesso?plano={plano}&periodicidade={periodicidade}",
         "cancel_url": f"{URL_SITE}/assinatura",
         "allow_promotion_codes": True,
     }

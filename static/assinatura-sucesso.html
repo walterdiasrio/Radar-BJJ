@@ -103,8 +103,26 @@ src="https://www.facebook.com/tr?id=28254694314126516&ev=PageView&noscript=1"
 
 <script>
   // Só chega nessa página depois de concluir o checkout no Stripe — marca
-  // início de assinatura pro Meta Pixel (evento padrão "Subscribe").
-  if (typeof fbq === "function") fbq("track", "Subscribe");
+  // início de assinatura pro Meta Pixel (evento padrão "Subscribe"), com o
+  // valor do plano escolhido pra permitir otimização por valor no Meta Ads.
+  // plano/periodicidade vêm na própria URL de retorno do Stripe (ver
+  // pagamentos.py, criar_sessao_checkout) — não dependem do webhook, que
+  // pode não ter processado ainda quando o usuário chega aqui.
+  if (typeof fbq === "function") {
+    const VALOR_PLANO = {
+      atleta: { mensal: 9.90, anual: 99.90 },
+      mestre: { mensal: 19.90, anual: 199.90 },
+    };
+    const params = new URLSearchParams(window.location.search);
+    const plano = params.get("plano");
+    const periodicidade = params.get("periodicidade");
+    const valor = VALOR_PLANO[plano]?.[periodicidade];
+    if (valor) {
+      fbq("track", "Subscribe", { value: valor, currency: "BRL", predicted_ltv: valor });
+    } else {
+      fbq("track", "Subscribe");
+    }
+  }
 </script>
 <script src="/auth-nav.js?v=4"></script>
 <nav class="menu-lateral menu-lateral-rodape" id="menu-rodape"></nav>
