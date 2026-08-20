@@ -6,6 +6,24 @@ function mostrarStatus(texto, ehErro = false) {
   elStatus.className = ehErro ? "erro" : "";
 }
 
+(function preSelecionarPlano() {
+  const params = new URLSearchParams(window.location.search);
+  const plano = params.get("plano");
+  const periodicidade = params.get("periodicidade");
+  if (plano !== "atleta" && plano !== "mestre") return;
+
+  const radio = document.querySelector(`input[name="tipo_perfil"][value="${plano}"]`);
+  if (radio) radio.checked = true;
+
+  sessionStorage.setItem("radarbjj_checkout_pendente", JSON.stringify({ plano, periodicidade }));
+
+  const nomes = { atleta: "Atleta PRO", mestre: "Mestre PRO" };
+  const aviso = document.createElement("p");
+  aviso.className = "aviso-alerta";
+  aviso.textContent = `Cadastre-se e, depois de confirmar o e-mail e entrar, vamos te levar direto pro checkout do plano ${nomes[plano]}.`;
+  elForm.parentNode.insertBefore(aviso, elForm);
+})();
+
 function escapeHtml(texto) {
   const div = document.createElement("div");
   div.textContent = texto;

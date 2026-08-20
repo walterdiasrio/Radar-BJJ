@@ -89,24 +89,34 @@ async function abrirPortal() {
   }
 }
 
+async function iniciarCheckout(plano, periodicidade) {
+  mostrarStatus("Preparando o pagamento...");
+  try {
+    const resp = await fetchAutenticado("/api/checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ plano, periodicidade }),
+    });
+    const dados = await resp.json();
+    if (!resp.ok) throw new Error(dados.erro || "não consegui iniciar o pagamento");
+    window.location.href = dados.url;
+  } catch (err) {
+    mostrarStatus(`Erro: ${err.message}`, true);
+  }
+}
+
 document.querySelectorAll(".btn-assinar").forEach(btn => {
-  btn.addEventListener("click", async () => {
-    const plano = btn.dataset.plano;
-    const periodicidade = btn.dataset.periodicidade;
-    mostrarStatus("Preparando o pagamento...");
-    try {
-      const resp = await fetchAutenticado("/api/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plano, periodicidade }),
-      });
-      const dados = await resp.json();
-      if (!resp.ok) throw new Error(dados.erro || "não consegui iniciar o pagamento");
-      window.location.href = dados.url;
-    } catch (err) {
-      mostrarStatus(`Erro: ${err.message}`, true);
-    }
-  });
+  btn.addEventListener("click", () => iniciarCheckout(btn.dataset.plano, btn.dataset.periodicidade));
 });
 
-carregarAssinaturaAtual();
+async function autoIniciarCheckoutSeVeioDoCadastro() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("auto") !== "1") return;
+  const plano = params.get("plano");
+  const periodicidade = params.get("periodicidade");
+  if (!plano || !periodicidade) return;
+  const btn = document.querySelector(`.btn-assinar[data-plano="${plano}"][data-periodicidade="${periodicidade}"]`);
+  if (btn && !btn.disabled) iniciarCheckout(plano, periodicidade);
+}
+
+carregarAssinaturaAtual().then(autoIniciarCheckoutSeVeioDoCadastro);

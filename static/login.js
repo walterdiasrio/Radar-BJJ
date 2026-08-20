@@ -43,6 +43,19 @@ elForm.addEventListener("submit", async (ev) => {
       throw new Error(dados.erro || "erro ao entrar");
     }
 
+    const pendente = sessionStorage.getItem("radarbjj_checkout_pendente");
+    if (pendente) {
+      sessionStorage.removeItem("radarbjj_checkout_pendente");
+      try {
+        const { plano, periodicidade } = JSON.parse(pendente);
+        if (plano && periodicidade) {
+          window.location.href = `/assinatura?plano=${plano}&periodicidade=${periodicidade}&auto=1`;
+          return;
+        }
+      } catch (err) {
+        // pendente inválido, segue fluxo normal
+      }
+    }
     window.location.href = "/";
   } catch (err) {
     mostrarStatus(err.message, true);
