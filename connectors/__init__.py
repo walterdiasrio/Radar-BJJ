@@ -104,9 +104,26 @@ def _atleta_combina(atleta, filtros_fed):
         and _combina(atleta.get("equipe"), filtros_fed.get("equipe"))
         and _combina_exata(atleta.get("categoria_idade"), filtros_fed.get("categoria_idade"))
         and _combina(atleta.get("genero"), filtros_fed.get("genero"))
-        and _combina_exata(atleta.get("peso"), filtros_fed.get("peso_categoria"))
+        and _peso_combina(atleta, filtros_fed)
         and combina_faixa
     )
+
+
+def _peso_combina(atleta, filtros_fed):
+    peso_categoria = filtros_fed.get("peso_categoria")
+    if peso_categoria:
+        return _combina_exata(atleta.get("peso"), peso_categoria)
+    # Peso foi pedido (peso_kg/peso_sem_kimono presente nos filtros) mas
+    # _filtros_para_federacao não conseguiu calcular a categoria de peso
+    # pra essa federação (falta ano/data de nascimento, peso fora de
+    # qualquer categoria da competição etc — nesses casos já aparece um
+    # aviso pro usuário). Sem essa checagem, _combina_exata(peso, None)
+    # deixa passar QUALQUER peso — resultado enganoso, tipo um atleta de
+    # -30kg aparecendo numa busca por 42kg só porque o filtro de peso
+    # virou um no-op silencioso pra essa federação.
+    if filtros_fed.get("peso_kg") or filtros_fed.get("peso_sem_kimono"):
+        return False
+    return True
 
 
 _NOME_FALLBACK = re.compile(r"^evento\s*\d+$", re.I)
@@ -240,6 +257,15 @@ def _filtros_para_federacao(fed, filtros, evento_id=None, evento_nome=None):
         modulo = FEDERACOES[fed]["module"]
         data_nascimento_iso = filtros.get("data_nascimento")
         if not data_nascimento_iso:
+            peso_pedido = (
+                filtros.get("peso_sem_kimono") if fed in FEDERACOES_SMOOTHCOMP_SEM_KIMONO
+                else filtros.get("peso_kg")
+            )
+            if peso_pedido:
+                avisos.append(
+                    f"{FEDERACOES[fed]['label']}: informe também a data de nascimento para filtrar por peso "
+                    "(a categoria de peso depende da idade exata do atleta)"
+                )
             return filtros_fed, avisos
         try:
             data_nascimento = date.fromisoformat(data_nascimento_iso)
