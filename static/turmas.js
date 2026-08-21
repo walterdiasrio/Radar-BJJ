@@ -259,10 +259,6 @@ function renderizarPlanoIA(turma) {
               ${estado.resultado.aulas.some(a => !a.salvo) ? `
                 <button type="button" class="btn-salvar-tudo-ia" data-id="${turma.id}" style="margin-top:10px;">Aceitar tudo</button>
               ` : ""}
-
-              <div style="margin-top:16px; border-top:1px solid var(--borda); padding-top:12px;">
-                ${renderizarPlanner(turma)}
-              </div>
             </div>
           ` : ""}
         </div>
@@ -286,29 +282,26 @@ function formatarDataDiaSemana(iso) {
   return `${NOMES_DIA_SEMANA[data.getDay()]}, ${formatarDataBr(iso)}`;
 }
 
-// Opção que aparece DEPOIS de gerar uma sugestão em "Plano de Aula IA"
-// (ver renderizarPlanoIA) — transforma aquela mesma sugestão (foco/resumo)
-// num planner do mês em PDF, pronto pra baixar/enviar por e-mail.
+// Calendário do mês em PDF com as Aulas Futuras já cadastradas dessa
+// turma (ver renderizarAulasFuturas) — não gera conteúdo novo, só
+// organiza no calendário o que o Mestre já escreveu lá.
 function renderizarPlanner(turma) {
   const expandido = plannerExpandidos.has(turma.id);
   const estado = plannerEstado[turma.id] || { mesAno: proximoMesAno() };
-  const iaEstado = planoIaEstado[turma.id] || {};
   const planner = estado.planner;
 
   return `
     <div>
       <button type="button" class="btn-secundario btn-planner" data-id="${turma.id}">
-        ${expandido ? "Esconder Planner de Aulas" : "Gerar Planner de Aulas (PDF) a partir dessa sugestão"}
+        ${expandido ? "Esconder Planner de Aulas" : "Planner de Aulas (PDF)"}
       </button>
 
       ${expandido ? `
         <div style="margin-top:12px;">
           <p style="color:#55606b; font-size:0.85rem; margin-top:0;">
-            Gera o planner do mês inteiro (um plano de aula curto pra cada dia de aula da turma), no
-            formato pra baixar em PDF ou mandar por e-mail. Não usa IA por conta própria — copia as aulas
-            do Plano de Aula IA gerado acima (dias fora dessa sugestão saem no automático, sem IA). Gere o
-            Plano de Aula IA primeiro pra aproveitar a sugestão da IA aqui. Depois de gerado, edite o
-            conteúdo de qualquer dia à vontade.
+            Organiza no calendário do mês as aulas que já estão em Aulas Futuras, no formato pra baixar em
+            PDF ou mandar por e-mail. Não cria aulas novas — cadastre em Aulas Futuras primeiro. Depois de
+            gerado, edite o conteúdo de qualquer dia à vontade.
           </p>
 
           <div style="display:flex; flex-wrap:wrap; gap:8px;">
@@ -320,16 +313,11 @@ function renderizarPlanner(turma) {
             `).join("")}
           </div>
           <button type="button" class="btn-gerar-planner" data-id="${turma.id}" style="margin-top:8px;" ${estado.carregando ? "disabled" : ""}>
-            ${estado.carregando ? "Gerando..." : (planner ? "Gerar de novo (substitui os dias)" : "Gerar planner")}
+            ${estado.carregando ? "Gerando..." : (planner ? "Atualizar (substitui os dias)" : "Gerar planner")}
           </button>
-          <div style="color:#55606b; font-size:0.78rem; margin-top:4px;">
-            Compartilha o mesmo limite do Plano de Aula IA: 2 gerações por dia, por turma.
-            ${iaEstado.foco ? ` Foco: ${iaEstado.foco}.` : ""}
-          </div>
 
           ${estado.erro ? `<div class="status-importacao erro" style="margin-top:8px;">${estado.erro}</div>` : ""}
           ${estado.mensagem ? `<div class="status-importacao" style="margin-top:8px;">${estado.mensagem}</div>` : ""}
-          ${planner && planner.aviso ? `<div class="status-importacao" style="margin-top:8px;">${planner.aviso}</div>` : ""}
 
           ${planner ? `
             <div style="margin-top:16px;">
@@ -445,6 +433,7 @@ function renderizarTurmas(turmas) {
         ${renderizarAulasFuturas(t)}
         ${renderizarAulasPassadas(t)}
         ${renderizarPlanoIA(t)}
+        ${renderizarPlanner(t)}
       </div>
     `;
   }).join("");
@@ -810,14 +799,9 @@ async function carregarPlannerExistente(turmaId) {
 
 async function gerarPlanner(turmaId) {
   const estado = plannerEstado[turmaId] || { mesAno: proximoMesAno() };
-  if (estado.planner && !confirm("Já existe um planner gerado pra esse mês. Gerar de novo substitui o conteúdo de todos os dias (objetivos e anotações são mantidos). Continuar?")) {
+  if (estado.planner && !confirm("Já existe um planner gerado pra esse mês. Atualizar substitui o conteúdo de todos os dias pelas Aulas Futuras atuais (objetivos e anotações são mantidos). Continuar?")) {
     return;
   }
-  const iaEstado = planoIaEstado[turmaId] || {};
-  // O planner não gera aulas novas com IA — ele copia as aulas já sugeridas
-  // pelo Plano de Aula IA (se essa turma já gerou uma). Sem sugestão de IA
-  // ainda, o planner sai inteiro no determinístico (sem custo extra).
-  const aulasIa = iaEstado.resultado && iaEstado.resultado.ia ? iaEstado.resultado.aulas : null;
   const [ano, mes] = estado.mesAno.split("-");
   atualizarEstadoPlanner(turmaId, { carregando: true, erro: null, mensagem: null });
   renderizarTurmas(turmasAtuais);
@@ -826,7 +810,6 @@ async function gerarPlanner(turmaId) {
     const resp = await fetchAutenticado(`/api/turmas/${turmaId}/planner?mes=${Number(mes)}&ano=${ano}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ foco: iaEstado.foco || "", aulas_ia: aulasIa }),
     });
     const dados = await resp.json();
     if (!resp.ok) throw new Error(dados.erro || "não consegui gerar o planner");

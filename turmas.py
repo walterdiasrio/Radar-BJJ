@@ -642,49 +642,13 @@ def gerar_plano_ia(mestre_id, turma_id, foco, resumo, posicoes_por_aula=2):
 
 # ---------------------------------------------------------------------------
 # Planner mensal de aulas — calendário do mês inteiro (template visual em
-# static/img/planner-*), com o conteúdo de cada dia de aula gerado por IA
-# e depois livremente editável pelo Mestre. Reaproveita o mesmo limite
-# diário de uso da IA que o Plano de Aula (plano_ia_uso) — gerar um mês
-# inteiro é uma única chamada, então cabe na mesma cota.
+# static/img/planner-*) com as Aulas Futuras já cadastradas pelo Mestre
+# (ver listar_aulas_futuras) que caem nesse mês. Não gera conteúdo novo —
+# só organiza no calendário o que já foi escrito (à mão ou aceito do
+# Plano de Aula IA) em Aulas Futuras.
 # ---------------------------------------------------------------------------
 
 LIMITE_CARACTERES_CONTEUDO_DIA = 500
-
-
-def _datas_do_mes(dias_semana, mes, ano):
-    """Datas de um mês/ano específicos que caem nos dias da semana da
-    turma (ordem crescente). Sem dias da semana cadastrados, retorna
-    lista vazia — o Mestre precisa configurar isso na turma primeiro."""
-    indices = {_DIA_SEMANA_INDICE[d] for d in dias_semana if d in _DIA_SEMANA_INDICE}
-    if not indices:
-        return []
-    ultimo_dia = calendar.monthrange(ano, mes)[1]
-    return [date(ano, mes, dia) for dia in range(1, ultimo_dia + 1) if date(ano, mes, dia).weekday() in indices]
-
-
-def _conteudo_fallback(turma, pool, data_referencia, contagem):
-    """Conteúdo determinístico (sem IA) pra um dia — cicla pelas posições
-    menos treinadas, igual à lógica de sugerir_plano_mensal."""
-    ordenadas = sorted(pool, key=lambda p: (contagem[p], p))
-    escolhidas = ordenadas[:2] if len(ordenadas) >= 2 else ordenadas[:1]
-    contagem.update(escolhidas)
-    return f"Aquecimento + foco técnico: {', '.join(escolhidas)}. Drilling seguido de sparring temático."
-
-
-def _gerar_dias_fallback(turma, pool, datas):
-    contagem = Counter({p: 0 for p in pool})
-    with _conn() as conn:
-        historico = conn.execute(
-            "SELECT posicoes FROM planos_aula WHERE turma_id = ?", (turma["id"],)
-        ).fetchall()
-    for linha in historico:
-        for posicao in json.loads(linha["posicoes"]):
-            if posicao in contagem:
-                contagem[posicao] += 1
-    return [
-        {"data": dia.isoformat(), "conteudo": _conteudo_fallback(turma, pool, dia, contagem)}
-        for dia in datas
-    ]
 
 
 def _turma_para_planner(mestre_id, turma_id):
@@ -699,24 +663,19 @@ def _turma_para_planner(mestre_id, turma_id):
     return turma
 
 
-def _conteudo_de_aula_ia(aula):
-    """Formata uma entrada de aula do Plano de Aula IA (posições + breve
-    observação) como o texto curto de um dia do planner."""
-    posicoes = ", ".join(aula.get("posicoes") or [])
-    observacao = (aula.get("observacao") or "").strip()
-    texto = f"{posicoes}. {observacao}" if observacao else posicoes
-    return texto[:LIMITE_CARACTERES_CONTEUDO_DIA]
+def _conteudo_da_aula(aula):
+    """Formata as posições de uma aula como o texto curto de um dia do
+    planner."""
+    posicoes = ", ".join(json.loads(aula["posicoes"]) if aula["posicoes"] else [])
+    return posicoes[:LIMITE_CARACTERES_CONTEUDO_DIA]
 
 
-def gerar_planner_mensal(mestre_id, turma_id, mes, ano, foco="", aulas_ia=None):
-    """Gera (ou regenera) o conteúdo dos dias de aula do planner mensal de
-    uma turma. Não chama a IA por conta própria — em vez disso, copia o
-    conteúdo de `aulas_ia` (a sugestão já gerada pelo Plano de Aula IA,
-    mandada pelo front) pros dias correspondentes; dias sem sugestão
-    (fora do que o Plano de Aula IA cobriu) usam o determinístico sem IA.
-    Sem `aulas_ia` nenhum, o planner inteiro sai determinístico — pra usar
-    IA aqui, gere o Plano de Aula IA primeiro. Preserva objetivos/anotações
-    já salvos ao regenerar. Retorna (planner, erro)."""
+def gerar_planner_mensal(mestre_id, turma_id, mes, ano):
+    """Monta (ou remonta) o planner mensal de uma turma a partir das Aulas
+    Futuras já cadastradas que caem nesse mês/ano — não cria conteúdo
+    novo, só organiza no calendário o que o Mestre já escreveu (à mão ou
+    aceito do Plano de Aula IA em Aulas Futuras). Preserva objetivos/
+    anotações já salvos ao remontar. Retorna (planner, erro)."""
     try:
         mes = int(mes)
         ano = int(ano)
@@ -724,57 +683,25 @@ def gerar_planner_mensal(mestre_id, turma_id, mes, ano, foco="", aulas_ia=None):
         return None, "mês/ano inválidos"
     if not (1 <= mes <= 12) or ano < 2020:
         return None, "mês/ano inválidos"
-    if foco and foco not in POSICOES:
-        return None, f"foco inválido (use: {', '.join(POSICOES.keys())})"
 
     turma = _turma_para_planner(mestre_id, turma_id)
     if not turma:
         return None, "turma não encontrada"
-    if not turma["dias_semana"]:
-        return None, "configure os dias da semana da turma antes de gerar o planner"
 
-    pool = list(POSICOES[foco]) if foco else list(_TODAS_POSICOES)
-    if turma["categoria"] in ("Baby", "Kids"):
-        pool = [p for p in pool if p not in POSICOES_ADULTO_APENAS]
-
-    datas = _datas_do_mes(turma["dias_semana"], mes, ano)
-    if not datas:
-        return None, "não há aulas nesse mês pros dias da semana configurados"
-
-    aulas_ia_por_data = {
-        aula.get("data"): aula for aula in (aulas_ia or []) if aula.get("data")
-    }
-
-    contagem = Counter({p: 0 for p in pool})
+    hoje = date.today().isoformat()
     with _conn() as conn:
-        historico = conn.execute(
-            "SELECT posicoes FROM planos_aula WHERE turma_id = ?", (turma_id,)
+        aulas = conn.execute(
+            """SELECT * FROM planos_aula
+               WHERE turma_id = ? AND data >= ?
+                 AND strftime('%m', data) = ? AND strftime('%Y', data) = ?
+               ORDER BY data ASC, id ASC""",
+            (turma_id, hoje, f"{mes:02d}", str(ano)),
         ).fetchall()
-    for linha in historico:
-        for posicao in json.loads(linha["posicoes"]):
-            if posicao in contagem:
-                contagem[posicao] += 1
 
-    dias = []
-    faltando = 0
-    for dia in datas:
-        data_iso = dia.isoformat()
-        aula_ia = aulas_ia_por_data.get(data_iso)
-        if aula_ia:
-            dias.append({"data": data_iso, "conteudo": _conteudo_de_aula_ia(aula_ia)})
-        else:
-            faltando += 1
-            dias.append({"data": data_iso, "conteudo": _conteudo_fallback(turma, pool, dia, contagem)})
+    if not aulas:
+        return None, "nenhuma aula futura cadastrada pra esse mês ainda — crie em Aulas Futuras primeiro"
 
-    if not aulas_ia_por_data:
-        aviso = "Gere o Plano de Aula IA primeiro pra usar sugestões da IA aqui — esse planner foi gerado automaticamente, sem IA."
-        usou_ia = False
-    elif faltando:
-        aviso = f"{faltando} dia(s) fora do que o Plano de Aula IA sugeriu foram gerados automaticamente, sem IA."
-        usou_ia = True
-    else:
-        aviso = None
-        usou_ia = True
+    dias = [{"data": aula["data"], "conteudo": _conteudo_da_aula(aula)} for aula in aulas]
 
     with _conn() as conn:
         conn.execute(
@@ -791,9 +718,6 @@ def gerar_planner_mensal(mestre_id, turma_id, mes, ano, foco="", aulas_ia=None):
 
     planner = dict(linha)
     planner["dias"] = json.loads(planner["dias"])
-    planner["ia"] = usou_ia
-    if aviso:
-        planner["aviso"] = aviso
     return planner, None
 
 

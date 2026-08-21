@@ -1573,13 +1573,10 @@ def _mes_ano_da_query():
 def api_gerar_planner(turma_id):
     if not _usuario_atual_eh_mestre():
         return jsonify({"erro": "exclusivo do perfil Mestre"}), 403
-    dados = request.get_json(silent=True) or {}
     mes, ano, erro = _mes_ano_da_query()
     if erro:
         return jsonify({"erro": erro}), 400
-    foco = dados.get("foco", "")
-    aulas_ia = dados.get("aulas_ia")
-    planner, erro = turmas.gerar_planner_mensal(session["usuario_id"], turma_id, mes, ano, foco, aulas_ia)
+    planner, erro = turmas.gerar_planner_mensal(session["usuario_id"], turma_id, mes, ano)
     if erro:
         return jsonify({"erro": erro}), 400
     return jsonify(planner)
