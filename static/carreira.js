@@ -551,30 +551,6 @@ function corDaFaixa(faixa) {
 
 let ultimoBlobStory = null;
 
-function carregarImagem(src) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = reject;
-    img.src = src;
-  });
-}
-
-function cartaoComGlow(ctx, x, y, w, h, r, corBorda) {
-  ctx.fillStyle = "rgba(255,255,255,0.05)";
-  roundRect(ctx, x, y, w, h, r);
-  ctx.fill();
-
-  ctx.save();
-  ctx.shadowColor = corBorda;
-  ctx.shadowBlur = 16;
-  ctx.strokeStyle = corBorda;
-  ctx.lineWidth = 2;
-  roundRect(ctx, x, y, w, h, r);
-  ctx.stroke();
-  ctx.restore();
-}
-
 async function gerarImagemStory() {
   const canvas = document.getElementById("canvas-story");
   const ctx = canvas.getContext("2d");
@@ -592,6 +568,7 @@ async function gerarImagemStory() {
     faixa: document.getElementById("p_faixa").value,
     grau: document.getElementById("p_grau").value,
     academia: document.getElementById("p_academia").value,
+    nomeUsuario: document.getElementById("nome_usuario").value,
   };
 
   let stats = {};
@@ -738,8 +715,15 @@ async function gerarImagemStory() {
   let yAcademia = yBadge + 58 + 40;
   if (perfil.academia) {
     ctx.font = "30px -apple-system, Arial, sans-serif";
+    const larguraTextoAcademia = ctx.measureText(perfil.academia).width;
+    const iconeAcademia = 28;
+    const gapAcademia = 12;
+    const xInicioAcademia = W / 2 - (iconeAcademia + gapAcademia + larguraTextoAcademia) / 2;
+    desenharIcone(ctx, "pin", xInicioAcademia + iconeAcademia / 2, yAcademia - 10, iconeAcademia, CINZA_AZULADO, 2);
+    ctx.textAlign = "left";
     ctx.fillStyle = CINZA_AZULADO;
-    ctx.fillText(`🦁 ${perfil.academia}`, W / 2, yAcademia);
+    ctx.fillText(perfil.academia, xInicioAcademia + iconeAcademia + gapAcademia, yAcademia);
+    ctx.textAlign = "center";
   } else {
     yAcademia -= 30;
   }
@@ -747,18 +731,18 @@ async function gerarImagemStory() {
   // Grade de estatísticas — 3 linhas x 2 colunas, ícone + número + rótulo
   // lado a lado dentro de cada cartão com borda brilhante.
   const statsPrincipais = [
-    { icone: "🏆", valor: stats.competicoes || 0, label: "COMPETIÇÕES" },
-    { icone: "🎖️", valor: stats.vitorias || 0, label: "VITÓRIAS" },
-    { icone: "🎯", valor: (stats.taxa_vitoria || 0) + "%", label: "TAXA DE VITÓRIA" },
-    { icone: "📈", valor: stats.sequencia_atual || 0, label: "SEQUÊNCIA ATUAL" },
-    { icone: "⚡", valor: stats.melhor_sequencia || 0, label: "MELHOR SEQUÊNCIA" },
-    { icone: "🥋", valor: stats.finalizacoes || 0, label: "FINALIZAÇÕES" },
+    { icone: "trofeu", valor: stats.competicoes || 0, label: "COMPETIÇÕES" },
+    { icone: "medalha", valor: stats.vitorias || 0, label: "VITÓRIAS" },
+    { icone: "alvo", valor: (stats.taxa_vitoria || 0) + "%", label: "TAXA DE VITÓRIA" },
+    { icone: "tendencia", valor: stats.sequencia_atual || 0, label: "SEQUÊNCIA ATUAL" },
+    { icone: "raio", valor: stats.melhor_sequencia || 0, label: "MELHOR SEQUÊNCIA" },
+    { icone: "bandeira", valor: stats.finalizacoes || 0, label: "FINALIZAÇÕES" },
   ];
 
   const margem = 60;
   const gapGrid = 18;
   const colW = (W - margem * 2 - gapGrid) / 2;
-  const linhaAltura = 165;
+  const linhaAltura = 150;
   const gridTopo = yAcademia + 42;
 
   statsPrincipais.forEach((item, i) => {
@@ -770,10 +754,7 @@ async function gerarImagemStory() {
     cartaoComGlow(ctx, x, y, colW, linhaAltura, 22, "rgba(127, 212, 255, 0.4)");
 
     const cy = y + linhaAltura / 2;
-    ctx.textAlign = "center";
-    ctx.font = "56px -apple-system, Arial, sans-serif";
-    ctx.fillStyle = "#ffffff";
-    ctx.fillText(item.icone, x + 90, cy + 20);
+    desenharIcone(ctx, item.icone, x + 90, cy, 54, "#ffffff", 2.2);
 
     ctx.textAlign = "left";
     ctx.font = "bold 52px -apple-system, Arial, sans-serif";
@@ -797,9 +778,9 @@ async function gerarImagemStory() {
   cartaoComGlow(ctx, margem, painelY, W - margem * 2, painelAltura, 24, "rgba(127, 212, 255, 0.3)");
 
   const medalhas = [
-    { icone: "🥈", valor: stats.pratas || 0, alturaBarra: 95, cor: "rgba(200, 210, 220, 0.35)" },
-    { icone: "🥇", valor: stats.ouros || 0, alturaBarra: 148, cor: "rgba(255, 215, 90, 0.4)" },
-    { icone: "🥉", valor: stats.bronzes || 0, alturaBarra: 70, cor: "rgba(205, 140, 90, 0.4)" },
+    { cor: "rgba(200, 210, 220, 0.35)", corMedalha: "#c9d3da", valor: stats.pratas || 0, alturaBarra: 95 },
+    { cor: "rgba(255, 215, 90, 0.4)", corMedalha: "#ffd75a", valor: stats.ouros || 0, alturaBarra: 148 },
+    { cor: "rgba(205, 140, 90, 0.4)", corMedalha: "#cd8c5a", valor: stats.bronzes || 0, alturaBarra: 70 },
   ];
   const larguraBarra = 200;
   const gapBarra = 40;
@@ -820,19 +801,38 @@ async function gerarImagemStory() {
     roundRect(ctx, x, yBarra, larguraBarra, m.alturaBarra, 14);
     ctx.stroke();
 
-    ctx.font = "58px -apple-system, Arial, sans-serif";
-    ctx.fillText(m.icone, x + larguraBarra / 2, yMedalha);
+    desenharMedalhaColorida(ctx, x + larguraBarra / 2, yMedalha, 30, m.corMedalha);
 
     ctx.font = "bold 48px -apple-system, Arial, sans-serif";
     ctx.fillStyle = "#ffffff";
     ctx.fillText(String(m.valor), x + larguraBarra / 2, yBarra + m.alturaBarra / 2 + 17);
   });
 
+  // Bloco "escaneie" com QR code — link direto pro perfil público (se o
+  // atleta já tiver nome de usuário definido) ou pro cadastro (senão,
+  // ainda dá pra converter quem só está vendo o Story). Além de reduzir a
+  // fricção de digitar a URL, preenche o espaço que sobra até o rodapé em
+  // vez de deixar uma faixa vazia — o Stories é vertical (1080×1920) e a
+  // maioria dos perfis não enche a tela só com a grade + o pódio.
+  const urlQr = perfil.nomeUsuario
+    ? `https://www.radarbjj.com/atleta/${encodeURIComponent(perfil.nomeUsuario)}`
+    : "https://www.radarbjj.com/cadastro";
+  const yQr = painelY + painelAltura + 30;
+  const alturaQr = desenharBlocoQrCode(ctx, {
+    x: margem,
+    y: yQr,
+    largura: W - margem * 2,
+    url: urlQr,
+    titulo: perfil.nomeUsuario ? "Veja meu perfil completo" : "Crie sua conta grátis",
+    subtitulo: "Escaneie ou acesse www.radarbjj.com",
+  });
+
   // Rodapé — link em destaque, com fundo para chamar atenção no Stories
   const urlSite = "www.radarbjj.com";
   ctx.font = "bold 40px -apple-system, Arial, sans-serif";
-  const larguraUrl = ctx.measureText(urlSite).width + 90;
-  const yUrl = painelY + painelAltura + 65;
+  const larguraTextoUrl = ctx.measureText(urlSite).width;
+  const larguraUrl = larguraTextoUrl + 130;
+  const yUrl = Math.min(yQr + alturaQr + 35, H - 70);
   ctx.fillStyle = "rgba(127, 212, 255, 0.15)";
   roundRect(ctx, W / 2 - larguraUrl / 2, yUrl - 44, larguraUrl, 64, 32);
   ctx.fill();
@@ -840,8 +840,11 @@ async function gerarImagemStory() {
   ctx.lineWidth = 1.5;
   roundRect(ctx, W / 2 - larguraUrl / 2, yUrl - 44, larguraUrl, 64, 32);
   ctx.stroke();
+  desenharIcone(ctx, "globo", W / 2 - larguraTextoUrl / 2 - 24, yUrl - 12, 30, CIANO, 2.2);
   ctx.fillStyle = CIANO;
-  ctx.fillText(`🌐 ${urlSite}`, W / 2, yUrl);
+  ctx.textAlign = "left";
+  ctx.fillText(urlSite, W / 2 - larguraTextoUrl / 2 + 8, yUrl);
+  ctx.textAlign = "center";
 
   canvas.toBlob(blob => {
     ultimoBlobStory = blob;
@@ -853,16 +856,6 @@ async function gerarImagemStory() {
       btnCompartilhar.classList.add("hidden");
     }
   }, "image/png");
-}
-
-function roundRect(ctx, x, y, w, h, r) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.arcTo(x + w, y, x + w, y + h, r);
-  ctx.arcTo(x + w, y + h, x, y + h, r);
-  ctx.arcTo(x, y + h, x, y, r);
-  ctx.arcTo(x, y, x + w, y, r);
-  ctx.closePath();
 }
 
 document.getElementById("btn-baixar-story").addEventListener("click", () => {

@@ -91,48 +91,6 @@ async function remover(id) {
 carregar();
 
 // ---------- Exportar pro Instagram (Stories) ----------
-function roundRect(ctx, x, y, w, h, r) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.arcTo(x + w, y, x + w, y + h, r);
-  ctx.arcTo(x + w, y + h, x, y + h, r);
-  ctx.arcTo(x, y + h, x, y, r);
-  ctx.arcTo(x, y, x + w, y, r);
-  ctx.closePath();
-}
-
-function cartaoComGlow(ctx, x, y, w, h, r, corBorda) {
-  ctx.fillStyle = "rgba(255,255,255,0.05)";
-  roundRect(ctx, x, y, w, h, r);
-  ctx.fill();
-  ctx.save();
-  ctx.shadowColor = corBorda;
-  ctx.shadowBlur = 16;
-  ctx.strokeStyle = corBorda;
-  ctx.lineWidth = 2;
-  roundRect(ctx, x, y, w, h, r);
-  ctx.stroke();
-  ctx.restore();
-}
-
-function carregarImagem(src) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = reject;
-    img.src = src;
-  });
-}
-
-function truncarTexto(ctx, texto, larguraMax) {
-  if (ctx.measureText(texto).width <= larguraMax) return texto;
-  let cortado = texto;
-  while (cortado.length > 1 && ctx.measureText(cortado + "…").width > larguraMax) {
-    cortado = cortado.slice(0, -1);
-  }
-  return cortado + "…";
-}
-
 let ultimoBlobAgendaStory = null;
 
 async function gerarImagemAgendaStory() {
@@ -238,13 +196,39 @@ async function gerarImagemAgendaStory() {
   // limitado de cartões no Stories; o resto vira um resumo "+N outras".
   const margem = 60;
   const larguraCartao = W - margem * 2;
-  const alturaCartao = 185;
+  const alturaCartaoBase = 185;
+  const alturaCartaoMax = 230;
   const gap = 22;
-  const yListaTopo = yTopo + 50;
-  const alturaDisponivel = H - yListaTopo - 220; // reserva espaço pro rodapé
-  const maxCartoes = Math.max(1, Math.floor((alturaDisponivel + gap) / (alturaCartao + gap)));
+  const alturaRodape = 50 + ALTURA_BLOCO_QR + 35 + 64; // gap + QR + gap + pill
+  const margemInferior = 70;
+  const alturaDisponivelParaLista = H - (yTopo + 50) - alturaRodape - margemInferior;
+  const maxCartoes = Math.max(1, Math.floor((alturaDisponivelParaLista + gap) / (alturaCartaoBase + gap)));
   const visiveis = itens.slice(0, maxCartoes);
   const restantes = itens.length - visiveis.length;
+
+  // Com poucos itens, estica os cards (até um teto) pra ocupar melhor a
+  // largura vertical disponível — o conteúdo interno de cada card fica
+  // centralizado dentro da altura extra (deltaY).
+  let alturaCartao = alturaCartaoBase;
+  if (visiveis.length > 0) {
+    const alturaTotalPadrao = visiveis.length * alturaCartaoBase + (visiveis.length - 1) * gap;
+    if (alturaTotalPadrao < alturaDisponivelParaLista) {
+      alturaCartao = Math.min(
+        alturaCartaoMax,
+        alturaCartaoBase + (alturaDisponivelParaLista - alturaTotalPadrao) / visiveis.length,
+      );
+    }
+  }
+  const deltaY = (alturaCartao - alturaCartaoBase) / 2;
+
+  // Mesmo esticando os cards até o teto, sobra espaço com poucos itens
+  // (ex: 1-2 competições) — em vez de deixar uma faixa vazia só embaixo,
+  // centraliza o bloco inteiro (lista + QR + rodapé) na altura que sobrou
+  // depois do cabeçalho, empurrando tudo pra baixo igualmente.
+  const alturaListaReal = visiveis.length * (alturaCartao + gap) - gap + (restantes > 0 ? 60 : 0);
+  const alturaConteudoReal = alturaListaReal + alturaRodape;
+  const espacoLivre = Math.max(0, H - (yTopo + 50) - alturaConteudoReal - margemInferior);
+  const yListaTopo = yTopo + 50 + espacoLivre / 2;
 
   visiveis.forEach((item, i) => {
     const y = yListaTopo + i * (alturaCartao + gap);
@@ -264,7 +248,7 @@ async function gerarImagemAgendaStory() {
     ctx.letterSpacing = "1px";
     const larguraBadge = ctx.measureText(textoBadge).width + 40;
     const xBadge = margem + larguraCartao - larguraBadge - 30;
-    const yBadge = y + 26;
+    const yBadge = y + deltaY + 26;
     const alturaBadge = 44;
     ctx.strokeStyle = corBadge;
     ctx.lineWidth = 2;
@@ -279,7 +263,7 @@ async function gerarImagemAgendaStory() {
     const larguraData = xBadge - xTexto - 24;
     ctx.font = "bold 30px -apple-system, Arial, sans-serif";
     ctx.fillStyle = CIANO;
-    ctx.fillText(truncarTexto(ctx, item.data || "", larguraData), xTexto, y + 54);
+    ctx.fillText(truncarTexto(ctx, item.data || "", larguraData), xTexto, y + deltaY + 54);
 
     // Linha do evento começa bem abaixo do fundo do balão de status (y +
     // 70), pra nunca encostar nele mesmo com fontes/métricas diferentes
@@ -287,12 +271,12 @@ async function gerarImagemAgendaStory() {
     ctx.font = "bold 36px -apple-system, Arial, sans-serif";
     ctx.fillStyle = "#ffffff";
     const linhaEvento = `${item.federacao} — ${item.nome}`;
-    ctx.fillText(truncarTexto(ctx, linhaEvento, larguraTexto), xTexto, y + 116);
+    ctx.fillText(truncarTexto(ctx, linhaEvento, larguraTexto), xTexto, y + deltaY + 116);
 
     if (item.local) {
       ctx.font = "26px -apple-system, Arial, sans-serif";
       ctx.fillStyle = CINZA_AZULADO;
-      ctx.fillText(truncarTexto(ctx, item.local, larguraTexto), xTexto, y + 156);
+      ctx.fillText(truncarTexto(ctx, item.local, larguraTexto), xTexto, y + deltaY + 156);
     }
   });
   ctx.textAlign = "center";
@@ -305,11 +289,26 @@ async function gerarImagemAgendaStory() {
     yFimLista += 60;
   }
 
+  // Bloco "escaneie" com QR code pro cadastro — a agenda é pessoal (não dá
+  // pra linkar num perfil público), então aqui o QR sempre convida quem
+  // está vendo o Story a criar a própria conta grátis. Preenche o espaço
+  // que sobra antes do rodapé.
+  const yQr = yFimLista + 50;
+  const alturaQr = desenharBlocoQrCode(ctx, {
+    x: margem,
+    y: yQr,
+    largura: larguraCartao,
+    url: "https://www.radarbjj.com/cadastro",
+    titulo: "Crie sua conta grátis",
+    subtitulo: "Escaneie ou acesse www.radarbjj.com",
+  });
+
   // Rodapé — link em destaque, mesmo padrão do Compartilhar de Minha Carreira.
   const urlSite = "www.radarbjj.com";
   ctx.font = "bold 40px -apple-system, Arial, sans-serif";
-  const larguraUrl = ctx.measureText(urlSite).width + 90;
-  const yUrl = Math.min(yFimLista + 90, H - 90);
+  const larguraTextoUrl = ctx.measureText(urlSite).width;
+  const larguraUrl = larguraTextoUrl + 130;
+  const yUrl = Math.min(yQr + alturaQr + 35, H - 70);
   ctx.fillStyle = "rgba(127, 212, 255, 0.15)";
   roundRect(ctx, W / 2 - larguraUrl / 2, yUrl - 44, larguraUrl, 64, 32);
   ctx.fill();
@@ -317,8 +316,11 @@ async function gerarImagemAgendaStory() {
   ctx.lineWidth = 1.5;
   roundRect(ctx, W / 2 - larguraUrl / 2, yUrl - 44, larguraUrl, 64, 32);
   ctx.stroke();
+  desenharIcone(ctx, "globo", W / 2 - larguraTextoUrl / 2 - 24, yUrl - 12, 30, CIANO, 2.2);
   ctx.fillStyle = CIANO;
-  ctx.fillText(`🌐 ${urlSite}`, W / 2, yUrl);
+  ctx.textAlign = "left";
+  ctx.fillText(urlSite, W / 2 - larguraTextoUrl / 2 + 8, yUrl);
+  ctx.textAlign = "center";
 
   canvas.toBlob(blob => {
     ultimoBlobAgendaStory = blob;
