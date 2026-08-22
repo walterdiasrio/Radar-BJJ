@@ -21,7 +21,13 @@ async function carregarAlunos() {
     }
 
     mostrarStatus(`${alunos.length} aluno(s) encontrado(s).`);
-    elLista.innerHTML = alunos.map(a => `
+    elLista.innerHTML = alunos.map(a => {
+      const pendente = a.vinculo_status === "pendente";
+      // Pendente porque o ALUNO pediu: a bola é do Mestre (Aceitar/Recusar
+      // aqui mesmo). Pendente porque o MESTRE convidou: só falta o aluno
+      // aceitar do lado dele — aqui só dá pra cancelar o convite.
+      const precisaAceitar = pendente && a.vinculo_criado_por === "aluno";
+      return `
       <div class="cartao-alerta">
         <div class="cartao-alerta-topo">
           <div style="display:flex; align-items:center; gap:12px;">
@@ -29,16 +35,29 @@ async function carregarAlunos() {
               ? `<img src="${a.foto_url}" alt="" style="width:44px; height:44px; border-radius:50%; object-fit:cover; flex-shrink:0;">`
               : `<div style="width:44px; height:44px; border-radius:50%; background:var(--campo-bg); border:1px solid var(--borda); display:flex; align-items:center; justify-content:center; font-size:1.3rem; flex-shrink:0;">🥋</div>`}
             <div>
-              <h3><a href="/meus-alunos/${a.usuario_id}" style="color: var(--azul); text-decoration: none;">${a.nome || "(sem nome)"}</a></h3>
-              <div class="cartao-alerta-federacao">Faixa ${a.faixa}${Number(a.grau) > 0 ? " · " + a.grau + "º grau" : ""}</div>
+              <h3>${pendente
+                ? (a.nome || "(sem nome)")
+                : `<a href="/meus-alunos/${a.usuario_id}" style="color: var(--azul); text-decoration: none;">${a.nome || "(sem nome)"}</a>`}</h3>
+              <div class="cartao-alerta-federacao">
+                ${pendente
+                  ? (precisaAceitar ? "Pediu pra ser seu aluno — pendente" : "Convite enviado — aguardando aceite")
+                  : `Faixa ${a.faixa}${Number(a.grau) > 0 ? " · " + a.grau + "º grau" : ""}`}
+              </div>
             </div>
           </div>
-          <button type="button" class="btn-remover" data-id="${a.usuario_id}">Remover</button>
+          <div style="display:flex; gap:8px;">
+            ${precisaAceitar ? `<button type="button" class="btn-aceitar-vinculo" data-id="${a.usuario_id}">Aceitar</button>` : ""}
+            <button type="button" class="btn-remover" data-id="${a.usuario_id}">${pendente ? (precisaAceitar ? "Recusar" : "Cancelar") : "Remover"}</button>
+          </div>
         </div>
       </div>
-    `).join("");
+    `;
+    }).join("");
     elLista.querySelectorAll(".btn-remover").forEach(btn => {
       btn.addEventListener("click", () => removerAluno(Number(btn.dataset.id)));
+    });
+    elLista.querySelectorAll(".btn-aceitar-vinculo").forEach(btn => {
+      btn.addEventListener("click", () => aceitarAluno(Number(btn.dataset.id)));
     });
   } catch (err) {
     mostrarStatus(`Erro: ${err.message}`, true);
@@ -56,13 +75,24 @@ document.getElementById("form-add-aluno").addEventListener("submit", async (ev) 
     });
     const dados = await resp.json();
     if (!resp.ok) throw new Error(dados.erro || "não consegui adicionar");
-    mostrarStatus("Aluno adicionado!");
+    mostrarStatus("Convite enviado! Fica pendente até o aluno aceitar.");
     elInput.value = "";
     carregarAlunos();
   } catch (err) {
     mostrarStatus(`Erro: ${err.message}`, true);
   }
 });
+
+async function aceitarAluno(alunoId) {
+  try {
+    const resp = await fetchAutenticado(`/api/meus-alunos/${alunoId}/aceitar`, { method: "POST" });
+    if (!resp.ok) throw new Error("não consegui aceitar");
+    mostrarStatus("Aluno aceito!");
+    carregarAlunos();
+  } catch (err) {
+    mostrarStatus(`Erro: ${err.message}`, true);
+  }
+}
 
 async function removerAluno(alunoId) {
   if (!confirm("Remover esse aluno da sua lista?")) return;

@@ -79,7 +79,9 @@ def init_db():
 
         # Vínculo Mestre-Atleta pra "Meus Alunos": criado quando qualquer um
         # dos dois lados adiciona o nome de usuário do outro (ver app.py) —
-        # não exige confirmação da outra parte, é informal por design.
+        # fica "pendente" até a OUTRA parte aceitar (ver criar_vinculo/
+        # aceitar_vinculo). "criado_por" guarda quem iniciou ("mestre" ou
+        # "aluno"), pra saber de quem é a bola de aceitar.
         conn.execute("""
             CREATE TABLE IF NOT EXISTS vinculos (
                 mestre_id INTEGER NOT NULL,
@@ -88,6 +90,14 @@ def init_db():
                 PRIMARY KEY (mestre_id, aluno_id)
             )
         """)
+        # status default 'aceito' pra vínculos que já existiam antes desse
+        # campo existir — não pode fazer um vínculo já estabelecido virar
+        # "pendente" do nada e sumir das duas listas.
+        colunas_vinculos = {linha["name"] for linha in conn.execute("PRAGMA table_info(vinculos)")}
+        if "status" not in colunas_vinculos:
+            conn.execute("ALTER TABLE vinculos ADD COLUMN status TEXT NOT NULL DEFAULT 'aceito'")
+        if "criado_por" not in colunas_vinculos:
+            conn.execute("ALTER TABLE vinculos ADD COLUMN criado_por TEXT")
 
 
 def obter_perfil(usuario_id):
@@ -100,18 +110,41 @@ def obter_perfil(usuario_id):
     return dict(linha)
 
 
-def criar_vinculo(mestre_id, aluno_id):
+def criar_vinculo(mestre_id, aluno_id, criado_por):
+    """criado_por: "mestre" ou "aluno" — quem iniciou o convite. Fica
+    pendente até a OUTRA parte aceitar (ver aceitar_vinculo). Se já existe
+    um vínculo entre os dois (pendente ou aceito), não faz nada — não é
+    erro, só não duplica."""
     if mestre_id == aluno_id:
         return False, "não dá pra se adicionar como próprio aluno"
     with _conn() as conn:
-        conn.execute(
-            "INSERT OR IGNORE INTO vinculos (mestre_id, aluno_id) VALUES (?, ?)",
-            (mestre_id, aluno_id),
-        )
+        existe = conn.execute(
+            "SELECT 1 FROM vinculos WHERE mestre_id = ? AND aluno_id = ?", (mestre_id, aluno_id)
+        ).fetchone()
+        if not existe:
+            conn.execute(
+                "INSERT INTO vinculos (mestre_id, aluno_id, status, criado_por) VALUES (?, ?, 'pendente', ?)",
+                (mestre_id, aluno_id, criado_por),
+            )
     return True, None
 
 
+def aceitar_vinculo(mestre_id, aluno_id):
+    """Só a parte que NÃO criou o convite pode aceitar — quem chama
+    (app.py) já garante isso construindo a query com o próprio usuário
+    logado no papel certo. Retorna False se não havia convite pendente
+    esperando (já aceito, recusado, ou nunca existiu)."""
+    with _conn() as conn:
+        cursor = conn.execute(
+            "UPDATE vinculos SET status = 'aceito' WHERE mestre_id = ? AND aluno_id = ? AND status = 'pendente'",
+            (mestre_id, aluno_id),
+        )
+    return cursor.rowcount > 0
+
+
 def remover_vinculo(mestre_id, aluno_id):
+    """Remove o vínculo — serve tanto pra "recusar"/cancelar um convite
+    pendente quanto pra desfazer um vínculo já aceito."""
     with _conn() as conn:
         cursor = conn.execute(
             "DELETE FROM vinculos WHERE mestre_id = ? AND aluno_id = ?", (mestre_id, aluno_id)
@@ -120,17 +153,20 @@ def remover_vinculo(mestre_id, aluno_id):
 
 
 def vinculo_existe(mestre_id, aluno_id):
+    """Só conta vínculo ACEITO — um convite pendente ainda não dá acesso
+    a nada (ver aluno_detalhe, turma_adicionar_aluno em app.py)."""
     with _conn() as conn:
         linha = conn.execute(
-            "SELECT 1 FROM vinculos WHERE mestre_id = ? AND aluno_id = ?", (mestre_id, aluno_id)
+            "SELECT 1 FROM vinculos WHERE mestre_id = ? AND aluno_id = ? AND status = 'aceito'",
+            (mestre_id, aluno_id),
         ).fetchone()
     return linha is not None
 
 
 def listar_ids_alunos_do_mestre(mestre_id):
-    """Só os IDs — não exige que o aluno já tenha preenchido Minha Carreira,
-    senão um vínculo recém-criado "sumiria" até a outra parte preencher algo.
-    Quem chama enriquece com nome/e-mail (perfil pode nem existir ainda)."""
+    """Só os IDs, de QUALQUER status (pendente ou aceito) — usado como
+    "já vinculado" pra não deixar convidar de novo. Quem precisa do
+    status pra exibir (Meus Alunos) usa listar_vinculos_do_mestre."""
     with _conn() as conn:
         linhas = conn.execute(
             "SELECT aluno_id FROM vinculos WHERE mestre_id = ? ORDER BY criado_em", (mestre_id,)
@@ -144,6 +180,46 @@ def listar_ids_mestres_do_aluno(aluno_id):
             "SELECT mestre_id FROM vinculos WHERE aluno_id = ? ORDER BY criado_em", (aluno_id,)
         ).fetchall()
     return [linha["mestre_id"] for linha in linhas]
+
+
+def listar_vinculos_do_mestre(mestre_id):
+    """Todos os vínculos (pendente + aceito) dessa Mestre, com status e
+    quem iniciou — usado por Meus Alunos pra mostrar o selo "Pendente"."""
+    with _conn() as conn:
+        linhas = conn.execute(
+            "SELECT * FROM vinculos WHERE mestre_id = ? ORDER BY criado_em", (mestre_id,)
+        ).fetchall()
+    return [dict(linha) for linha in linhas]
+
+
+def listar_vinculos_do_aluno(aluno_id):
+    with _conn() as conn:
+        linhas = conn.execute(
+            "SELECT * FROM vinculos WHERE aluno_id = ? ORDER BY criado_em", (aluno_id,)
+        ).fetchall()
+    return [dict(linha) for linha in linhas]
+
+
+def vinculos_pendentes_para_aceitar(usuario_id):
+    """Convites pendentes em que usuario_id é quem PRECISA agir (o convite
+    foi iniciado pela outra parte) — nos dois papéis possíveis, já que o
+    mesmo usuário pode ser Mestre de uns e Aluno de outros ao mesmo tempo.
+    Usado no aviso da Home."""
+    with _conn() as conn:
+        como_mestre = conn.execute(
+            "SELECT * FROM vinculos WHERE mestre_id = ? AND status = 'pendente' AND criado_por = 'aluno'",
+            (usuario_id,),
+        ).fetchall()
+        como_aluno = conn.execute(
+            "SELECT * FROM vinculos WHERE aluno_id = ? AND status = 'pendente' AND criado_por = 'mestre'",
+            (usuario_id,),
+        ).fetchall()
+    pendentes = []
+    for linha in como_mestre:
+        pendentes.append({"papel": "mestre", "mestre_id": linha["mestre_id"], "aluno_id": linha["aluno_id"]})
+    for linha in como_aluno:
+        pendentes.append({"papel": "aluno", "mestre_id": linha["mestre_id"], "aluno_id": linha["aluno_id"]})
+    return pendentes
 
 
 def buscar_atletas_por_academia(academia, excluir_ids=()):

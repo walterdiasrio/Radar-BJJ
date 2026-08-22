@@ -1282,13 +1282,37 @@ def _perfil_publico_vinculo(usuario_id):
     return _com_foto_url(perfil)
 
 
+@app.get("/api/vinculos-pendentes")
+@api_login_necessario
+def api_vinculos_pendentes():
+    """Convites Mestre-Aluno esperando a ação do usuário logado — em
+    qualquer um dos dois papéis, já que a mesma pessoa pode ser Mestre de
+    uns e Aluno de outros ao mesmo tempo. Usado no aviso da Home (sem
+    exigir assinatura: aceitar/recusar é uma ação básica de conta)."""
+    pendentes = carreira.vinculos_pendentes_para_aceitar(session["usuario_id"])
+    resultado = []
+    for p in pendentes:
+        outro_id = p["aluno_id"] if p["papel"] == "mestre" else p["mestre_id"]
+        perfil = _perfil_publico_vinculo(outro_id)
+        resultado.append({
+            "papel": p["papel"],
+            "mestre_id": p["mestre_id"],
+            "aluno_id": p["aluno_id"],
+            "nome": perfil["nome"],
+        })
+    return jsonify(resultado)
+
+
 @app.get("/api/meus-alunos")
 @api_assinatura_necessaria
 def api_listar_meus_alunos():
     if not _usuario_atual_eh_mestre():
         return jsonify({"erro": "exclusivo do perfil Mestre"}), 403
-    ids = carreira.listar_ids_alunos_do_mestre(session["usuario_id"])
-    return jsonify([_perfil_publico_vinculo(aluno_id) for aluno_id in ids])
+    vinculos = carreira.listar_vinculos_do_mestre(session["usuario_id"])
+    return jsonify([
+        {**_perfil_publico_vinculo(v["aluno_id"]), "vinculo_status": v["status"], "vinculo_criado_por": v["criado_por"]}
+        for v in vinculos
+    ])
 
 
 @app.post("/api/meus-alunos")
@@ -1301,7 +1325,7 @@ def api_adicionar_aluno():
     aluno = auth.buscar_por_id(aluno_id) if aluno_id else auth.buscar_por_nome_usuario(dados.get("nome_usuario"))
     if not aluno:
         return jsonify({"erro": "nenhum usuário encontrado"}), 404
-    ok, erro = carreira.criar_vinculo(mestre_id=session["usuario_id"], aluno_id=aluno["id"])
+    ok, erro = carreira.criar_vinculo(mestre_id=session["usuario_id"], aluno_id=aluno["id"], criado_por="mestre")
     if not ok:
         return jsonify({"erro": erro}), 400
     return jsonify({"ok": True})
@@ -1362,6 +1386,21 @@ def api_remover_aluno(aluno_id):
     if not _usuario_atual_eh_mestre():
         return jsonify({"erro": "exclusivo do perfil Mestre"}), 403
     carreira.remover_vinculo(mestre_id=session["usuario_id"], aluno_id=aluno_id)
+    return jsonify({"ok": True})
+
+
+@app.post("/api/meus-alunos/<int:aluno_id>/aceitar")
+@api_assinatura_necessaria
+def api_aceitar_aluno(aluno_id):
+    """Aceita um convite que o ALUNO iniciou (pediu pra entrar como aluno
+    desse Mestre) — só existe convite pendente pra aceitar aqui nesse
+    sentido; se o Mestre foi quem convidou, quem aceita é o aluno (ver
+    api_aceitar_mestre)."""
+    if not _usuario_atual_eh_mestre():
+        return jsonify({"erro": "exclusivo do perfil Mestre"}), 403
+    ok = carreira.aceitar_vinculo(mestre_id=session["usuario_id"], aluno_id=aluno_id)
+    if not ok:
+        return jsonify({"erro": "convite não encontrado"}), 404
     return jsonify({"ok": True})
 
 
@@ -1647,8 +1686,11 @@ def api_planner_email(turma_id):
 @app.get("/api/carreira/meu-mestre")
 @api_login_necessario
 def api_listar_meus_mestres():
-    ids = carreira.listar_ids_mestres_do_aluno(session["usuario_id"])
-    return jsonify([_perfil_publico_vinculo(mestre_id) for mestre_id in ids])
+    vinculos = carreira.listar_vinculos_do_aluno(session["usuario_id"])
+    return jsonify([
+        {**_perfil_publico_vinculo(v["mestre_id"]), "vinculo_status": v["status"], "vinculo_criado_por": v["criado_por"]}
+        for v in vinculos
+    ])
 
 
 @app.post("/api/carreira/meu-mestre")
@@ -1660,9 +1702,20 @@ def api_adicionar_meu_mestre():
         return jsonify({"erro": "nenhum usuário encontrado com esse nome de usuário"}), 404
     if mestre["tipo_perfil"] != "mestre" and mestre["email"] not in ADMIN_EMAILS:
         return jsonify({"erro": "esse usuário não é um perfil Mestre"}), 400
-    ok, erro = carreira.criar_vinculo(mestre_id=mestre["id"], aluno_id=session["usuario_id"])
+    ok, erro = carreira.criar_vinculo(mestre_id=mestre["id"], aluno_id=session["usuario_id"], criado_por="aluno")
     if not ok:
         return jsonify({"erro": erro}), 400
+    return jsonify({"ok": True})
+
+
+@app.post("/api/carreira/meu-mestre/<int:mestre_id>/aceitar")
+@api_login_necessario
+def api_aceitar_mestre(mestre_id):
+    """Aceita um convite que o MESTRE iniciou (adicionou você como aluno
+    dele) — quem aceita aqui é o aluno logado."""
+    ok = carreira.aceitar_vinculo(mestre_id=mestre_id, aluno_id=session["usuario_id"])
+    if not ok:
+        return jsonify({"erro": "convite não encontrado"}), 404
     return jsonify({"ok": True})
 
 

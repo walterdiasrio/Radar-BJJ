@@ -88,6 +88,64 @@ function renderizarProximasHome(itens) {
   `).join("");
 }
 
+// Convites Mestre-Aluno pendentes esperando o usuário logado aceitar —
+// em qualquer um dos dois papéis (a mesma pessoa pode ser Mestre de uns
+// e Aluno de outros ao mesmo tempo). Ver api_vinculos_pendentes (app.py).
+async function carregarVinculosPendentes() {
+  const elBloco = document.getElementById("home-vinculos-pendentes");
+  if (!elBloco) return;
+  try {
+    const resp = await fetch("/api/vinculos-pendentes");
+    if (!resp.ok) return;
+    const pendentes = await resp.json();
+    if (!pendentes.length) {
+      elBloco.style.display = "none";
+      elBloco.innerHTML = "";
+      return;
+    }
+    elBloco.style.display = "block";
+    elBloco.innerHTML = pendentes.map((p, i) => `
+      <div class="aviso-lembrete">
+        <span>
+          ${p.papel === "mestre"
+            ? `<strong>${p.nome}</strong> pediu pra ser seu aluno.`
+            : `<strong>${p.nome}</strong> te convidou como aluno(a).`}
+        </span>
+        <button type="button" class="btn-aceitar-vinculo-home" data-indice="${i}">Aceitar</button>
+        <button type="button" class="btn-secundario btn-recusar-vinculo-home" data-indice="${i}">Recusar</button>
+      </div>
+    `).join("");
+    elBloco.querySelectorAll(".btn-aceitar-vinculo-home").forEach(btn => {
+      btn.addEventListener("click", () => responderVinculoHome(pendentes[Number(btn.dataset.indice)], true));
+    });
+    elBloco.querySelectorAll(".btn-recusar-vinculo-home").forEach(btn => {
+      btn.addEventListener("click", () => responderVinculoHome(pendentes[Number(btn.dataset.indice)], false));
+    });
+  } catch (err) {
+    elBloco.style.display = "none";
+  }
+}
+
+async function responderVinculoHome(pendente, aceitar) {
+  // "papel: mestre" = EU sou o Mestre nesse vínculo (aceito/recuso pelo
+  // lado de Meus Alunos, que exige assinatura Mestre PRO — fetchAutenticado
+  // já redireciona pra /assinatura num 402, mesmo tratamento usado no
+  // resto do site); "papel: aluno" = EU sou o aluno (pelo lado de Meu
+  // Mestre, só precisa estar logado) — mesma distinção usada em
+  // meus-alunos.js/carreira.js.
+  const url = pendente.papel === "mestre"
+    ? `/api/meus-alunos/${pendente.aluno_id}${aceitar ? "/aceitar" : ""}`
+    : `/api/carreira/meu-mestre/${pendente.mestre_id}${aceitar ? "/aceitar" : ""}`;
+  try {
+    await fetchAutenticado(url, { method: aceitar ? "POST" : "DELETE", headers: { "Content-Type": "application/json" } });
+  } catch (err) {
+    // fetchAutenticado já redirecionou (sessão expirada / assinatura
+    // necessária) — não há mais nada a fazer aqui.
+    return;
+  }
+  carregarVinculosPendentes();
+}
+
 function renderizarMedalhasHome(medalhas) {
   const elCard = document.getElementById("home-quadro-medalhas");
   elCard.style.display = "block";
@@ -119,6 +177,8 @@ async function ajustarCartaoBoasVindas() {
     elCtaCadastro.style.display = "block";
     return;
   }
+
+  carregarVinculosPendentes();
 
   elCtaCadastro.style.display = "none";
   elTextoMarketing.style.display = "none";

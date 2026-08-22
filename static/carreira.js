@@ -227,19 +227,34 @@ async function carregarMestres() {
       el.innerHTML = "";
       return;
     }
-    el.innerHTML = mestres.map(m => `
+    el.innerHTML = mestres.map(m => {
+      const pendente = m.vinculo_status === "pendente";
+      // Pendente porque o MESTRE convidou: a bola é do aluno (Aceitar/
+      // Recusar aqui mesmo). Pendente porque o ALUNO pediu: só falta o
+      // mestre aceitar do lado dele — aqui só dá pra cancelar o pedido.
+      const precisaAceitar = pendente && m.vinculo_criado_por === "mestre";
+      return `
       <div class="cartao-alerta" style="margin-bottom: 8px;">
         <div class="cartao-alerta-topo">
           <div>
             <h3 style="font-size: 0.95rem;">${m.nome || "(sem nome)"}</h3>
-            ${m.academia ? `<div class="cartao-alerta-federacao">${m.academia}</div>` : ""}
+            ${pendente
+              ? `<div class="cartao-alerta-federacao">${precisaAceitar ? "Convidou você — pendente" : "Pedido enviado — aguardando aceite"}</div>`
+              : (m.academia ? `<div class="cartao-alerta-federacao">${m.academia}</div>` : "")}
           </div>
-          <button type="button" class="btn-remover" data-id="${m.usuario_id}">Remover</button>
+          <div style="display:flex; gap:8px;">
+            ${precisaAceitar ? `<button type="button" class="btn-aceitar-vinculo" data-id="${m.usuario_id}">Aceitar</button>` : ""}
+            <button type="button" class="btn-remover" data-id="${m.usuario_id}">${pendente ? (precisaAceitar ? "Recusar" : "Cancelar") : "Remover"}</button>
+          </div>
         </div>
       </div>
-    `).join("");
+    `;
+    }).join("");
     el.querySelectorAll(".btn-remover").forEach(btn => {
       btn.addEventListener("click", () => removerMestre(Number(btn.dataset.id)));
+    });
+    el.querySelectorAll(".btn-aceitar-vinculo").forEach(btn => {
+      btn.addEventListener("click", () => aceitarMestre(Number(btn.dataset.id)));
     });
   } catch (err) {
     mostrarStatus("status-mestre", `Erro: ${err.message}`, true);
@@ -257,13 +272,24 @@ document.getElementById("form-add-mestre").addEventListener("submit", async (ev)
     });
     const dados = await resp.json();
     if (!resp.ok) throw new Error(dados.erro || "não consegui adicionar");
-    mostrarStatus("status-mestre", "Mestre adicionado!");
+    mostrarStatus("status-mestre", "Pedido enviado! Fica pendente até o Mestre aceitar.");
     elInput.value = "";
     carregarMestres();
   } catch (err) {
     mostrarStatus("status-mestre", `Erro: ${err.message}`, true);
   }
 });
+
+async function aceitarMestre(mestreId) {
+  try {
+    const resp = await fetchAutenticado(`/api/carreira/meu-mestre/${mestreId}/aceitar`, { method: "POST" });
+    if (!resp.ok) throw new Error("não consegui aceitar");
+    mostrarStatus("status-mestre", "Vínculo aceito!");
+    carregarMestres();
+  } catch (err) {
+    mostrarStatus("status-mestre", `Erro: ${err.message}`, true);
+  }
+}
 
 async function removerMestre(mestreId) {
   try {
