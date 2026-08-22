@@ -1,0 +1,40 @@
+<svg viewBox="0 0 480 480" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="hero-radar-titulo">
+  <title id="hero-radar-titulo">Ilustração de um radar circular localizando pontos em um tapete de Jiu-Jitsu</title>
+  <defs>
+    <radialGradient id="heroFundo" cx="50%" cy="42%" r="65%">
+      <stop offset="0%" stop-color="#eaf1fb"/>
+      <stop offset="100%" stop-color="#d7e3f5"/>
+    </radialGradient>
+    <linearGradient id="heroVarredura" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4663ae" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#4663ae" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <circle cx="240" cy="240" r="230" fill="url(#heroFundo)"/>
+
+  <!-- Tapete (losango, referência ao tatame de competição) -->
+  <rect x="140" y="140" width="200" height="200" rx="18" transform="rotate(45 240 240)" fill="#ffffff" stroke="#d7dde3" stroke-width="2"/>
+  <rect x="172" y="172" width="136" height="136" rx="10" transform="rotate(45 240 240)" fill="none" stroke="#4663ae" stroke-width="2" stroke-opacity="0.35"/>
+
+  <!-- Anéis do radar -->
+  <circle cx="240" cy="240" r="190" fill="none" stroke="#4663ae" stroke-opacity="0.25" stroke-width="1.5"/>
+  <circle cx="240" cy="240" r="140" fill="none" stroke="#4663ae" stroke-opacity="0.3" stroke-width="1.5"/>
+  <circle cx="240" cy="240" r="90" fill="none" stroke="#4663ae" stroke-opacity="0.35" stroke-width="1.5"/>
+  <circle cx="240" cy="240" r="40" fill="none" stroke="#093093" stroke-opacity="0.4" stroke-width="1.5"/>
+  <line x1="50" y1="240" x2="430" y2="240" stroke="#4663ae" stroke-opacity="0.15" stroke-width="1"/>
+  <line x1="240" y1="50" x2="240" y2="430" stroke="#4663ae" stroke-opacity="0.15" stroke-width="1"/>
+
+  <!-- Varredura do radar -->
+  <path d="M240 240 L240 50 A190 190 0 0 1 374 106 Z" fill="url(#heroVarredura)"/>
+
+  <!-- Pontos localizados (adversários encontrados) -->
+  <circle cx="330" cy="165" r="9" fill="#093093"/>
+  <circle cx="330" cy="165" r="16" fill="none" stroke="#093093" stroke-width="2" stroke-opacity="0.4"/>
+  <circle cx="175" cy="310" r="7" fill="#c9a227"/>
+  <circle cx="175" cy="310" r="13" fill="none" stroke="#c9a227" stroke-width="2" stroke-opacity="0.4"/>
+  <circle cx="295" cy="325" r="6" fill="#4663ae"/>
+
+  <!-- Centro do radar -->
+  <circle cx="240" cy="240" r="7" fill="#093093"/>
+</svg>

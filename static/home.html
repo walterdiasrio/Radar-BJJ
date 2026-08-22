@@ -89,25 +89,34 @@ src="https://www.facebook.com/tr?id=28254694314126516&ev=PageView&noscript=1"
 
 
 <main>
-  <div class="home-grid">
-    <div class="home-coluna-principal">
-    <div class="form-auth home-cartao-boasvindas" style="text-align: center;">
-      <h2 id="home-titulo">O maior agregador de competições de Jiu-Jitsu</h2>
-      <p id="home-subtitulo-nome" style="color: var(--azul-claro); font-size: 1.15rem; font-weight: 700; display:none;"></p>
+  <div class="home-hero home-cartao-boasvindas">
+    <div class="home-hero-texto">
+      <h1 id="home-titulo">Encontre seus próximos adversários em segundos.</h1>
+      <p id="home-subtitulo-nome" class="home-hero-saudacao" style="display:none;"></p>
       <div id="home-texto-marketing">
-        <p style="color: #55606b; font-size: 0.9rem;">
-          Ache em poucos cliques adversários nas principais federações brasileiras em tempo real.
+        <p class="home-hero-subheadline">
+          Busque competições nas principais federações brasileiras, em tempo real, filtrando por
+          categoria, peso e faixa.
         </p>
-        <p style="color: #55606b; font-size: 0.9rem;">
-          Organize seu calendário, não se perca nas Federações.
-        </p>
-        <p style="color: #55606b; font-size: 0.9rem;">
-          Crie alertas automáticos por e-mail.
-        </p>
-        <p style="color: var(--azul-claro); font-size: 1.1rem; font-weight: 700;">
-          Concentre-se no treino!<br>O resto fica por nossa conta!
-        </p>
+
+        <ul class="home-hero-features">
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <div><strong>Calendário organizado</strong> — nunca mais perca a data de inscrição de uma federação</div>
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <div><strong>Alertas automáticos por e-mail</strong> — avisamos assim que sua categoria abrir</div>
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="5"/><path d="M8.5 12.5 7 22l5-3 5 3-1.5-9.5"/></svg>
+            <div><strong>Histórico de lutas e conquistas</strong> — registre resultados, gere estatísticas e compartilhe sua trajetória</div>
+          </li>
+        </ul>
+
+        <p class="home-hero-tagline">Concentre-se no treino. <strong>O resto é com a gente.</strong></p>
       </div>
+
       <div id="home-botoes-logado">
         <p id="home-botao-busca-rapida"></p>
         <p>
@@ -117,26 +126,28 @@ src="https://www.facebook.com/tr?id=28254694314126516&ev=PageView&noscript=1"
       </div>
 
       <div id="home-cta-cadastro" style="display:none;">
-        <p style="color: var(--azul-claro); font-size: 1.05rem; font-weight: 600;">
-          Crie um histórico de todas as suas lutas, gere estatísticas e compartilhe suas conquistas.
-        </p>
         <p>
           <a href="/cadastro"><button type="button" style="font-size: 1.05rem; padding: 14px 32px;">Criar Conta Grátis</button></a>
-        </p>
-        <p>
-          <a href="/login"><button type="button" class="btn-secundario" style="margin-left:0;">Entrar</button></a>
+          <a href="/login"><button type="button" class="btn-secundario">Entrar</button></a>
         </p>
       </div>
     </div>
 
+    <div class="home-hero-visual">
+      <img src="img/hero-radar.svg" alt="Ilustração de um radar circular localizando pontos em um tapete de Jiu-Jitsu">
+    </div>
+  </div>
+
+  <div class="home-grid">
+    <div class="home-coluna-principal">
     <div id="home-proximas-competicoes" class="card-carreira home-proximas-competicoes" style="display:none;">
-      <h3 style="color: var(--azul); margin-top:0;">Próximas competições</h3>
+      <h2 style="color: var(--azul); margin-top:0; font-size: 1.17em;">Próximas competições</h2>
       <div id="lista-proximas-home"></div>
       <p style="margin-bottom:0;"><a href="/agenda">Ver Minha Agenda completa →</a></p>
     </div>
 
     <div id="home-quadro-medalhas" class="card-carreira home-quadro-medalhas" style="display:none;">
-      <h3 style="color: var(--azul); margin-top:0;">🏅 Quadro de Medalhas</h3>
+      <h2 style="color: var(--azul); margin-top:0; font-size: 1.17em;">🏅 Quadro de Medalhas</h2>
       <div class="stats-grid" id="grade-medalhas-home"></div>
       <p style="margin-bottom:0; margin-top:12px;"><a href="/carreira">Ver Minha Carreira completa →</a></p>
     </div>
@@ -148,7 +159,7 @@ src="https://www.facebook.com/tr?id=28254694314126516&ev=PageView&noscript=1"
       </a>
 
       <div id="home-ultimos-medalhistas" class="card-carreira" style="display:none;">
-        <h3 style="color: var(--azul); margin-top:0;">🏅 Últimos Medalhistas</h3>
+        <h2 style="color: var(--azul); margin-top:0; font-size: 1.17em;">🏅 Últimos Medalhistas</h2>
         <div id="lista-ultimos-medalhistas"></div>
       </div>
     </div>
