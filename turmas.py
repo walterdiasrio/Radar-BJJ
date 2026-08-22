@@ -409,10 +409,12 @@ def listar_aulas_passadas(mestre_id, turma_id, mes, ano):
     return planos
 
 
-def _proximas_datas_do_mes(dias_semana, limite=8):
-    """Datas do PRÓXIMO mês (a partir de hoje) que caem nos dias da semana
-    da turma. Sem dias da semana cadastrados, cai pro mesmo dia da semana
-    de hoje (só pra sempre devolver algo)."""
+def _proximas_datas_do_mes(dias_semana, limite=None):
+    """TODAS as datas do PRÓXIMO mês (a partir de hoje) que caem nos dias
+    da semana da turma — sem limite por padrão, senão o Plano de Aula IA
+    parava no meio do mês pra turmas que treinam 3+ vezes por semana.
+    Sem dias da semana cadastrados, cai pro mesmo dia da semana de hoje
+    (só pra sempre devolver algo)."""
     hoje = date.today()
     if hoje.month == 12:
         ano, mes = hoje.year + 1, 1
