@@ -152,10 +152,31 @@ function renderizarAulasFuturas(turma) {
 
 function renderizarAulasPassadas(turma) {
   const passadas = passadasPorTurma[turma.id] || { mesAno: mesAnoAtual(), aulas: [] };
+  const ontem = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
 
   return `
     <div>
-      <div class="campo" style="max-width:220px;">
+      <p style="color:#55606b; font-size:0.85rem; margin-top:0;">
+        Esqueceu de registrar uma aula que já aconteceu? Cadastre aqui — ela entra direto no arquivo,
+        sem precisar passar por Aulas Futuras.
+      </p>
+      <form class="form-plano-aula-passada" data-turma-id="${turma.id}">
+        <div class="campo" style="max-width:220px;">
+          <label>Data da aula</label>
+          <input type="date" class="plano_data_passada" required max="${ontem}">
+        </div>
+        ${Object.entries(posicoesPorGrupo).map(([grupo, posicoes]) => `
+          <div class="campo">
+            <label>${grupo}</label>
+            <div class="opcoes-federacao">
+              ${posicoes.map(p => `<label><input type="checkbox" value="${p}"> ${p}</label>`).join("")}
+            </div>
+          </div>
+        `).join("")}
+        <button type="submit">Registrar aula</button>
+      </form>
+
+      <div class="campo" style="max-width:220px; margin-top:20px;">
         <label>Consultar mês</label>
         <input type="month" class="passadas_mes_ano" data-turma-id="${turma.id}" value="${passadas.mesAno}">
       </div>
@@ -459,6 +480,12 @@ function renderizarTurmas(turmas) {
       salvarPlanoAula(Number(form.dataset.turmaId), form);
     });
   });
+  elLista.querySelectorAll(".form-plano-aula-passada").forEach(form => {
+    form.addEventListener("submit", (ev) => {
+      ev.preventDefault();
+      salvarPlanoAulaPassada(Number(form.dataset.turmaId), form);
+    });
+  });
   elLista.querySelectorAll(".btn-remover-plano").forEach(btn => {
     btn.addEventListener("click", () => removerPlanoAula(Number(btn.dataset.turmaId), Number(btn.dataset.planoId)));
   });
@@ -609,6 +636,7 @@ async function alternarAba(turmaId, aba) {
       await carregarPosicoes();
       await carregarFuturas(turmaId);
     } else if (aba === "passadas") {
+      await carregarPosicoes();
       const mesAno = (passadasPorTurma[turmaId] || {}).mesAno || mesAnoAtual();
       await carregarPassadas(turmaId, mesAno);
     } else if (aba === "plano-ia") {
@@ -632,6 +660,34 @@ async function alternarAba(turmaId, aba) {
 async function mudarMesPassadas(turmaId, mesAno) {
   try {
     await carregarPassadas(turmaId, mesAno);
+    renderizarTurmas(turmasAtuais);
+  } catch (err) {
+    mostrarStatus(`Erro: ${err.message}`, true);
+  }
+}
+
+// Registra direto no arquivo uma aula que já aconteceu (mesmo endpoint de
+// Aulas Futuras — o que decide se ela é "futura" ou "passada" é só a
+// data). Depois de salvar, já muda o mês consultado pro mês da aula
+// registrada, pra confirmar na hora que entrou certo.
+async function salvarPlanoAulaPassada(turmaId, form) {
+  const data = form.querySelector(".plano_data_passada").value;
+  const posicoes = Array.from(form.querySelectorAll('input[type="checkbox"]:checked')).map(c => c.value);
+  if (!posicoes.length) {
+    mostrarStatus("Selecione pelo menos uma posição.", true);
+    return;
+  }
+  try {
+    const resp = await fetchAutenticado(`/api/turmas/${turmaId}/planos-aula`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ data, posicoes }),
+    });
+    const dados = await resp.json();
+    if (!resp.ok) throw new Error(dados.erro || "não consegui registrar a aula");
+
+    await carregarPassadas(turmaId, data.slice(0, 7));
+    mostrarStatus("Aula registrada!");
     renderizarTurmas(turmasAtuais);
   } catch (err) {
     mostrarStatus(`Erro: ${err.message}`, true);
