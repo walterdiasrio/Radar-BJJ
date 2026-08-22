@@ -104,10 +104,19 @@ def init_db():
                 turma_id INTEGER NOT NULL REFERENCES turmas(id) ON DELETE CASCADE,
                 data TEXT NOT NULL,
                 posicoes TEXT NOT NULL DEFAULT '[]',
+                observacao TEXT NOT NULL DEFAULT '',
                 criado_em TEXT NOT NULL DEFAULT (datetime('now'))
             )
         """)
         conn.execute("CREATE INDEX IF NOT EXISTS idx_planos_aula_turma ON planos_aula(turma_id)")
+
+        # Bancos de antes da orientação geral (observação) do Plano de Aula
+        # IA passar a ser salva junto com as posições — sem essa coluna,
+        # aceitar uma sugestão da IA salvava só as posições e perdia a
+        # orientação completamente.
+        colunas_planos_aula = {linha["name"] for linha in conn.execute("PRAGMA table_info(planos_aula)")}
+        if "observacao" not in colunas_planos_aula:
+            conn.execute("ALTER TABLE planos_aula ADD COLUMN observacao TEXT NOT NULL DEFAULT ''")
 
         # Controla o limite de LIMITE_DIARIO_PLANO_IA gerações de Plano de
         # Aula IA por turma por dia (a chamada à API da Claude é paga) — ver
@@ -281,6 +290,9 @@ def remover_aluno(mestre_id, turma_id, aluno_id):
     return True
 
 
+LIMITE_CARACTERES_OBSERVACAO_AULA = 500
+
+
 def criar_plano_aula(mestre_id, turma_id, dados):
     """Retorna (plano_id, erro)."""
     if not turma_pertence_ao_mestre(mestre_id, turma_id):
@@ -294,10 +306,12 @@ def criar_plano_aula(mestre_id, turma_id, dados):
     if not posicoes:
         return None, "selecione pelo menos uma posição"
 
+    observacao = (dados.get("observacao") or "").strip()[:LIMITE_CARACTERES_OBSERVACAO_AULA]
+
     with _conn() as conn:
         cursor = conn.execute(
-            "INSERT INTO planos_aula (turma_id, data, posicoes) VALUES (?, ?, ?)",
-            (turma_id, data, json.dumps(posicoes, ensure_ascii=False)),
+            "INSERT INTO planos_aula (turma_id, data, posicoes, observacao) VALUES (?, ?, ?, ?)",
+            (turma_id, data, json.dumps(posicoes, ensure_ascii=False), observacao),
         )
         return cursor.lastrowid, None
 
@@ -332,10 +346,12 @@ def atualizar_plano_aula(mestre_id, turma_id, plano_id, dados):
     if not posicoes:
         return False, "selecione pelo menos uma posição"
 
+    observacao = (dados.get("observacao") or "").strip()[:LIMITE_CARACTERES_OBSERVACAO_AULA]
+
     with _conn() as conn:
         cursor = conn.execute(
-            "UPDATE planos_aula SET data = ?, posicoes = ? WHERE id = ? AND turma_id = ?",
-            (data, json.dumps(posicoes, ensure_ascii=False), plano_id, turma_id),
+            "UPDATE planos_aula SET data = ?, posicoes = ?, observacao = ? WHERE id = ? AND turma_id = ?",
+            (data, json.dumps(posicoes, ensure_ascii=False), observacao, plano_id, turma_id),
         )
         if cursor.rowcount == 0:
             return False, "aula não encontrada"
@@ -648,9 +664,6 @@ def gerar_plano_ia(mestre_id, turma_id, foco, resumo, posicoes_por_aula=2):
 # Plano de Aula IA) em Aulas Futuras.
 # ---------------------------------------------------------------------------
 
-LIMITE_CARACTERES_CONTEUDO_DIA = 500
-
-
 def _turma_para_planner(mestre_id, turma_id):
     with _conn() as conn:
         turma = conn.execute(
@@ -661,13 +674,6 @@ def _turma_para_planner(mestre_id, turma_id):
     turma = dict(turma)
     turma["dias_semana"] = json.loads(turma["dias_semana"]) if turma["dias_semana"] else []
     return turma
-
-
-def _conteudo_da_aula(aula):
-    """Formata as posições de uma aula como o texto curto de um dia do
-    planner."""
-    posicoes = ", ".join(json.loads(aula["posicoes"]) if aula["posicoes"] else [])
-    return posicoes[:LIMITE_CARACTERES_CONTEUDO_DIA]
 
 
 def gerar_planner_mensal(mestre_id, turma_id, mes, ano):
@@ -701,7 +707,14 @@ def gerar_planner_mensal(mestre_id, turma_id, mes, ano):
     if not aulas:
         return None, "nenhuma aula futura cadastrada pra esse mês ainda — crie em Aulas Futuras primeiro"
 
-    dias = [{"data": aula["data"], "conteudo": _conteudo_da_aula(aula)} for aula in aulas]
+    dias = [
+        {
+            "data": aula["data"],
+            "posicoes": json.loads(aula["posicoes"]) if aula["posicoes"] else [],
+            "observacao": aula["observacao"] or "",
+        }
+        for aula in aulas
+    ]
 
     with _conn() as conn:
         conn.execute(
@@ -737,17 +750,20 @@ def obter_planner(mestre_id, turma_id, mes, ano):
 
 
 def salvar_planner(mestre_id, turma_id, mes, ano, dias, objetivos, anotacoes):
-    """Salva as edições do Mestre (conteúdo de cada dia, objetivos e
-    anotações) num planner já gerado antes. Retorna (ok, erro)."""
+    """Salva as edições do Mestre (por enquanto, só a observação de cada
+    dia é editável — as posições vêm sempre da Aula Futura de verdade,
+    ver gerar_planner_mensal) num planner já gerado antes, junto com
+    objetivos e anotações do mês. Retorna (ok, erro)."""
     if not turma_pertence_ao_mestre(mestre_id, turma_id):
         return False, "turma não encontrada"
 
     dias_validos = []
     for dia in dias or []:
         data_str = (dia.get("data") or "").strip()
-        conteudo = (dia.get("conteudo") or "").strip()[:LIMITE_CARACTERES_CONTEUDO_DIA]
+        posicoes = [p for p in (dia.get("posicoes") or []) if p in _TODAS_POSICOES]
+        observacao = (dia.get("observacao") or "").strip()[:LIMITE_CARACTERES_OBSERVACAO_AULA]
         if data_str:
-            dias_validos.append({"data": data_str, "conteudo": conteudo})
+            dias_validos.append({"data": data_str, "posicoes": posicoes, "observacao": observacao})
 
     with _conn() as conn:
         cursor = conn.execute(

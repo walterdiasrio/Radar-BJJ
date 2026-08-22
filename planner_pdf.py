@@ -43,8 +43,24 @@ def _estilos():
     }
 
 
+def _texto_do_dia(dia):
+    """Posições em negrito + observação normal, no mini-markup do
+    reportlab (Paragraph entende <b> nativamente) — não é HTML de verdade,
+    então dá pra usar mesmo com o texto vindo de input do usuário."""
+    from xml.sax.saxutils import escape
+
+    posicoes = ", ".join(dia.get("posicoes") or [])
+    observacao = (dia.get("observacao") or "").strip()
+    partes = []
+    if posicoes:
+        partes.append(f"<b>{escape(posicoes)}</b>")
+    if observacao:
+        partes.append(escape(observacao))
+    return "<br/>".join(partes)
+
+
 def _tabela_calendario(mes, ano, dias_planner, estilos):
-    conteudo_por_data = {d["data"]: d.get("conteudo", "") for d in dias_planner}
+    conteudo_por_data = {d["data"]: _texto_do_dia(d) for d in dias_planner}
     semanas = calendar.Calendar(firstweekday=0).monthdayscalendar(ano, mes)
 
     cabecalho = [Paragraph(d, ParagraphStyle("cab", fontName="Helvetica-Bold", fontSize=8, textColor=colors.white)) for d in _DIAS_SEMANA_LABEL]

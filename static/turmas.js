@@ -100,6 +100,20 @@ function mesAnoAtual() {
   return new Date().toISOString().slice(0, 7); // "YYYY-MM"
 }
 
+// Posições sempre em negrito (pill com texto em negrito) + observação (a
+// orientação geral da aula, escrita à mão ou vinda do Plano de Aula IA)
+// como texto normal abaixo — mesmo padrão nos cards de Futuras, Passadas
+// e nas sugestões do Plano de Aula IA, pra ficar tudo consistente.
+function pillsPosicoes(posicoes) {
+  return (posicoes || []).map(pos =>
+    `<span style="background:#eef2f6; border-radius:20px; padding:3px 10px; font-size:0.8rem; font-weight:700;">${pos}</span>`
+  ).join("");
+}
+
+function blocoObservacao(observacao) {
+  return observacao ? `<div style="color:#55606b; font-size:0.82rem; margin-top:6px;">${observacao}</div>` : "";
+}
+
 // Uma aula é "futura" ou "passada" só pela data (>= hoje ou < hoje) — não
 // importa se foi escrita à mão ou aceita de uma sugestão do Plano de Aula
 // IA, as duas caem na mesma tabela (planos_aula) e migram de lista sozinhas
@@ -124,6 +138,11 @@ function renderizarAulasFuturas(turma) {
             </div>
           </div>
         `).join("")}
+        <div class="campo">
+          <label>Observação (opcional)</label>
+          <textarea class="plano_observacao" rows="2" maxlength="500"
+            placeholder="orientação geral pra essa aula">${edicao ? (edicao.observacao || "") : ""}</textarea>
+        </div>
         <button type="submit">${edicao ? "Salvar edição" : "Adicionar aula"}</button>
         ${edicao ? `<button type="button" class="btn-secundario btn-cancelar-edicao-plano" data-turma-id="${turma.id}">Cancelar edição</button>` : ""}
       </form>
@@ -141,8 +160,9 @@ function renderizarAulasFuturas(turma) {
               </div>
             </div>
             <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;">
-              ${p.posicoes.map(pos => `<span style="background:#eef2f6; border-radius:20px; padding:3px 10px; font-size:0.8rem;">${pos}</span>`).join("")}
+              ${pillsPosicoes(p.posicoes)}
             </div>
+            ${blocoObservacao(p.observacao)}
           </div>
         `).join("")}
       </div>
@@ -173,6 +193,10 @@ function renderizarAulasPassadas(turma) {
             </div>
           </div>
         `).join("")}
+        <div class="campo">
+          <label>Observação (opcional)</label>
+          <textarea class="plano_observacao" rows="2" maxlength="500" placeholder="orientação geral pra essa aula"></textarea>
+        </div>
         <button type="submit">Registrar aula</button>
       </form>
 
@@ -191,8 +215,9 @@ function renderizarAulasPassadas(turma) {
               <button type="button" class="btn-remover btn-remover-plano" data-turma-id="${turma.id}" data-plano-id="${p.id}">Remover</button>
             </div>
             <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;">
-              ${p.posicoes.map(pos => `<span style="background:#eef2f6; border-radius:20px; padding:3px 10px; font-size:0.8rem;">${pos}</span>`).join("")}
+              ${pillsPosicoes(p.posicoes)}
             </div>
+            ${blocoObservacao(p.observacao)}
           </div>
         `).join("")}
       </div>
@@ -247,9 +272,9 @@ function renderizarPlanoIA(turma) {
                   : `<button type="button" class="btn-salvar-sugestao-ia" data-turma-id="${turma.id}" data-indice="${i}">Aceitar</button>`}
               </div>
               <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;">
-                ${a.posicoes.map(p => `<span style="background:#eef2f6; border-radius:20px; padding:3px 10px; font-size:0.8rem;">${p}</span>`).join("")}
+                ${pillsPosicoes(a.posicoes)}
               </div>
-              ${a.observacao ? `<div style="color:#55606b; font-size:0.82rem; margin-top:6px;">${a.observacao}</div>` : ""}
+              ${blocoObservacao(a.observacao)}
             </div>
           `).join("")}
           ${estado.resultado.aulas.some(a => !a.salvo) ? `
@@ -287,8 +312,8 @@ function renderizarPlanner(turma) {
     <div>
       <p style="color:#55606b; font-size:0.85rem; margin-top:0;">
         Organiza no calendário do mês as aulas que já estão em Aulas Futuras, no formato pra baixar em
-        PDF ou mandar por e-mail. Não cria aulas novas — cadastre em Aulas Futuras primeiro. Depois de
-        gerado, edite o conteúdo de qualquer dia à vontade.
+        PDF ou mandar por e-mail. Não cria aulas novas — cadastre em Aulas Futuras primeiro. As posições
+        vêm direto da aula real; a observação de cada dia dá pra ajustar aqui à vontade antes de exportar.
       </p>
 
       <div style="display:flex; flex-wrap:wrap; gap:8px;">
@@ -313,8 +338,11 @@ function renderizarPlanner(turma) {
           ${planner.dias.map((d, i) => `
             <div class="cartao-alerta" style="margin-top:8px; padding:12px 14px;">
               <div class="cartao-alerta-federacao" style="margin-top:0;">${formatarDataDiaSemana(d.data)}</div>
-              <textarea class="planner_dia_conteudo" data-turma-id="${turma.id}" data-indice="${i}"
-                rows="2" maxlength="500" style="margin-top:6px;">${d.conteudo || ""}</textarea>
+              <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;">
+                ${pillsPosicoes(d.posicoes)}
+              </div>
+              <textarea class="planner_dia_observacao" data-turma-id="${turma.id}" data-indice="${i}"
+                rows="2" maxlength="500" style="margin-top:8px;" placeholder="observação (opcional)">${d.observacao || ""}</textarea>
             </div>
           `).join("")}
 
@@ -528,13 +556,13 @@ function renderizarTurmas(turmas) {
       carregarPlannerExistente(turmaId);
     });
   });
-  elLista.querySelectorAll(".planner_dia_conteudo").forEach(textarea => {
+  elLista.querySelectorAll(".planner_dia_observacao").forEach(textarea => {
     textarea.addEventListener("input", () => {
       const turmaId = Number(textarea.dataset.turmaId);
       const indice = Number(textarea.dataset.indice);
       const estado = plannerEstado[turmaId];
       if (!estado || !estado.planner) return;
-      estado.planner.dias[indice].conteudo = textarea.value;
+      estado.planner.dias[indice].observacao = textarea.value;
     });
   });
   elLista.querySelectorAll(".planner_objetivos").forEach(textarea => {
@@ -673,6 +701,7 @@ async function mudarMesPassadas(turmaId, mesAno) {
 async function salvarPlanoAulaPassada(turmaId, form) {
   const data = form.querySelector(".plano_data_passada").value;
   const posicoes = Array.from(form.querySelectorAll('input[type="checkbox"]:checked')).map(c => c.value);
+  const observacao = form.querySelector(".plano_observacao").value;
   if (!posicoes.length) {
     mostrarStatus("Selecione pelo menos uma posição.", true);
     return;
@@ -681,7 +710,7 @@ async function salvarPlanoAulaPassada(turmaId, form) {
     const resp = await fetchAutenticado(`/api/turmas/${turmaId}/planos-aula`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ data, posicoes }),
+      body: JSON.stringify({ data, posicoes, observacao }),
     });
     const dados = await resp.json();
     if (!resp.ok) throw new Error(dados.erro || "não consegui registrar a aula");
@@ -697,7 +726,7 @@ async function salvarPlanoAulaPassada(turmaId, form) {
 function editarPlano(turmaId, planoId) {
   const aula = (futurasPorTurma[turmaId] || []).find(p => p.id === planoId);
   if (!aula) return;
-  planoEditando[turmaId] = { id: aula.id, data: aula.data, posicoes: aula.posicoes };
+  planoEditando[turmaId] = { id: aula.id, data: aula.data, posicoes: aula.posicoes, observacao: aula.observacao };
   renderizarTurmas(turmasAtuais);
 }
 
@@ -709,6 +738,7 @@ function cancelarEdicaoPlano(turmaId) {
 async function salvarPlanoAula(turmaId, form) {
   const data = form.querySelector(".plano_data").value;
   const posicoes = Array.from(form.querySelectorAll('input[type="checkbox"]:checked')).map(c => c.value);
+  const observacao = form.querySelector(".plano_observacao").value;
   const editandoId = form.dataset.editandoId;
   if (!posicoes.length) {
     mostrarStatus("Selecione pelo menos uma posição.", true);
@@ -720,7 +750,7 @@ async function salvarPlanoAula(turmaId, form) {
       {
         method: editandoId ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ data, posicoes }),
+        body: JSON.stringify({ data, posicoes, observacao }),
       },
     );
     const dados = await resp.json();
@@ -775,7 +805,7 @@ async function salvarSugestaoIA(turmaId, indice) {
     const resp = await fetchAutenticado(`/api/turmas/${turmaId}/planos-aula`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ data: aula.data, posicoes: aula.posicoes }),
+      body: JSON.stringify({ data: aula.data, posicoes: aula.posicoes, observacao: aula.observacao || "" }),
     });
     const dados = await resp.json();
     if (!resp.ok) throw new Error(dados.erro || "não consegui salvar");
