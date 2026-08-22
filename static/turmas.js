@@ -35,14 +35,14 @@ aplicarModoPagina();
 let meusAlunos = [];
 let turmasAtuais = [];
 let posicoesPorGrupo = {};
-const futurasExpandidas = new Set();
-const passadasExpandidas = new Set();
+// Qual das 4 abas (futuras/passadas/plano-ia/planner) está aberta em cada
+// turma — só uma por vez (turmaId -> nome da aba, ou undefined/null se
+// nenhuma estiver aberta). Ver renderizarAbasTurma/alternarAba.
+const abaAtivaPorTurma = {};
 const futurasPorTurma = {}; // turmaId -> [aula, ...] (data >= hoje, mais próxima primeiro)
 const passadasPorTurma = {}; // turmaId -> { mesAno: "YYYY-MM", aulas: [...] } (data < hoje)
 const planoEditando = {}; // turmaId -> { id, data, posicoes } da aula em edição, ou undefined
-const planoIaExpandidos = new Set();
 const planoIaEstado = {};
-const plannerExpandidos = new Set();
 const plannerEstado = {};
 const NOMES_DIA_SEMANA = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 
@@ -106,160 +106,133 @@ function mesAnoAtual() {
 // conforme o calendário passa. Futuras é onde o Mestre escreve/edita
 // conteúdo; Passadas é só arquivo (consulta e remoção, sem editar).
 function renderizarAulasFuturas(turma) {
-  const expandido = futurasExpandidas.has(turma.id);
   const aulas = futurasPorTurma[turma.id] || [];
   const edicao = planoEditando[turma.id];
 
   return `
-    <div id="futuras-turma-${turma.id}" style="margin-top:12px; border-top:1px solid var(--borda); padding-top:12px;">
-      <button type="button" class="btn-secundario btn-aulas-futuras" data-id="${turma.id}">
-        ${expandido ? "Esconder Aulas Futuras" : "Aulas Futuras"}
-      </button>
-
-      ${expandido ? `
-        <div style="margin-top:12px;">
-          <form class="form-plano-aula" data-turma-id="${turma.id}" data-editando-id="${edicao ? edicao.id : ""}">
-            <div class="campo" style="max-width:220px;">
-              <label>Data da aula</label>
-              <input type="date" class="plano_data" required value="${edicao ? edicao.data : ""}">
-            </div>
-            ${Object.entries(posicoesPorGrupo).map(([grupo, posicoes]) => `
-              <div class="campo">
-                <label>${grupo}</label>
-                <div class="opcoes-federacao">
-                  ${posicoes.map(p => `<label><input type="checkbox" value="${p}" ${edicao && edicao.posicoes.includes(p) ? "checked" : ""}> ${p}</label>`).join("")}
-                </div>
-              </div>
-            `).join("")}
-            <button type="submit">${edicao ? "Salvar edição" : "Adicionar aula"}</button>
-            ${edicao ? `<button type="button" class="btn-secundario btn-cancelar-edicao-plano" data-turma-id="${turma.id}">Cancelar edição</button>` : ""}
-          </form>
-
-          <div style="margin-top:14px;">
-            <strong>Aulas futuras${aulas.length ? ` (${aulas.length})` : ""}:</strong>
-            ${aulas.length ? "" : " nenhuma ainda — escreva o conteúdo acima, ou aceite uma sugestão do Plano de Aula IA."}
-            ${aulas.map(p => `
-              <div class="cartao-alerta" style="margin-top:8px; padding:12px 14px;">
-                <div class="cartao-alerta-topo">
-                  <div class="cartao-alerta-federacao" style="margin-top:0;">${formatarDataDiaSemana(p.data)}</div>
-                  <div style="display:flex; gap:8px;">
-                    <button type="button" class="btn-secundario btn-editar-plano" data-turma-id="${turma.id}" data-plano-id="${p.id}">Editar</button>
-                    <button type="button" class="btn-remover btn-remover-plano" data-turma-id="${turma.id}" data-plano-id="${p.id}">Remover</button>
-                  </div>
-                </div>
-                <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;">
-                  ${p.posicoes.map(pos => `<span style="background:#eef2f6; border-radius:20px; padding:3px 10px; font-size:0.8rem;">${pos}</span>`).join("")}
-                </div>
-              </div>
-            `).join("")}
-          </div>
+    <div id="futuras-turma-${turma.id}">
+      <form class="form-plano-aula" data-turma-id="${turma.id}" data-editando-id="${edicao ? edicao.id : ""}">
+        <div class="campo" style="max-width:220px;">
+          <label>Data da aula</label>
+          <input type="date" class="plano_data" required value="${edicao ? edicao.data : ""}">
         </div>
-      ` : ""}
+        ${Object.entries(posicoesPorGrupo).map(([grupo, posicoes]) => `
+          <div class="campo">
+            <label>${grupo}</label>
+            <div class="opcoes-federacao">
+              ${posicoes.map(p => `<label><input type="checkbox" value="${p}" ${edicao && edicao.posicoes.includes(p) ? "checked" : ""}> ${p}</label>`).join("")}
+            </div>
+          </div>
+        `).join("")}
+        <button type="submit">${edicao ? "Salvar edição" : "Adicionar aula"}</button>
+        ${edicao ? `<button type="button" class="btn-secundario btn-cancelar-edicao-plano" data-turma-id="${turma.id}">Cancelar edição</button>` : ""}
+      </form>
+
+      <div style="margin-top:14px;">
+        <strong>Aulas futuras${aulas.length ? ` (${aulas.length})` : ""}:</strong>
+        ${aulas.length ? "" : " nenhuma ainda — escreva o conteúdo acima, ou aceite uma sugestão do Plano de Aula IA."}
+        ${aulas.map(p => `
+          <div class="cartao-alerta" style="margin-top:8px; padding:12px 14px;">
+            <div class="cartao-alerta-topo">
+              <div class="cartao-alerta-federacao" style="margin-top:0;">${formatarDataDiaSemana(p.data)}</div>
+              <div style="display:flex; gap:8px;">
+                <button type="button" class="btn-secundario btn-editar-plano" data-turma-id="${turma.id}" data-plano-id="${p.id}">Editar</button>
+                <button type="button" class="btn-remover btn-remover-plano" data-turma-id="${turma.id}" data-plano-id="${p.id}">Remover</button>
+              </div>
+            </div>
+            <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;">
+              ${p.posicoes.map(pos => `<span style="background:#eef2f6; border-radius:20px; padding:3px 10px; font-size:0.8rem;">${pos}</span>`).join("")}
+            </div>
+          </div>
+        `).join("")}
+      </div>
     </div>
   `;
 }
 
 function renderizarAulasPassadas(turma) {
-  const expandido = passadasExpandidas.has(turma.id);
   const passadas = passadasPorTurma[turma.id] || { mesAno: mesAnoAtual(), aulas: [] };
 
   return `
-    <div style="margin-top:12px; border-top:1px solid var(--borda); padding-top:12px;">
-      <button type="button" class="btn-secundario btn-aulas-passadas" data-id="${turma.id}">
-        ${expandido ? "Esconder Aulas Passadas" : "Aulas Passadas"}
-      </button>
+    <div>
+      <div class="campo" style="max-width:220px;">
+        <label>Consultar mês</label>
+        <input type="month" class="passadas_mes_ano" data-turma-id="${turma.id}" value="${passadas.mesAno}">
+      </div>
 
-      ${expandido ? `
-        <div style="margin-top:12px;">
-          <div class="campo" style="max-width:220px;">
-            <label>Consultar mês</label>
-            <input type="month" class="passadas_mes_ano" data-turma-id="${turma.id}" value="${passadas.mesAno}">
+      <div style="margin-top:14px;">
+        <strong>Aulas dadas em ${rotuloMesAno(passadas.mesAno)}${passadas.aulas.length ? ` (${passadas.aulas.length})` : ""}:</strong>
+        ${passadas.aulas.length ? "" : " nenhuma aula registrada nesse mês."}
+        ${passadas.aulas.map(p => `
+          <div class="cartao-alerta" style="margin-top:8px; padding:12px 14px;">
+            <div class="cartao-alerta-topo">
+              <div class="cartao-alerta-federacao" style="margin-top:0;">${formatarDataBr(p.data)}</div>
+              <button type="button" class="btn-remover btn-remover-plano" data-turma-id="${turma.id}" data-plano-id="${p.id}">Remover</button>
+            </div>
+            <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;">
+              ${p.posicoes.map(pos => `<span style="background:#eef2f6; border-radius:20px; padding:3px 10px; font-size:0.8rem;">${pos}</span>`).join("")}
+            </div>
           </div>
-
-          <div style="margin-top:14px;">
-            <strong>Aulas dadas em ${rotuloMesAno(passadas.mesAno)}${passadas.aulas.length ? ` (${passadas.aulas.length})` : ""}:</strong>
-            ${passadas.aulas.length ? "" : " nenhuma aula registrada nesse mês."}
-            ${passadas.aulas.map(p => `
-              <div class="cartao-alerta" style="margin-top:8px; padding:12px 14px;">
-                <div class="cartao-alerta-topo">
-                  <div class="cartao-alerta-federacao" style="margin-top:0;">${formatarDataBr(p.data)}</div>
-                  <button type="button" class="btn-remover btn-remover-plano" data-turma-id="${turma.id}" data-plano-id="${p.id}">Remover</button>
-                </div>
-                <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;">
-                  ${p.posicoes.map(pos => `<span style="background:#eef2f6; border-radius:20px; padding:3px 10px; font-size:0.8rem;">${pos}</span>`).join("")}
-                </div>
-              </div>
-            `).join("")}
-          </div>
-        </div>
-      ` : ""}
+        `).join("")}
+      </div>
     </div>
   `;
 }
 
 function renderizarPlanoIA(turma) {
-  const expandido = planoIaExpandidos.has(turma.id);
   const estado = planoIaEstado[turma.id] || {};
   const grupos = Object.keys(posicoesPorGrupo);
 
   return `
-    <div style="margin-top:12px;">
-      <button type="button" class="btn-secundario btn-plano-ia" data-id="${turma.id}">
-        ${expandido ? "Esconder Plano de Aula IA" : "Plano de Aula IA"}
+    <div>
+      <p style="color:#55606b; font-size:0.85rem; margin-top:0;">
+        A Inteligência Artificial analisa as aulas passadas de sua turma, e com base nos objetivos
+        traçados e no foco desejado, sugere as próximas aulas. Aceite as que quiser — elas vão
+        direto pra Aulas Futuras, prontas pra editar se precisar.
+      </p>
+      <div class="campo" style="max-width:420px;">
+        <label>Foco (opcional)</label>
+        <select class="plano_ia_foco" data-turma-id="${turma.id}">
+          <option value="">Sem foco específico</option>
+          ${grupos.map(g => `<option value="${g}" ${estado.foco === g ? "selected" : ""}>${g}</option>`).join("")}
+        </select>
+      </div>
+      <div class="campo" style="max-width:420px;">
+        <label>O que você quer nesse plano? (opcional, máx. 200 caracteres)</label>
+        <textarea class="plano_ia_resumo" data-turma-id="${turma.id}" rows="3"
+          placeholder="ex: turma está fraca na defesa, quero reforçar escapes e fundamentos essa semana"
+          maxlength="200">${estado.resumo || ""}</textarea>
+      </div>
+      <button type="button" class="btn-gerar-plano-ia" data-id="${turma.id}" ${estado.carregando ? "disabled" : ""}>
+        ${estado.carregando ? "Gerando..." : "Gerar sugestão com IA"}
       </button>
+      <div style="color:#55606b; font-size:0.78rem; margin-top:4px;">Limite: 2 gerações com IA por dia, por turma.</div>
 
-      ${expandido ? `
-        <div style="margin-top:12px;">
-          <p style="color:#55606b; font-size:0.85rem; margin-top:0;">
-            A Inteligência Artificial analisa as aulas passadas de sua turma, e com base nos objetivos
-            traçados e no foco desejado, sugere as próximas aulas. Aceite as que quiser — elas vão
-            direto pra Aulas Futuras, prontas pra editar se precisar.
-          </p>
-          <div class="campo" style="max-width:420px;">
-            <label>Foco (opcional)</label>
-            <select class="plano_ia_foco" data-turma-id="${turma.id}">
-              <option value="">Sem foco específico</option>
-              ${grupos.map(g => `<option value="${g}" ${estado.foco === g ? "selected" : ""}>${g}</option>`).join("")}
-            </select>
-          </div>
-          <div class="campo" style="max-width:420px;">
-            <label>O que você quer nesse plano? (opcional, máx. 200 caracteres)</label>
-            <textarea class="plano_ia_resumo" data-turma-id="${turma.id}" rows="3"
-              placeholder="ex: turma está fraca na defesa, quero reforçar escapes e fundamentos essa semana"
-              maxlength="200">${estado.resumo || ""}</textarea>
-          </div>
-          <button type="button" class="btn-gerar-plano-ia" data-id="${turma.id}" ${estado.carregando ? "disabled" : ""}>
-            ${estado.carregando ? "Gerando..." : "Gerar sugestão com IA"}
-          </button>
-          <div style="color:#55606b; font-size:0.78rem; margin-top:4px;">Limite: 2 gerações com IA por dia, por turma.</div>
+      ${estado.erro ? `<div class="status-importacao erro" style="margin-top:8px;">${estado.erro}</div>` : ""}
 
-          ${estado.erro ? `<div class="status-importacao erro" style="margin-top:8px;">${estado.erro}</div>` : ""}
-
-          ${estado.resultado ? `
-            <div style="margin-top:14px;">
-              ${estado.resultado.ia === false ? `
-                <div class="status-importacao" style="margin-bottom:8px;">
-                  ${estado.resultado.aviso || "IA indisponível no momento — mostrando sugestão automática (sem IA)."}
-                </div>
-              ` : ""}
-              ${estado.resultado.aulas.map((a, i) => `
-                <div class="cartao-alerta" style="margin-top:8px; padding:12px 14px;">
-                  <div class="cartao-alerta-topo">
-                    <div class="cartao-alerta-federacao" style="margin-top:0;">${formatarDataBr(a.data)}</div>
-                    ${a.salvo
-                      ? `<span style="color:#1a7d3a; font-size:0.85rem; font-weight:600;">Salvo ✓</span>`
-                      : `<button type="button" class="btn-salvar-sugestao-ia" data-turma-id="${turma.id}" data-indice="${i}">Aceitar</button>`}
-                  </div>
-                  <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;">
-                    ${a.posicoes.map(p => `<span style="background:#eef2f6; border-radius:20px; padding:3px 10px; font-size:0.8rem;">${p}</span>`).join("")}
-                  </div>
-                  ${a.observacao ? `<div style="color:#55606b; font-size:0.82rem; margin-top:6px;">${a.observacao}</div>` : ""}
-                </div>
-              `).join("")}
-              ${estado.resultado.aulas.some(a => !a.salvo) ? `
-                <button type="button" class="btn-salvar-tudo-ia" data-id="${turma.id}" style="margin-top:10px;">Aceitar tudo</button>
-              ` : ""}
+      ${estado.resultado ? `
+        <div style="margin-top:14px;">
+          ${estado.resultado.ia === false ? `
+            <div class="status-importacao" style="margin-bottom:8px;">
+              ${estado.resultado.aviso || "IA indisponível no momento — mostrando sugestão automática (sem IA)."}
             </div>
+          ` : ""}
+          ${estado.resultado.aulas.map((a, i) => `
+            <div class="cartao-alerta" style="margin-top:8px; padding:12px 14px;">
+              <div class="cartao-alerta-topo">
+                <div class="cartao-alerta-federacao" style="margin-top:0;">${formatarDataBr(a.data)}</div>
+                ${a.salvo
+                  ? `<span style="color:#1a7d3a; font-size:0.85rem; font-weight:600;">Salvo ✓</span>`
+                  : `<button type="button" class="btn-salvar-sugestao-ia" data-turma-id="${turma.id}" data-indice="${i}">Aceitar</button>`}
+              </div>
+              <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;">
+                ${a.posicoes.map(p => `<span style="background:#eef2f6; border-radius:20px; padding:3px 10px; font-size:0.8rem;">${p}</span>`).join("")}
+              </div>
+              ${a.observacao ? `<div style="color:#55606b; font-size:0.82rem; margin-top:6px;">${a.observacao}</div>` : ""}
+            </div>
+          `).join("")}
+          ${estado.resultado.aulas.some(a => !a.salvo) ? `
+            <button type="button" class="btn-salvar-tudo-ia" data-id="${turma.id}" style="margin-top:10px;">Aceitar tudo</button>
           ` : ""}
         </div>
       ` : ""}
@@ -286,77 +259,102 @@ function formatarDataDiaSemana(iso) {
 // turma (ver renderizarAulasFuturas) — não gera conteúdo novo, só
 // organiza no calendário o que o Mestre já escreveu lá.
 function renderizarPlanner(turma) {
-  const expandido = plannerExpandidos.has(turma.id);
   const estado = plannerEstado[turma.id] || { mesAno: proximoMesAno() };
   const planner = estado.planner;
 
   return `
     <div>
-      <button type="button" class="btn-secundario btn-planner" data-id="${turma.id}">
-        ${expandido ? "Esconder Planner de Aulas" : "Planner de Aulas (PDF)"}
+      <p style="color:#55606b; font-size:0.85rem; margin-top:0;">
+        Organiza no calendário do mês as aulas que já estão em Aulas Futuras, no formato pra baixar em
+        PDF ou mandar por e-mail. Não cria aulas novas — cadastre em Aulas Futuras primeiro. Depois de
+        gerado, edite o conteúdo de qualquer dia à vontade.
+      </p>
+
+      <div style="display:flex; flex-wrap:wrap; gap:8px;">
+        ${[mesAnoAtual(), proximoMesAno()].map(mesAno => `
+          <button type="button" class="btn-secundario btn-escolher-mes-planner ${estado.mesAno === mesAno ? "ativo" : ""}"
+            data-turma-id="${turma.id}" data-mes-ano="${mesAno}">
+            ${rotuloBotaoMes(mesAno, mesAnoAtual())} (${rotuloMesAno(mesAno)})
+          </button>
+        `).join("")}
+      </div>
+      <button type="button" class="btn-gerar-planner" data-id="${turma.id}" style="margin-top:8px;" ${estado.carregando ? "disabled" : ""}>
+        ${estado.carregando ? "Gerando..." : (planner ? "Atualizar (substitui os dias)" : "Gerar planner")}
       </button>
 
-      ${expandido ? `
-        <div style="margin-top:12px;">
-          <p style="color:#55606b; font-size:0.85rem; margin-top:0;">
-            Organiza no calendário do mês as aulas que já estão em Aulas Futuras, no formato pra baixar em
-            PDF ou mandar por e-mail. Não cria aulas novas — cadastre em Aulas Futuras primeiro. Depois de
-            gerado, edite o conteúdo de qualquer dia à vontade.
-          </p>
+      ${estado.erro ? `<div class="status-importacao erro" style="margin-top:8px;">${estado.erro}</div>` : ""}
+      ${estado.mensagem ? `<div class="status-importacao" style="margin-top:8px;">${estado.mensagem}</div>` : ""}
 
-          <div style="display:flex; flex-wrap:wrap; gap:8px;">
-            ${[mesAnoAtual(), proximoMesAno()].map(mesAno => `
-              <button type="button" class="btn-secundario btn-escolher-mes-planner ${estado.mesAno === mesAno ? "ativo" : ""}"
-                data-turma-id="${turma.id}" data-mes-ano="${mesAno}">
-                ${rotuloBotaoMes(mesAno, mesAnoAtual())} (${rotuloMesAno(mesAno)})
-              </button>
-            `).join("")}
-          </div>
-          <button type="button" class="btn-gerar-planner" data-id="${turma.id}" style="margin-top:8px;" ${estado.carregando ? "disabled" : ""}>
-            ${estado.carregando ? "Gerando..." : (planner ? "Atualizar (substitui os dias)" : "Gerar planner")}
-          </button>
-
-          ${estado.erro ? `<div class="status-importacao erro" style="margin-top:8px;">${estado.erro}</div>` : ""}
-          ${estado.mensagem ? `<div class="status-importacao" style="margin-top:8px;">${estado.mensagem}</div>` : ""}
-
-          ${planner ? `
-            <div style="margin-top:16px;">
-              <strong>Dias de aula (${planner.dias.length}):</strong>
-              ${planner.dias.length ? "" : " nenhum dia de aula nesse mês."}
-              ${planner.dias.map((d, i) => `
-                <div class="cartao-alerta" style="margin-top:8px; padding:12px 14px;">
-                  <div class="cartao-alerta-federacao" style="margin-top:0;">${formatarDataDiaSemana(d.data)}</div>
-                  <textarea class="planner_dia_conteudo" data-turma-id="${turma.id}" data-indice="${i}"
-                    rows="2" maxlength="500" style="margin-top:6px;">${d.conteudo || ""}</textarea>
-                </div>
-              `).join("")}
-
-              <div class="campo" style="max-width:640px; margin-top:16px;">
-                <label>Objetivos do mês</label>
-                <textarea class="planner_objetivos" data-turma-id="${turma.id}" rows="2"
-                  maxlength="2000" placeholder="ex: preparar 3 atletas pro campeonato estadual">${planner.objetivos || ""}</textarea>
-              </div>
-              <div class="campo" style="max-width:640px;">
-                <label>Anotações</label>
-                <textarea class="planner_anotacoes" data-turma-id="${turma.id}" rows="2"
-                  maxlength="2000" placeholder="observações livres sobre o mês">${planner.anotacoes || ""}</textarea>
-              </div>
-
-              <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:8px;">
-                <button type="button" class="btn-salvar-planner" data-id="${turma.id}" ${estado.salvando ? "disabled" : ""}>
-                  ${estado.salvando ? "Salvando..." : "Salvar alterações"}
-                </button>
-                <button type="button" class="btn-secundario btn-baixar-planner" data-id="${turma.id}" ${estado.baixando ? "disabled" : ""}>
-                  ${estado.baixando ? "Gerando PDF..." : "Baixar PDF"}
-                </button>
-                <button type="button" class="btn-secundario btn-emailar-planner" data-id="${turma.id}" ${estado.enviando ? "disabled" : ""}>
-                  ${estado.enviando ? "Enviando..." : "Enviar por e-mail"}
-                </button>
-              </div>
+      ${planner ? `
+        <div style="margin-top:16px;">
+          <strong>Dias de aula (${planner.dias.length}):</strong>
+          ${planner.dias.length ? "" : " nenhum dia de aula nesse mês."}
+          ${planner.dias.map((d, i) => `
+            <div class="cartao-alerta" style="margin-top:8px; padding:12px 14px;">
+              <div class="cartao-alerta-federacao" style="margin-top:0;">${formatarDataDiaSemana(d.data)}</div>
+              <textarea class="planner_dia_conteudo" data-turma-id="${turma.id}" data-indice="${i}"
+                rows="2" maxlength="500" style="margin-top:6px;">${d.conteudo || ""}</textarea>
             </div>
-          ` : ""}
+          `).join("")}
+
+          <div class="campo" style="max-width:640px; margin-top:16px;">
+            <label>Objetivos do mês</label>
+            <textarea class="planner_objetivos" data-turma-id="${turma.id}" rows="2"
+              maxlength="2000" placeholder="ex: preparar 3 atletas pro campeonato estadual">${planner.objetivos || ""}</textarea>
+          </div>
+          <div class="campo" style="max-width:640px;">
+            <label>Anotações</label>
+            <textarea class="planner_anotacoes" data-turma-id="${turma.id}" rows="2"
+              maxlength="2000" placeholder="observações livres sobre o mês">${planner.anotacoes || ""}</textarea>
+          </div>
+
+          <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:8px;">
+            <button type="button" class="btn-salvar-planner" data-id="${turma.id}" ${estado.salvando ? "disabled" : ""}>
+              ${estado.salvando ? "Salvando..." : "Salvar alterações"}
+            </button>
+            <button type="button" class="btn-secundario btn-baixar-planner" data-id="${turma.id}" ${estado.baixando ? "disabled" : ""}>
+              ${estado.baixando ? "Gerando PDF..." : "Baixar PDF"}
+            </button>
+            <button type="button" class="btn-secundario btn-emailar-planner" data-id="${turma.id}" ${estado.enviando ? "disabled" : ""}>
+              ${estado.enviando ? "Enviando..." : "Enviar por e-mail"}
+            </button>
+          </div>
         </div>
       ` : ""}
+    </div>
+  `;
+}
+
+// Tabs unificadas (só uma aba aberta por vez) que substituem os quatro
+// botões independentes que existiam antes — eram confusos porque cada um
+// abria/fechava sozinho, dava pra ter vários abertos ao mesmo tempo, e não
+// havia nenhum sinal visual de que eram "visões alternativas da mesma
+// turma" em vez de recursos separados.
+const ABAS_TURMA = [
+  { chave: "futuras", rotulo: "Aulas Futuras" },
+  { chave: "passadas", rotulo: "Aulas Passadas" },
+  { chave: "plano-ia", rotulo: "Plano de Aula IA" },
+  { chave: "planner", rotulo: "Planner de Aulas" },
+];
+
+function renderizarAbasTurma(turma) {
+  const aba = abaAtivaPorTurma[turma.id];
+  const conteudo = {
+    "futuras": renderizarAulasFuturas,
+    "passadas": renderizarAulasPassadas,
+    "plano-ia": renderizarPlanoIA,
+    "planner": renderizarPlanner,
+  }[aba];
+
+  return `
+    <div style="margin-top:16px; border-top:1px solid var(--borda); padding-top:12px;">
+      <div class="tabs-carreira">
+        ${ABAS_TURMA.map(a => `
+          <button type="button" class="tab-carreira-btn btn-aba-turma ${aba === a.chave ? "ativo" : ""}"
+            data-id="${turma.id}" data-aba="${a.chave}">${a.rotulo}</button>
+        `).join("")}
+      </div>
+      ${conteudo ? `<div class="tab-carreira-content ativo">${conteudo(turma)}</div>` : ""}
     </div>
   `;
 }
@@ -430,10 +428,7 @@ function renderizarTurmas(turmas) {
           <button type="submit" ${disponiveis.length ? "" : "disabled"}>Adicionar</button>
         </form>
 
-        ${renderizarAulasFuturas(t)}
-        ${renderizarAulasPassadas(t)}
-        ${renderizarPlanoIA(t)}
-        ${renderizarPlanner(t)}
+        ${renderizarAbasTurma(t)}
       </div>
     `;
   }).join("");
@@ -455,11 +450,8 @@ function renderizarTurmas(turmas) {
       adicionarAlunoNaTurma(Number(form.dataset.turmaId), Number(select.value));
     });
   });
-  elLista.querySelectorAll(".btn-aulas-futuras").forEach(btn => {
-    btn.addEventListener("click", () => alternarAulasFuturas(Number(btn.dataset.id)));
-  });
-  elLista.querySelectorAll(".btn-aulas-passadas").forEach(btn => {
-    btn.addEventListener("click", () => alternarAulasPassadas(Number(btn.dataset.id)));
+  elLista.querySelectorAll(".btn-aba-turma").forEach(btn => {
+    btn.addEventListener("click", () => alternarAba(Number(btn.dataset.id), btn.dataset.aba));
   });
   elLista.querySelectorAll(".form-plano-aula").forEach(form => {
     form.addEventListener("submit", (ev) => {
@@ -481,9 +473,6 @@ function renderizarTurmas(turmas) {
       mudarMesPassadas(Number(input.dataset.turmaId), input.value);
     });
   });
-  elLista.querySelectorAll(".btn-plano-ia").forEach(btn => {
-    btn.addEventListener("click", () => alternarPlanoIA(Number(btn.dataset.id)));
-  });
   elLista.querySelectorAll(".plano_ia_foco").forEach(select => {
     select.addEventListener("change", () => {
       const turmaId = Number(select.dataset.turmaId);
@@ -504,9 +493,6 @@ function renderizarTurmas(turmas) {
   });
   elLista.querySelectorAll(".btn-salvar-tudo-ia").forEach(btn => {
     btn.addEventListener("click", () => salvarTudoIA(Number(btn.dataset.id)));
-  });
-  elLista.querySelectorAll(".btn-planner").forEach(btn => {
-    btn.addEventListener("click", () => alternarPlanner(Number(btn.dataset.id)));
   });
   elLista.querySelectorAll(".btn-escolher-mes-planner").forEach(btn => {
     btn.addEventListener("click", () => {
@@ -585,19 +571,20 @@ async function carregarPassadas(turmaId, mesAno) {
   passadasPorTurma[turmaId] = { mesAno, aulas };
 }
 
-// Recarrega Futuras/Passadas só se a seção correspondente estiver aberta
+// Recarrega Futuras/Passadas só se a aba correspondente estiver aberta
 // (senão limpa o cache pra recarregar na próxima vez que abrir) — chamado
 // depois de criar/editar/remover uma aula, ou aceitar uma sugestão do
 // Plano de Aula IA, já que qualquer uma dessas ações pode mudar as duas
 // listas (uma aula editada pode até trocar de mês, embora não de lista).
 async function atualizarListasAulas(turmaId) {
+  const aba = abaAtivaPorTurma[turmaId];
   const tarefas = [];
-  if (futurasExpandidas.has(turmaId)) {
+  if (aba === "futuras") {
     tarefas.push(carregarFuturas(turmaId));
   } else {
     delete futurasPorTurma[turmaId];
   }
-  if (passadasExpandidas.has(turmaId)) {
+  if (aba === "passadas") {
     const mesAno = (passadasPorTurma[turmaId] || {}).mesAno || mesAnoAtual();
     tarefas.push(carregarPassadas(turmaId, mesAno));
   } else {
@@ -606,32 +593,36 @@ async function atualizarListasAulas(turmaId) {
   await Promise.all(tarefas);
 }
 
-async function alternarAulasFuturas(turmaId) {
-  if (futurasExpandidas.has(turmaId)) {
-    futurasExpandidas.delete(turmaId);
-    renderizarTurmas(turmasAtuais);
-    return;
-  }
-  await carregarPosicoes();
-  try {
-    await carregarFuturas(turmaId);
-    futurasExpandidas.add(turmaId);
-    renderizarTurmas(turmasAtuais);
-  } catch (err) {
-    mostrarStatus(`Erro: ${err.message}`, true);
-  }
-}
-
-async function alternarAulasPassadas(turmaId) {
-  if (passadasExpandidas.has(turmaId)) {
-    passadasExpandidas.delete(turmaId);
+// Alterna qual das 4 abas está aberta numa turma — clicar na aba já
+// aberta fecha (volta pro card compacto); clicar em outra troca, carregando
+// os dados dela primeiro se ainda não tiver (o Planner só busca o que já
+// foi gerado antes na PRIMEIRA vez que abre, pra não perder edições locais
+// não salvas ao trocar de aba e voltar).
+async function alternarAba(turmaId, aba) {
+  if (abaAtivaPorTurma[turmaId] === aba) {
+    delete abaAtivaPorTurma[turmaId];
     renderizarTurmas(turmasAtuais);
     return;
   }
   try {
-    const mesAno = (passadasPorTurma[turmaId] || {}).mesAno || mesAnoAtual();
-    await carregarPassadas(turmaId, mesAno);
-    passadasExpandidas.add(turmaId);
+    if (aba === "futuras") {
+      await carregarPosicoes();
+      await carregarFuturas(turmaId);
+    } else if (aba === "passadas") {
+      const mesAno = (passadasPorTurma[turmaId] || {}).mesAno || mesAnoAtual();
+      await carregarPassadas(turmaId, mesAno);
+    } else if (aba === "plano-ia") {
+      await carregarPosicoes();
+    } else if (aba === "planner") {
+      const jaCarregado = !!plannerEstado[turmaId];
+      if (!jaCarregado) {
+        plannerEstado[turmaId] = { mesAno: proximoMesAno() };
+        abaAtivaPorTurma[turmaId] = aba;
+        await carregarPlannerExistente(turmaId); // já chama renderizarTurmas no final
+        return;
+      }
+    }
+    abaAtivaPorTurma[turmaId] = aba;
     renderizarTurmas(turmasAtuais);
   } catch (err) {
     mostrarStatus(`Erro: ${err.message}`, true);
@@ -700,17 +691,6 @@ async function removerPlanoAula(turmaId, planoId) {
   }
 }
 
-async function alternarPlanoIA(turmaId) {
-  if (planoIaExpandidos.has(turmaId)) {
-    planoIaExpandidos.delete(turmaId);
-    renderizarTurmas(turmasAtuais);
-    return;
-  }
-  await carregarPosicoes();
-  planoIaExpandidos.add(turmaId);
-  renderizarTurmas(turmasAtuais);
-}
-
 async function gerarPlanoIA(turmaId) {
   const estado = planoIaEstado[turmaId] || {};
   planoIaEstado[turmaId] = { ...estado, carregando: true, erro: null };
@@ -762,21 +742,6 @@ async function salvarTudoIA(turmaId) {
 
 function atualizarEstadoPlanner(turmaId, patch) {
   plannerEstado[turmaId] = { ...(plannerEstado[turmaId] || { mesAno: proximoMesAno() }), ...patch };
-}
-
-async function alternarPlanner(turmaId) {
-  if (plannerExpandidos.has(turmaId)) {
-    plannerExpandidos.delete(turmaId);
-    renderizarTurmas(turmasAtuais);
-    return;
-  }
-  plannerExpandidos.add(turmaId);
-  if (!plannerEstado[turmaId]) {
-    plannerEstado[turmaId] = { mesAno: proximoMesAno() };
-    await carregarPlannerExistente(turmaId);
-    return;
-  }
-  renderizarTurmas(turmasAtuais);
 }
 
 async function carregarPlannerExistente(turmaId) {
