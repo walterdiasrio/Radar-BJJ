@@ -1568,64 +1568,29 @@ def _mes_ano_da_query():
     return mes, ano, None
 
 
-@app.post("/api/turmas/<int:turma_id>/planner")
-@api_assinatura_necessaria
-def api_gerar_planner(turma_id):
-    if not _usuario_atual_eh_mestre():
-        return jsonify({"erro": "exclusivo do perfil Mestre"}), 403
-    mes, ano, erro = _mes_ano_da_query()
-    if erro:
-        return jsonify({"erro": erro}), 400
-    planner, erro = turmas.gerar_planner_mensal(session["usuario_id"], turma_id, mes, ano)
-    if erro:
-        return jsonify({"erro": erro}), 400
-    return jsonify(planner)
+def _campos_planner_do_request(dados):
+    """Os 3 campos livres (todos opcionais) preenchidos na hora de baixar
+    ou enviar o planner — não ficam salvos em lugar nenhum, valem só pra
+    esse PDF (ver turmas.montar_planner_mensal)."""
+    return {
+        "objetivo": (dados.get("objetivo") or "").strip()[:2000],
+        "competicoes": (dados.get("competicoes") or "").strip()[:2000],
+        "observacoes": (dados.get("observacoes") or "").strip()[:2000],
+    }
 
 
-@app.get("/api/turmas/<int:turma_id>/planner")
-@api_assinatura_necessaria
-def api_obter_planner(turma_id):
-    if not _usuario_atual_eh_mestre():
-        return jsonify({"erro": "exclusivo do perfil Mestre"}), 403
-    mes, ano, erro = _mes_ano_da_query()
-    if erro:
-        return jsonify({"erro": erro}), 400
-    planner = turmas.obter_planner(session["usuario_id"], turma_id, mes, ano)
-    if not planner:
-        return jsonify({"erro": "nenhum planner gerado pra esse mês ainda"}), 404
-    return jsonify(planner)
-
-
-@app.put("/api/turmas/<int:turma_id>/planner")
-@api_assinatura_necessaria
-def api_salvar_planner(turma_id):
-    if not _usuario_atual_eh_mestre():
-        return jsonify({"erro": "exclusivo do perfil Mestre"}), 403
-    dados = request.get_json(silent=True) or {}
-    mes, ano, erro = _mes_ano_da_query()
-    if erro:
-        return jsonify({"erro": erro}), 400
-    ok, erro = turmas.salvar_planner(
-        session["usuario_id"], turma_id, mes, ano,
-        dados.get("dias"), dados.get("objetivos", ""), dados.get("anotacoes", ""),
-    )
-    if not ok:
-        return jsonify({"erro": erro}), 400
-    return jsonify({"ok": True})
-
-
-def _turma_e_planner_para_pdf(turma_id, mes, ano):
-    """Retorna (turma, planner, erro) já validando dono/existência —
+def _turma_e_dias_planner(turma_id, mes, ano):
+    """Retorna (turma, dias, erro) já validando dono/existência —
     reaproveitado pelo download e pelo envio por e-mail do PDF."""
     if not _usuario_atual_eh_mestre():
         return None, None, ("exclusivo do perfil Mestre", 403)
     turma = next((t for t in turmas.listar_turmas(session["usuario_id"]) if t["id"] == turma_id), None)
     if not turma:
         return None, None, ("turma não encontrada", 404)
-    planner = turmas.obter_planner(session["usuario_id"], turma_id, mes, ano)
-    if not planner:
-        return None, None, ("nenhum planner gerado pra esse mês ainda", 404)
-    return turma, planner, None
+    dias, erro = turmas.montar_planner_mensal(session["usuario_id"], turma_id, mes, ano)
+    if erro:
+        return None, None, (erro, 400)
+    return turma, dias, None
 
 
 @app.get("/api/turmas/<int:turma_id>/planner/pdf")
@@ -1634,9 +1599,11 @@ def api_planner_pdf(turma_id):
     mes, ano, erro = _mes_ano_da_query()
     if erro:
         return jsonify({"erro": erro}), 400
-    turma, planner, erro = _turma_e_planner_para_pdf(turma_id, mes, ano)
+    turma, dias, erro = _turma_e_dias_planner(turma_id, mes, ano)
     if erro:
         return jsonify({"erro": erro[0]}), erro[1]
+    campos = _campos_planner_do_request(request.args)
+    planner = {"mes": mes, "ano": ano, "dias": dias, **campos}
     pdf_bytes = planner_pdf.gerar_pdf(turma, planner)
     nome_arquivo = f"planner-{turma['categoria'].lower()}-{mes:02d}-{ano}.pdf"
     return Response(
@@ -1652,7 +1619,7 @@ def api_planner_email(turma_id):
     mes, ano, erro = _mes_ano_da_query()
     if erro:
         return jsonify({"erro": erro}), 400
-    turma, planner, erro = _turma_e_planner_para_pdf(turma_id, mes, ano)
+    turma, dias, erro = _turma_e_dias_planner(turma_id, mes, ano)
     if erro:
         return jsonify({"erro": erro[0]}), erro[1]
 
@@ -1660,6 +1627,9 @@ def api_planner_email(turma_id):
     if not usuario:
         return jsonify({"erro": "usuário não encontrado"}), 404
 
+    dados = request.get_json(silent=True) or {}
+    campos = _campos_planner_do_request(dados)
+    planner = {"mes": mes, "ano": ano, "dias": dias, **campos}
     pdf_bytes = planner_pdf.gerar_pdf(turma, planner)
     nome_arquivo = f"planner-{turma['categoria'].lower()}-{mes:02d}-{ano}.pdf"
     nome_turma = turma.get("nome") or turma["categoria"]

@@ -153,10 +153,10 @@ def init_db():
             # pra quem já tinha usado hoje continuar contando certo.
             conn.execute("ALTER TABLE plano_ia_uso ADD COLUMN contagem INTEGER NOT NULL DEFAULT 1")
 
-        # Planner mensal de aulas (calendário do mês inteiro, um por
-        # turma+mês+ano) — ver gerar_planner_mensal. "dias" guarda a lista
-        # de {"data", "conteudo"} em JSON; o Mestre edita o conteúdo de
-        # cada dia livremente depois de gerado.
+        # Tabela do antigo Planner mensal editável/persistido — não é mais
+        # escrita por nada (ver montar_planner_mensal: o planner agora é
+        # montado na hora, sem salvar), mas mantida (não descartada) por
+        # segurança em bancos que já tinham dados aqui.
         conn.execute("""
             CREATE TABLE IF NOT EXISTS planners_mensais (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -658,30 +658,16 @@ def gerar_plano_ia(mestre_id, turma_id, foco, resumo, posicoes_por_aula=2):
 
 # ---------------------------------------------------------------------------
 # Planner mensal de aulas — calendário do mês inteiro (template visual em
-# static/img/planner-*) com as Aulas Futuras já cadastradas pelo Mestre
-# (ver listar_aulas_futuras) que caem nesse mês. Não gera conteúdo novo —
-# só organiza no calendário o que já foi escrito (à mão ou aceito do
-# Plano de Aula IA) em Aulas Futuras.
+# static/img/planner-*), montado na hora de baixar/enviar (não fica salvo
+# em lugar nenhum, não tem conteúdo pra editar): pega todas as aulas já
+# cadastradas nesse mês/ano, sejam elas Aulas Passadas (já dadas) ou Aulas
+# Futuras (por vir) — pro mês em andamento isso mistura histórico e
+# futuro naturalmente; pro mês seguinte, é tudo futuro.
 # ---------------------------------------------------------------------------
 
-def _turma_para_planner(mestre_id, turma_id):
-    with _conn() as conn:
-        turma = conn.execute(
-            "SELECT * FROM turmas WHERE id = ? AND mestre_id = ?", (turma_id, mestre_id)
-        ).fetchone()
-    if not turma:
-        return None
-    turma = dict(turma)
-    turma["dias_semana"] = json.loads(turma["dias_semana"]) if turma["dias_semana"] else []
-    return turma
-
-
-def gerar_planner_mensal(mestre_id, turma_id, mes, ano):
-    """Monta (ou remonta) o planner mensal de uma turma a partir das Aulas
-    Futuras já cadastradas que caem nesse mês/ano — não cria conteúdo
-    novo, só organiza no calendário o que o Mestre já escreveu (à mão ou
-    aceito do Plano de Aula IA em Aulas Futuras). Preserva objetivos/
-    anotações já salvos ao remontar. Retorna (planner, erro)."""
+def montar_planner_mensal(mestre_id, turma_id, mes, ano):
+    """Retorna (dias, erro) — não salva nada, só lê o que já está
+    cadastrado em Aulas Futuras/Passadas pra esse mês."""
     try:
         mes = int(mes)
         ano = int(ano)
@@ -690,22 +676,19 @@ def gerar_planner_mensal(mestre_id, turma_id, mes, ano):
     if not (1 <= mes <= 12) or ano < 2020:
         return None, "mês/ano inválidos"
 
-    turma = _turma_para_planner(mestre_id, turma_id)
-    if not turma:
+    if not turma_pertence_ao_mestre(mestre_id, turma_id):
         return None, "turma não encontrada"
 
-    hoje = date.today().isoformat()
     with _conn() as conn:
         aulas = conn.execute(
             """SELECT * FROM planos_aula
-               WHERE turma_id = ? AND data >= ?
-                 AND strftime('%m', data) = ? AND strftime('%Y', data) = ?
+               WHERE turma_id = ? AND strftime('%m', data) = ? AND strftime('%Y', data) = ?
                ORDER BY data ASC, id ASC""",
-            (turma_id, hoje, f"{mes:02d}", str(ano)),
+            (turma_id, f"{mes:02d}", str(ano)),
         ).fetchall()
 
     if not aulas:
-        return None, "nenhuma aula futura cadastrada pra esse mês ainda — crie em Aulas Futuras primeiro"
+        return None, "nenhuma aula cadastrada pra esse mês ainda — crie em Aulas Futuras ou Aulas Passadas primeiro"
 
     dias = [
         {
@@ -715,67 +698,4 @@ def gerar_planner_mensal(mestre_id, turma_id, mes, ano):
         }
         for aula in aulas
     ]
-
-    with _conn() as conn:
-        conn.execute(
-            """INSERT INTO planners_mensais (turma_id, mes, ano, dias, atualizado_em)
-               VALUES (?, ?, ?, ?, datetime('now'))
-               ON CONFLICT(turma_id, mes, ano)
-               DO UPDATE SET dias = excluded.dias, atualizado_em = excluded.atualizado_em""",
-            (turma_id, mes, ano, json.dumps(dias, ensure_ascii=False)),
-        )
-        linha = conn.execute(
-            "SELECT * FROM planners_mensais WHERE turma_id = ? AND mes = ? AND ano = ?",
-            (turma_id, mes, ano),
-        ).fetchone()
-
-    planner = dict(linha)
-    planner["dias"] = json.loads(planner["dias"])
-    return planner, None
-
-
-def obter_planner(mestre_id, turma_id, mes, ano):
-    if not turma_pertence_ao_mestre(mestre_id, turma_id):
-        return None
-    with _conn() as conn:
-        linha = conn.execute(
-            "SELECT * FROM planners_mensais WHERE turma_id = ? AND mes = ? AND ano = ?",
-            (turma_id, mes, ano),
-        ).fetchone()
-    if not linha:
-        return None
-    planner = dict(linha)
-    planner["dias"] = json.loads(planner["dias"])
-    return planner
-
-
-def salvar_planner(mestre_id, turma_id, mes, ano, dias, objetivos, anotacoes):
-    """Salva as edições do Mestre (por enquanto, só a observação de cada
-    dia é editável — as posições vêm sempre da Aula Futura de verdade,
-    ver gerar_planner_mensal) num planner já gerado antes, junto com
-    objetivos e anotações do mês. Retorna (ok, erro)."""
-    if not turma_pertence_ao_mestre(mestre_id, turma_id):
-        return False, "turma não encontrada"
-
-    dias_validos = []
-    for dia in dias or []:
-        data_str = (dia.get("data") or "").strip()
-        posicoes = [p for p in (dia.get("posicoes") or []) if p in _TODAS_POSICOES]
-        observacao = (dia.get("observacao") or "").strip()[:LIMITE_CARACTERES_OBSERVACAO_AULA]
-        if data_str:
-            dias_validos.append({"data": data_str, "posicoes": posicoes, "observacao": observacao})
-
-    with _conn() as conn:
-        cursor = conn.execute(
-            """UPDATE planners_mensais SET dias = ?, objetivos = ?, anotacoes = ?, atualizado_em = datetime('now')
-               WHERE turma_id = ? AND mes = ? AND ano = ?""",
-            (
-                json.dumps(dias_validos, ensure_ascii=False),
-                (objetivos or "").strip()[:2000],
-                (anotacoes or "").strip()[:2000],
-                turma_id, mes, ano,
-            ),
-        )
-    if cursor.rowcount == 0:
-        return False, "gere o planner desse mês antes de salvar edições"
-    return True, None
+    return dias, None

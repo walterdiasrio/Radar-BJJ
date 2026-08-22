@@ -301,19 +301,21 @@ function formatarDataDiaSemana(iso) {
   return `${NOMES_DIA_SEMANA[data.getDay()]}, ${formatarDataBr(iso)}`;
 }
 
-// Calendário do mês em PDF com as Aulas Futuras já cadastradas dessa
-// turma (ver renderizarAulasFuturas) — não gera conteúdo novo, só
-// organiza no calendário o que o Mestre já escreveu lá.
+// Calendário do mês em PDF com as aulas já cadastradas dessa turma — pro
+// mês em andamento, mistura Aulas Passadas (histórico) e Aulas Futuras
+// desse mês; pro mês seguinte, é só Aulas Futuras (ver
+// turmas.montar_planner_mensal). Não gera nem edita conteúdo de aula —
+// só organiza no calendário o que já está cadastrado. Os 3 campos abaixo
+// (Objetivo/Competições Previstas/Observações) são opcionais e valem só
+// pra esse PDF — não ficam salvos, é só preencher e baixar/enviar.
 function renderizarPlanner(turma) {
   const estado = plannerEstado[turma.id] || { mesAno: proximoMesAno() };
-  const planner = estado.planner;
 
   return `
     <div>
       <p style="color:#55606b; font-size:0.85rem; margin-top:0;">
-        Organiza no calendário do mês as aulas que já estão em Aulas Futuras, no formato pra baixar em
-        PDF ou mandar por e-mail. Não cria aulas novas — cadastre em Aulas Futuras primeiro. As posições
-        vêm direto da aula real; a observação de cada dia dá pra ajustar aqui à vontade antes de exportar.
+        Baixa (ou manda por e-mail) o calendário do mês em PDF, com as aulas já cadastradas em Aulas
+        Futuras e Aulas Passadas — não cria nem edita conteúdo de aula aqui.
       </p>
 
       <div style="display:flex; flex-wrap:wrap; gap:8px;">
@@ -324,52 +326,34 @@ function renderizarPlanner(turma) {
           </button>
         `).join("")}
       </div>
-      <button type="button" class="btn-gerar-planner" data-id="${turma.id}" style="margin-top:8px;" ${estado.carregando ? "disabled" : ""}>
-        ${estado.carregando ? "Gerando..." : (planner ? "Atualizar (substitui os dias)" : "Gerar planner")}
-      </button>
+
+      <div class="campo" style="max-width:640px; margin-top:16px;">
+        <label>Objetivo (opcional)</label>
+        <textarea class="planner_objetivo" data-turma-id="${turma.id}" rows="2"
+          maxlength="2000" placeholder="ex: preparar 3 atletas pro campeonato estadual">${estado.objetivo || ""}</textarea>
+      </div>
+      <div class="campo" style="max-width:640px;">
+        <label>Competições previstas (opcional)</label>
+        <textarea class="planner_competicoes" data-turma-id="${turma.id}" rows="2"
+          maxlength="2000" placeholder="ex: Copa Estadual (dia 20), Aberto da Cidade (dia 27)">${estado.competicoes || ""}</textarea>
+      </div>
+      <div class="campo" style="max-width:640px;">
+        <label>Observações (opcional)</label>
+        <textarea class="planner_observacoes_gerais" data-turma-id="${turma.id}" rows="2"
+          maxlength="2000" placeholder="observações livres sobre o mês">${estado.observacoes || ""}</textarea>
+      </div>
+
+      <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:8px;">
+        <button type="button" class="btn-baixar-planner" data-id="${turma.id}" ${estado.baixando ? "disabled" : ""}>
+          ${estado.baixando ? "Gerando PDF..." : "Baixar PDF"}
+        </button>
+        <button type="button" class="btn-secundario btn-emailar-planner" data-id="${turma.id}" ${estado.enviando ? "disabled" : ""}>
+          ${estado.enviando ? "Enviando..." : "Enviar por e-mail"}
+        </button>
+      </div>
 
       ${estado.erro ? `<div class="status-importacao erro" style="margin-top:8px;">${estado.erro}</div>` : ""}
       ${estado.mensagem ? `<div class="status-importacao" style="margin-top:8px;">${estado.mensagem}</div>` : ""}
-
-      ${planner ? `
-        <div style="margin-top:16px;">
-          <strong>Dias de aula (${planner.dias.length}):</strong>
-          ${planner.dias.length ? "" : " nenhum dia de aula nesse mês."}
-          ${planner.dias.map((d, i) => `
-            <div class="cartao-alerta" style="margin-top:8px; padding:12px 14px;">
-              <div class="cartao-alerta-federacao" style="margin-top:0;">${formatarDataDiaSemana(d.data)}</div>
-              <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;">
-                ${pillsPosicoes(d.posicoes)}
-              </div>
-              <textarea class="planner_dia_observacao" data-turma-id="${turma.id}" data-indice="${i}"
-                rows="2" maxlength="500" style="margin-top:8px;" placeholder="observação (opcional)">${d.observacao || ""}</textarea>
-            </div>
-          `).join("")}
-
-          <div class="campo" style="max-width:640px; margin-top:16px;">
-            <label>Objetivos do mês</label>
-            <textarea class="planner_objetivos" data-turma-id="${turma.id}" rows="2"
-              maxlength="2000" placeholder="ex: preparar 3 atletas pro campeonato estadual">${planner.objetivos || ""}</textarea>
-          </div>
-          <div class="campo" style="max-width:640px;">
-            <label>Anotações</label>
-            <textarea class="planner_anotacoes" data-turma-id="${turma.id}" rows="2"
-              maxlength="2000" placeholder="observações livres sobre o mês">${planner.anotacoes || ""}</textarea>
-          </div>
-
-          <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:8px;">
-            <button type="button" class="btn-salvar-planner" data-id="${turma.id}" ${estado.salvando ? "disabled" : ""}>
-              ${estado.salvando ? "Salvando..." : "Salvar alterações"}
-            </button>
-            <button type="button" class="btn-secundario btn-baixar-planner" data-id="${turma.id}" ${estado.baixando ? "disabled" : ""}>
-              ${estado.baixando ? "Gerando PDF..." : "Baixar PDF"}
-            </button>
-            <button type="button" class="btn-secundario btn-emailar-planner" data-id="${turma.id}" ${estado.enviando ? "disabled" : ""}>
-              ${estado.enviando ? "Enviando..." : "Enviar por e-mail"}
-            </button>
-          </div>
-        </div>
-      ` : ""}
     </div>
   `;
 }
@@ -552,36 +536,24 @@ function renderizarTurmas(turmas) {
   elLista.querySelectorAll(".btn-escolher-mes-planner").forEach(btn => {
     btn.addEventListener("click", () => {
       const turmaId = Number(btn.dataset.turmaId);
-      atualizarEstadoPlanner(turmaId, { mesAno: btn.dataset.mesAno, planner: null, erro: null, mensagem: null });
-      carregarPlannerExistente(turmaId);
+      atualizarEstadoPlanner(turmaId, { mesAno: btn.dataset.mesAno, erro: null, mensagem: null });
+      renderizarTurmas(turmasAtuais);
     });
   });
-  elLista.querySelectorAll(".planner_dia_observacao").forEach(textarea => {
+  elLista.querySelectorAll(".planner_objetivo").forEach(textarea => {
     textarea.addEventListener("input", () => {
-      const turmaId = Number(textarea.dataset.turmaId);
-      const indice = Number(textarea.dataset.indice);
-      const estado = plannerEstado[turmaId];
-      if (!estado || !estado.planner) return;
-      estado.planner.dias[indice].observacao = textarea.value;
+      atualizarEstadoPlanner(Number(textarea.dataset.turmaId), { objetivo: textarea.value });
     });
   });
-  elLista.querySelectorAll(".planner_objetivos").forEach(textarea => {
+  elLista.querySelectorAll(".planner_competicoes").forEach(textarea => {
     textarea.addEventListener("input", () => {
-      const estado = plannerEstado[Number(textarea.dataset.turmaId)];
-      if (estado && estado.planner) estado.planner.objetivos = textarea.value;
+      atualizarEstadoPlanner(Number(textarea.dataset.turmaId), { competicoes: textarea.value });
     });
   });
-  elLista.querySelectorAll(".planner_anotacoes").forEach(textarea => {
+  elLista.querySelectorAll(".planner_observacoes_gerais").forEach(textarea => {
     textarea.addEventListener("input", () => {
-      const estado = plannerEstado[Number(textarea.dataset.turmaId)];
-      if (estado && estado.planner) estado.planner.anotacoes = textarea.value;
+      atualizarEstadoPlanner(Number(textarea.dataset.turmaId), { observacoes: textarea.value });
     });
-  });
-  elLista.querySelectorAll(".btn-gerar-planner").forEach(btn => {
-    btn.addEventListener("click", () => gerarPlanner(Number(btn.dataset.id)));
-  });
-  elLista.querySelectorAll(".btn-salvar-planner").forEach(btn => {
-    btn.addEventListener("click", () => salvarPlanner(Number(btn.dataset.id)));
   });
   elLista.querySelectorAll(".btn-baixar-planner").forEach(btn => {
     btn.addEventListener("click", () => baixarPlannerPdf(Number(btn.dataset.id)));
@@ -669,14 +641,8 @@ async function alternarAba(turmaId, aba) {
       await carregarPassadas(turmaId, mesAno);
     } else if (aba === "plano-ia") {
       await carregarPosicoes();
-    } else if (aba === "planner") {
-      const jaCarregado = !!plannerEstado[turmaId];
-      if (!jaCarregado) {
-        plannerEstado[turmaId] = { mesAno: proximoMesAno() };
-        abaAtivaPorTurma[turmaId] = aba;
-        await carregarPlannerExistente(turmaId); // já chama renderizarTurmas no final
-        return;
-      }
+    } else if (aba === "planner" && !plannerEstado[turmaId]) {
+      plannerEstado[turmaId] = { mesAno: proximoMesAno() };
     }
     abaAtivaPorTurma[turmaId] = aba;
     renderizarTurmas(turmasAtuais);
@@ -830,93 +796,18 @@ function atualizarEstadoPlanner(turmaId, patch) {
   plannerEstado[turmaId] = { ...(plannerEstado[turmaId] || { mesAno: proximoMesAno() }), ...patch };
 }
 
-async function carregarPlannerExistente(turmaId) {
-  const estado = plannerEstado[turmaId] || { mesAno: proximoMesAno() };
-  const [ano, mes] = estado.mesAno.split("-");
-  try {
-    const resp = await fetchAutenticado(`/api/turmas/${turmaId}/planner?mes=${Number(mes)}&ano=${ano}`);
-    if (resp.status === 404) {
-      atualizarEstadoPlanner(turmaId, { planner: null });
-    } else {
-      const dados = await resp.json();
-      if (!resp.ok) throw new Error(dados.erro || "não consegui carregar o planner");
-      atualizarEstadoPlanner(turmaId, { planner: dados });
-    }
-  } catch (err) {
-    atualizarEstadoPlanner(turmaId, { erro: err.message });
-  }
-  renderizarTurmas(turmasAtuais);
-}
-
-async function gerarPlanner(turmaId) {
-  const estado = plannerEstado[turmaId] || { mesAno: proximoMesAno() };
-  if (estado.planner && !confirm("Já existe um planner gerado pra esse mês. Atualizar substitui o conteúdo de todos os dias pelas Aulas Futuras atuais (objetivos e anotações são mantidos). Continuar?")) {
-    return;
-  }
-  const [ano, mes] = estado.mesAno.split("-");
-  atualizarEstadoPlanner(turmaId, { carregando: true, erro: null, mensagem: null });
-  renderizarTurmas(turmasAtuais);
-
-  try {
-    const resp = await fetchAutenticado(`/api/turmas/${turmaId}/planner?mes=${Number(mes)}&ano=${ano}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-    });
-    const dados = await resp.json();
-    if (!resp.ok) throw new Error(dados.erro || "não consegui gerar o planner");
-    atualizarEstadoPlanner(turmaId, { carregando: false, planner: dados });
-  } catch (err) {
-    atualizarEstadoPlanner(turmaId, { carregando: false, erro: err.message });
-  }
-  renderizarTurmas(turmasAtuais);
-}
-
-// Salva o estado atual do planner (dias/objetivos/anotações editados na
-// tela) no servidor. Reaproveitado pelo botão "Salvar alterações" e,
-// antes de baixar/enviar, pra garantir que o PDF/e-mail nunca saia com
-// edições que só existiam no navegador (ver baixarPlannerPdf/emailarPlanner).
-async function _salvarPlannerNoServidor(turmaId) {
-  const estado = plannerEstado[turmaId];
-  if (!estado || !estado.planner) return;
-  const [ano, mes] = estado.mesAno.split("-");
-  const resp = await fetchAutenticado(`/api/turmas/${turmaId}/planner?mes=${Number(mes)}&ano=${ano}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      dias: estado.planner.dias,
-      objetivos: estado.planner.objetivos || "",
-      anotacoes: estado.planner.anotacoes || "",
-    }),
-  });
-  const dados = await resp.json();
-  if (!resp.ok) throw new Error(dados.erro || "não consegui salvar");
-}
-
-async function salvarPlanner(turmaId) {
-  const estado = plannerEstado[turmaId];
-  if (!estado || !estado.planner) return;
-  atualizarEstadoPlanner(turmaId, { salvando: true, erro: null, mensagem: null });
-  renderizarTurmas(turmasAtuais);
-
-  try {
-    await _salvarPlannerNoServidor(turmaId);
-    atualizarEstadoPlanner(turmaId, { salvando: false, mensagem: "Alterações salvas!" });
-  } catch (err) {
-    atualizarEstadoPlanner(turmaId, { salvando: false, erro: err.message });
-  }
-  renderizarTurmas(turmasAtuais);
-}
-
 async function baixarPlannerPdf(turmaId) {
-  const estado = plannerEstado[turmaId];
-  if (!estado || !estado.planner) return;
+  const estado = plannerEstado[turmaId] || { mesAno: proximoMesAno() };
   const [ano, mes] = estado.mesAno.split("-");
-  atualizarEstadoPlanner(turmaId, { baixando: true, erro: null });
+  atualizarEstadoPlanner(turmaId, { baixando: true, erro: null, mensagem: null });
   renderizarTurmas(turmasAtuais);
 
   try {
-    await _salvarPlannerNoServidor(turmaId);
-    const resp = await fetchAutenticado(`/api/turmas/${turmaId}/planner/pdf?mes=${Number(mes)}&ano=${ano}`);
+    const params = new URLSearchParams({
+      mes: String(Number(mes)), ano,
+      objetivo: estado.objetivo || "", competicoes: estado.competicoes || "", observacoes: estado.observacoes || "",
+    });
+    const resp = await fetchAutenticado(`/api/turmas/${turmaId}/planner/pdf?${params}`);
     if (!resp.ok) {
       const dados = await resp.json().catch(() => ({}));
       throw new Error(dados.erro || "não consegui gerar o PDF");
@@ -938,16 +829,18 @@ async function baixarPlannerPdf(turmaId) {
 }
 
 async function emailarPlanner(turmaId) {
-  const estado = plannerEstado[turmaId];
-  if (!estado || !estado.planner) return;
+  const estado = plannerEstado[turmaId] || { mesAno: proximoMesAno() };
   const [ano, mes] = estado.mesAno.split("-");
   atualizarEstadoPlanner(turmaId, { enviando: true, erro: null, mensagem: null });
   renderizarTurmas(turmasAtuais);
 
   try {
-    await _salvarPlannerNoServidor(turmaId);
     const resp = await fetchAutenticado(`/api/turmas/${turmaId}/planner/email?mes=${Number(mes)}&ano=${ano}`, {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        objetivo: estado.objetivo || "", competicoes: estado.competicoes || "", observacoes: estado.observacoes || "",
+      }),
     });
     const dados = await resp.json();
     if (!resp.ok) throw new Error(dados.erro || "não consegui enviar o e-mail");

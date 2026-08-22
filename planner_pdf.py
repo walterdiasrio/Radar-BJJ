@@ -107,7 +107,9 @@ def _tabela_calendario(mes, ano, dias_planner, estilos):
 
 
 def _caixa_texto(titulo, texto, estilos, largura):
-    conteudo = texto.strip() if texto else "—"
+    from xml.sax.saxutils import escape
+
+    conteudo = escape(texto.strip()) if texto else "—"
     tabela = Table(
         [
             [Paragraph(titulo, estilos["caixa_titulo"])],
@@ -151,17 +153,11 @@ def gerar_pdf(turma, planner):
         Spacer(1, 14),
     ]
 
-    largura_caixa = (doc.width - 8 * mm) / 2
-    caixas = Table(
-        [[
-            _caixa_texto("OBJETIVOS DO MÊS", planner.get("objetivos", ""), estilos, largura_caixa),
-            _caixa_texto("ANOTAÇÕES", planner.get("anotacoes", ""), estilos, largura_caixa),
-        ]],
-        colWidths=[largura_caixa, largura_caixa],
-        spaceBefore=0,
-    )
-    caixas.setStyle(TableStyle([("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (1, 0), (1, 0), 0), ("RIGHTPADDING", (0, 0), (0, 0), 8 * mm)]))
-    elementos.append(caixas)
+    elementos.append(_caixa_texto("OBJETIVO", planner.get("objetivo", ""), estilos, doc.width))
+    elementos.append(Spacer(1, 8))
+    elementos.append(_caixa_texto("COMPETIÇÕES PREVISTAS", planner.get("competicoes", ""), estilos, doc.width))
+    elementos.append(Spacer(1, 8))
+    elementos.append(_caixa_texto("OBSERVAÇÕES", planner.get("observacoes", ""), estilos, doc.width))
     elementos.append(Spacer(1, 10))
     elementos.append(Paragraph("Gerado pelo Radar BJJ — www.radarbjj.com", estilos["rodape"]))
 
