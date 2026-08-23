@@ -51,6 +51,10 @@ function renderizarResumo(resumo) {
     </div>`).join("");
 }
 
+function contaEhFree(u) {
+  return !["trialing", "active", "past_due"].includes(u.assinatura_status);
+}
+
 function renderizarTabela(usuarios) {
   if (!usuarios.length) {
     elCorpoTabela.innerHTML = '<tr><td colspan="6">Nenhum usuário encontrado.</td></tr>';
@@ -58,6 +62,9 @@ function renderizarTabela(usuarios) {
   }
   elCorpoTabela.innerHTML = usuarios.map(u => {
     const novoPerfil = u.tipo_perfil === "mestre" ? "atleta" : "mestre";
+    const botaoApagar = contaEhFree(u)
+      ? `<button type="button" class="btn-secundario btn-apagar-usuario" data-id="${u.id}" style="color:#c0392b;">Apagar</button>`
+      : "";
     return `
     <tr>
       <td>${u.email}</td>
@@ -65,7 +72,10 @@ function renderizarTabela(usuarios) {
       <td>${u.nome_usuario || "—"}</td>
       <td>${badgeAssinatura(u)}</td>
       <td>${formatarData(u.criado_em)}</td>
-      <td><button type="button" class="btn-secundario btn-alternar-perfil" data-id="${u.id}" data-novo-perfil="${novoPerfil}">Tornar ${novoPerfil === "mestre" ? "Mestre" : "Atleta"}</button></td>
+      <td>
+        <button type="button" class="btn-secundario btn-alternar-perfil" data-id="${u.id}" data-novo-perfil="${novoPerfil}">Tornar ${novoPerfil === "mestre" ? "Mestre" : "Atleta"}</button>
+        ${botaoApagar}
+      </td>
     </tr>
   `;
   }).join("");
@@ -91,11 +101,33 @@ async function alternarPerfil(usuario, novoPerfil, botao) {
   }
 }
 
+async function apagarUsuario(usuario, botao) {
+  if (!confirm(`Apagar a conta de ${usuario.email}? Essa ação não pode ser desfeita.`)) return;
+
+  botao.disabled = true;
+  try {
+    const resp = await fetchAutenticado(`/api/usuarios/${usuario.id}`, { method: "DELETE" });
+    const dados = await resp.json();
+    if (!resp.ok) throw new Error(dados.erro || "erro ao apagar usuário");
+    await carregarUsuarios();
+  } catch (err) {
+    mostrarStatus(`Erro: ${err.message}`, true);
+    botao.disabled = false;
+  }
+}
+
 elCorpoTabela.addEventListener("click", (ev) => {
-  const botao = ev.target.closest(".btn-alternar-perfil");
-  if (!botao) return;
-  const usuario = usuariosCarregados.find(u => String(u.id) === botao.dataset.id);
-  if (usuario) alternarPerfil(usuario, botao.dataset.novoPerfil, botao);
+  const botaoPerfil = ev.target.closest(".btn-alternar-perfil");
+  if (botaoPerfil) {
+    const usuario = usuariosCarregados.find(u => String(u.id) === botaoPerfil.dataset.id);
+    if (usuario) alternarPerfil(usuario, botaoPerfil.dataset.novoPerfil, botaoPerfil);
+    return;
+  }
+  const botaoApagar = ev.target.closest(".btn-apagar-usuario");
+  if (botaoApagar) {
+    const usuario = usuariosCarregados.find(u => String(u.id) === botaoApagar.dataset.id);
+    if (usuario) apagarUsuario(usuario, botaoApagar);
+  }
 });
 
 function aplicarFiltro() {

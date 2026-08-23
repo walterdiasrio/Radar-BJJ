@@ -560,6 +560,20 @@ def api_definir_tipo_perfil_usuario(usuario_id):
     return jsonify({"ok": True})
 
 
+@app.delete("/api/usuarios/<int:usuario_id>")
+@api_admin_necessario
+def api_remover_usuario(usuario_id):
+    # Só deixa apagar conta Free — quem já pagou (ou está em teste grátis
+    # de um plano pago) precisa cancelar pelo Stripe primeiro, senão a
+    # assinatura continua cobrando de uma conta que já não existe mais aqui.
+    assinatura = pagamentos.obter_assinatura(usuario_id)
+    if assinatura and assinatura["status"] in ("trialing", "active", "past_due"):
+        return jsonify({"erro": "essa conta tem assinatura ativa — cancele a assinatura antes de apagar"}), 400
+    if not auth.remover_usuario(usuario_id):
+        return jsonify({"erro": "usuário não encontrado"}), 404
+    return jsonify({"ok": True})
+
+
 @app.get("/importar-adcc")
 @admin_necessario
 def pagina_importar_adcc():

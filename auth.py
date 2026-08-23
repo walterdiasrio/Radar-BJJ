@@ -169,6 +169,18 @@ def buscar_por_email(email):
     return dict(linha) if linha else None
 
 
+def remover_usuario(usuario_id):
+    """Apaga a conta (usuários.db apenas — dados em carreira/turmas/agenda
+    ficam órfãos, mesmo padrão já usado em remover_vinculo). Usado pelo
+    admin só em contas Free (sem assinatura ativa — ver api_remover_usuario
+    em app.py, que checa isso antes de chamar)."""
+    with _conn() as conn:
+        conn.execute("DELETE FROM reset_senha WHERE usuario_id = ?", (usuario_id,))
+        conn.execute("DELETE FROM verificacao_email WHERE usuario_id = ?", (usuario_id,))
+        cursor = conn.execute("DELETE FROM usuarios WHERE id = ?", (usuario_id,))
+        return cursor.rowcount > 0
+
+
 def nome_usuario_valido(nome_usuario):
     return bool(nome_usuario) and bool(_NOME_USUARIO_REGEX.match(nome_usuario))
 
