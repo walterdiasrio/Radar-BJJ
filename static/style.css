@@ -1488,6 +1488,18 @@ tr:hover td { background: #f8fafc; }
 .tab-carreira-content { display: none; }
 .tab-carreira-content.ativo { display: block; }
 
+.home-aulas-seletor-turmas {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  padding-bottom: 10px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--borda);
+  scrollbar-width: thin;
+}
+.home-aulas-seletor-turmas .tab-carreira-btn { flex-shrink: 0; }
+
 .card-carreira {
   background: white;
   border: 1px solid var(--borda);

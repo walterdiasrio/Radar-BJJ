@@ -146,6 +146,72 @@ async function responderVinculoHome(pendente, aceitar) {
   carregarVinculosPendentes();
 }
 
+function formatarDataAulaHome(data) {
+  const [ano, mes, dia] = data.split("-");
+  return `${dia}/${mes}`;
+}
+
+function renderizarConteudoTurmaAulas(turma) {
+  if (turma.aulas.length) {
+    return turma.aulas.map(aula => `
+      <div class="cartao-alerta" style="padding:10px 14px;">
+        <div class="cartao-alerta-federacao">${formatarDataAulaHome(aula.data)}</div>
+        <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:6px;">
+          ${aula.posicoes.map(pos => `<span style="background:#eef2f6; border-radius:20px; padding:3px 10px; font-size:0.8rem; font-weight:700;">${pos}</span>`).join("")}
+        </div>
+      </div>
+    `).join("");
+  }
+
+  if (turma.datas_sugeridas.length) {
+    return `
+      <p style="color:#55606b; font-size:0.85rem; margin-top:0;">Nenhuma aula registrada ainda pra essa turma. Próximas datas de treino:</p>
+      ${turma.datas_sugeridas.map(data => `
+        <div class="cartao-alerta" style="padding:10px 14px; display:flex; justify-content:space-between; align-items:center;">
+          <span>${formatarDataAulaHome(data)}</span>
+          <a href="/turmas?turma=${turma.id}&aba=futuras"><button type="button" class="btn-secundario">Criar Aula</button></a>
+        </div>
+      `).join("")}
+    `;
+  }
+
+  return `
+    <p style="color:#55606b; font-size:0.85rem; margin-top:0;">Essa turma ainda não tem dias da semana cadastrados.</p>
+    <a href="/turmas?turma=${turma.id}"><button type="button" class="btn-secundario">Editar turma</button></a>
+  `;
+}
+
+function renderizarProximasAulasHome(turmasComAulas) {
+  const elCard = document.getElementById("home-proximas-aulas-turmas");
+  const elSeletor = document.getElementById("home-aulas-seletor-turmas");
+  const elConteudo = document.getElementById("home-aulas-conteudo-turma");
+  if (!elCard || !turmasComAulas.length) return;
+
+  elCard.style.display = "block";
+
+  const mostrarConteudo = (turmaId) => {
+    const turma = turmasComAulas.find(t => t.id === turmaId);
+    elConteudo.innerHTML = renderizarConteudoTurmaAulas(turma);
+    elSeletor.querySelectorAll(".tab-carreira-btn").forEach(btn => {
+      btn.classList.toggle("ativo", Number(btn.dataset.id) === turmaId);
+    });
+  };
+
+  if (turmasComAulas.length > 1) {
+    elSeletor.style.display = "flex";
+    elSeletor.innerHTML = turmasComAulas.map(t => `
+      <button type="button" class="tab-carreira-btn" data-id="${t.id}">${t.nome ? t.nome + " — " : ""}${t.categoria}</button>
+    `).join("");
+    elSeletor.querySelectorAll(".tab-carreira-btn").forEach(btn => {
+      btn.addEventListener("click", () => mostrarConteudo(Number(btn.dataset.id)));
+    });
+  } else {
+    elSeletor.style.display = "none";
+  }
+
+  mostrarConteudo(turmasComAulas[0].id);
+}
+
 function renderizarMedalhasHome(medalhas) {
   const elCard = document.getElementById("home-quadro-medalhas");
   elCard.style.display = "block";
@@ -212,6 +278,10 @@ async function ajustarCartaoBoasVindas() {
 
   if (resumo.medalhas) {
     renderizarMedalhasHome(resumo.medalhas);
+  }
+
+  if (resumo.proximas_aulas_turmas) {
+    renderizarProximasAulasHome(resumo.proximas_aulas_turmas);
   }
 }
 

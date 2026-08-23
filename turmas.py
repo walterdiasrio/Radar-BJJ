@@ -430,6 +430,43 @@ def _proximas_datas_do_mes(dias_semana, limite=None):
     return datas[:limite] if limite else datas
 
 
+def _proximas_datas_a_partir_de_hoje(dias_semana, limite=4):
+    """As próximas `limite` datas (hoje incluído) que caem nos dias da
+    semana da turma — usado só pra sugerir datas de aula no widget de
+    Próximas Aulas da Home quando a turma ainda não tem nada registrado
+    (diferente de _proximas_datas_do_mes, que é sempre o mês seguinte
+    inteiro, sem esse limite curto)."""
+    indices = {_DIA_SEMANA_INDICE[d] for d in dias_semana if d in _DIA_SEMANA_INDICE}
+    if not indices:
+        return []
+    datas = []
+    dia = date.today()
+    while len(datas) < limite:
+        if dia.weekday() in indices:
+            datas.append(dia)
+        dia += timedelta(days=1)
+    return datas
+
+
+def resumo_proximas_aulas(mestre_id):
+    """Pra cada turma do Mestre: as próximas aulas já registradas (até 3) ou,
+    se não tiver nenhuma, as próximas datas de treino sugeridas com base nos
+    dias da semana da turma — usado no widget "Próximas Aulas" da Home."""
+    turmas = listar_turmas(mestre_id)
+    resumo = []
+    for t in turmas:
+        aulas = listar_aulas_futuras(mestre_id, t["id"])[:3]
+        sugeridas = [] if aulas else [d.isoformat() for d in _proximas_datas_a_partir_de_hoje(t["dias_semana"])]
+        resumo.append({
+            "id": t["id"],
+            "nome": t["nome"],
+            "categoria": t["categoria"],
+            "aulas": aulas,
+            "datas_sugeridas": sugeridas,
+        })
+    return resumo
+
+
 def sugerir_plano_mensal(mestre_id, turma_id, foco, posicoes_por_aula=2):
     """Sugestão de plano de aula pro próximo mês (não salva nada — o
     Mestre revisa e decide o que registrar de fato). Cicla pelas posições

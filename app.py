@@ -265,6 +265,8 @@ def api_home_resumo():
         resposta["medalhas"] = {
             "ouros": stats["ouros"], "pratas": stats["pratas"], "bronzes": stats["bronzes"],
         }
+        if usuario["tipo_perfil"] == "mestre":
+            resposta["proximas_aulas_turmas"] = turmas.resumo_proximas_aulas(usuario_id)
     return jsonify(resposta)
 
 

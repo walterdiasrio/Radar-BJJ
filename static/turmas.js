@@ -20,6 +20,7 @@ const elTituloForm = document.getElementById("titulo-form-turma");
 const parametrosUrl = new URLSearchParams(window.location.search);
 const modoNovaTurma = parametrosUrl.get("nova") === "1";
 const turmaIdFiltro = parametrosUrl.get("turma");
+const abaParaAbrir = parametrosUrl.get("aba"); // ?turma=<id>&aba=futuras — vem do widget de Próximas Aulas na Home
 
 function aplicarModoPagina() {
   if (modoNovaTurma) {
@@ -571,6 +572,9 @@ async function carregarTurmas() {
     if (!resp.ok) throw new Error(turmas.erro || "erro ao carregar turmas");
     renderizarTurmas(turmas);
     rolarAteTurmaDestacada();
+    if (turmaIdFiltro && abaParaAbrir && !abaAtivaPorTurma[turmaIdFiltro]) {
+      alternarAba(Number(turmaIdFiltro), abaParaAbrir);
+    }
   } catch (err) {
     mostrarStatus(`Erro: ${err.message}`, true);
   }
