@@ -1,3 +1,22 @@
+// Mesmo "checkout pendente" que static/login.js consome depois do login por
+// senha — precisa ser checado aqui também porque o login com Google não
+// passa pelo login.js: ele redireciona o navegador direto pra "/" depois de
+// ir e voltar do Google (ver /login/google/callback em app.py). sessionStorage
+// sobrevive a esse vai-e-volta, então funciona igual.
+(function continuarCheckoutPendenteAposGoogle() {
+  const pendente = sessionStorage.getItem("radarbjj_checkout_pendente");
+  if (!pendente) return;
+  sessionStorage.removeItem("radarbjj_checkout_pendente");
+  try {
+    const { plano, periodicidade } = JSON.parse(pendente);
+    if (plano && periodicidade) {
+      window.location.href = `/assinatura?plano=${plano}&periodicidade=${periodicidade}&auto=1`;
+    }
+  } catch (err) {
+    // pendente inválido, ignora
+  }
+})();
+
 async function carregarDestaques() {
   const elDestaques = document.getElementById("destaques");
   if (!elDestaques) return;

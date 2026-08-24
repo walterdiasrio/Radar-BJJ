@@ -6,6 +6,15 @@ function mostrarStatus(texto, ehErro = false) {
   elStatus.className = ehErro ? "erro" : "";
 }
 
+(function mostrarErroGoogle() {
+  const erro = new URLSearchParams(window.location.search).get("erro");
+  if (erro === "google_nao_configurado") {
+    mostrarStatus("Login com Google ainda não está disponível.", true);
+  } else if (erro === "google") {
+    mostrarStatus("Não conseguimos entrar com o Google. Tente de novo.", true);
+  }
+})();
+
 elForm.addEventListener("submit", async (ev) => {
   ev.preventDefault();
   const email = document.getElementById("email").value;

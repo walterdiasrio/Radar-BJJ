@@ -74,3 +74,14 @@ elForm.addEventListener("submit", async (ev) => {
     mostrarStatus(err.message, true);
   }
 });
+
+document.getElementById("btn-google").addEventListener("click", () => {
+  const elAceite = document.getElementById("aceite_termos");
+  if (!elAceite.checked) {
+    mostrarStatus("Precisa marcar que concorda com os Termos de Uso antes de continuar.", true);
+    elAceite.focus();
+    return;
+  }
+  const tipo_perfil = document.querySelector('input[name="tipo_perfil"]:checked').value;
+  window.location.href = `/login/google?tipo_perfil=${tipo_perfil}`;
+});

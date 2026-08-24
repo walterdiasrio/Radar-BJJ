@@ -121,6 +121,38 @@ def cadastrar(email, senha, tipo_perfil):
         return None, "Esse e-mail já está cadastrado."
 
 
+def obter_ou_criar_via_google(email, tipo_perfil_padrao):
+    """Login/cadastro via Google — retorna (usuario_id, criado_agora, erro).
+    Mesmo e-mail = mesma conta: se já existe cadastro por senha com esse
+    e-mail, só loga nele (e confirma o e-mail, já que o Google já garantiu
+    que é dono dele) em vez de criar um segundo usuário. Sem senha
+    conhecida por ninguém pro cadastro novo — só dá pra entrar por aqui
+    até a pessoa cadastrar uma em Esqueci minha senha, se quiser."""
+    email = (email or "").strip().lower()
+    if not email_valido(email):
+        return None, False, "e-mail inválido"
+
+    existente = buscar_por_email(email)
+    if existente:
+        if not existente["email_verificado"]:
+            with _conn() as conn:
+                conn.execute("UPDATE usuarios SET email_verificado = 1 WHERE id = ?", (existente["id"],))
+        return existente["id"], False, None
+
+    if tipo_perfil_padrao not in TIPOS_PERFIL:
+        tipo_perfil_padrao = "atleta"
+    senha_hash = generate_password_hash(secrets.token_urlsafe(32))
+    try:
+        with _conn() as conn:
+            cursor = conn.execute(
+                "INSERT INTO usuarios (email, senha_hash, tipo_perfil, email_verificado) VALUES (?, ?, ?, 1)",
+                (email, senha_hash, tipo_perfil_padrao),
+            )
+            return cursor.lastrowid, True, None
+    except sqlite3.IntegrityError:
+        return None, False, "esse e-mail já está cadastrado"
+
+
 def autenticar(email, senha):
     """Retorna (usuario, erro). usuario é um dict se sucesso. Login fica
     bloqueado pra quem ainda não confirmou o e-mail (erro específico, pra

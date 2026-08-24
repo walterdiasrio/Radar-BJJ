@@ -16,6 +16,7 @@ import auth
 import carreira
 import contato
 import drive_import
+import google_login
 import noticias
 import pagamentos
 import planner_pdf
@@ -737,6 +738,48 @@ def api_entrar():
         return jsonify({"erro": erro}), 401
     session["usuario_id"] = usuario["id"]
     return jsonify({"ok": True, "email": usuario["email"]})
+
+
+@app.get("/login/google")
+def login_google():
+    if not google_login.configurado():
+        return redirect("/login?erro=google_nao_configurado")
+
+    tipo_perfil = request.args.get("tipo_perfil")
+    if tipo_perfil not in auth.TIPOS_PERFIL:
+        tipo_perfil = "atleta"
+    estado = secrets.token_urlsafe(24)
+    session["google_oauth_estado"] = estado
+    session["google_oauth_tipo_perfil"] = tipo_perfil
+    redirect_uri = f"{alertas.URL_SITE}/login/google/callback"
+    return redirect(google_login.montar_url_autorizacao(redirect_uri, estado))
+
+
+@app.get("/login/google/callback")
+def login_google_callback():
+    estado_esperado = session.pop("google_oauth_estado", None)
+    tipo_perfil = session.pop("google_oauth_tipo_perfil", "atleta")
+    estado_recebido = request.args.get("state")
+    codigo = request.args.get("code")
+
+    if not codigo or not estado_recebido or estado_recebido != estado_esperado:
+        return redirect("/login?erro=google")
+
+    redirect_uri = f"{alertas.URL_SITE}/login/google/callback"
+    email, nome, erro = google_login.obter_email_e_nome(codigo, redirect_uri)
+    if erro:
+        traceback.print_exc()
+        return redirect("/login?erro=google")
+
+    usuario_id, criado_agora, erro = auth.obter_ou_criar_via_google(email, tipo_perfil)
+    if erro:
+        return redirect("/login?erro=google")
+
+    if criado_agora and nome:
+        carreira.salvar_perfil(usuario_id, {"nome": nome})
+
+    session["usuario_id"] = usuario_id
+    return redirect("/")
 
 
 @app.post("/api/sair")
