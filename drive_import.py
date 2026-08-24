@@ -93,10 +93,11 @@ def _mover_para_processados(drive, file_id, origem_folder_id, destino_folder_id)
 # arquivo pelo <title> de cada página, que vem diferente entre a página do
 # evento e a de participantes/atletas (ex: "ADCC Brazil Open - Petrópolis -
 # Smoothcomp.html" vs "Participants - ADCC Brazil Open - Petrópolis -
-# Atletas.html") — bem diferente de "mesmo nome + sufixo" se o usuário não
-# renomear na mão. Em vez de exigir isso, tira prefixo/sufixo de ruído
-# comuns dos dois lados e casa pelo que sobra.
-_PREFIXO_ATLETAS = re.compile(r"^participants\s*-\s*", re.I)
+# Atletas.html" — o prefixo às vezes vem em português também, "Atletas -
+# ADCC Brazil Open - ... - Smoothcomp.html") — bem diferente de "mesmo nome
+# + sufixo" se o usuário não renomear na mão. Em vez de exigir isso, tira
+# prefixo/sufixo de ruído comuns dos dois lados e casa pelo que sobra.
+_PREFIXO_ATLETAS = re.compile(r"^(participants|atletas|athletes)\s*-\s*", re.I)
 _SUFIXOS_RUIDO = re.compile(r"\s*-\s*(atletas|athletes|smoothcomp)\s*$", re.I)
 _PALAVRAS_ATLETAS = re.compile(r"participants|atletas|athletes", re.I)
 
