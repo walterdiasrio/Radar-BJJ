@@ -36,6 +36,31 @@ function formatarDataMedalhista(data) {
   return `${dia}/${mes}/${ano}`;
 }
 
+// Quadro fixo, sem nenhum atleta/conta real por trás — só pra não deixar o
+// quadro "Últimos Medalhistas" vazio na home antes de existir gente
+// suficiente cadastrando resultado de verdade. Assim que a API devolver
+// pelo menos 1 medalhista real, isso para de ser usado sozinho (ver
+// carregarUltimosMedalhistas) — remover esta lista quando não precisar mais.
+const MEDALHISTAS_FICTICIOS = [
+  { nome: "Rafael Monteiro Duarte", medalha: "ouro", campeonato: "Copa Estadual de Jiu-Jitsu 2026", data: "2026-08-20" },
+  { nome: "Camila Ferraz Nogueira", medalha: "prata", campeonato: "Copa Regional de Jiu-Jitsu 2026", data: "2026-08-16" },
+  { nome: "Bruno Cavalcanti Lima", medalha: "ouro", campeonato: "Aberto de Jiu-Jitsu Sem Kimono 2026", data: "2026-08-10" },
+  { nome: "Juliana Prado Azevedo", medalha: "bronze", campeonato: "Copa Amizade de Jiu-Jitsu 2026", data: "2026-08-02" },
+];
+
+function itemMedalhista(m, comLink) {
+  const nomeHtml = `${MEDALHA_EMOJI[m.medalha] || ""} ${m.nome}`;
+  const nomeEl = comLink
+    ? `<a href="/atleta/${encodeURIComponent(m.nome_usuario)}" style="color: var(--azul); font-weight:600; text-decoration:none;">${nomeHtml}</a>`
+    : `<span style="color: var(--azul); font-weight:600;">${nomeHtml}</span>`;
+  return `
+    <div class="cartao-alerta" style="padding:10px 14px;">
+      <div>${nomeEl}</div>
+      <div class="cartao-alerta-federacao">${m.campeonato || "Competição"}${m.data ? " · " + formatarDataMedalhista(m.data) : ""}</div>
+    </div>
+  `;
+}
+
 async function carregarUltimosMedalhistas() {
   const elCard = document.getElementById("home-ultimos-medalhistas");
   const elLista = document.getElementById("lista-ultimos-medalhistas");
@@ -43,19 +68,14 @@ async function carregarUltimosMedalhistas() {
   try {
     const resp = await fetch("/api/home/medalhas-recentes");
     const medalhistas = await resp.json();
-    if (!resp.ok || !medalhistas.length) return;
+    if (!resp.ok) return;
 
     elCard.style.display = "block";
-    elLista.innerHTML = medalhistas.map(m => `
-      <div class="cartao-alerta" style="padding:10px 14px;">
-        <div>
-          <a href="/atleta/${encodeURIComponent(m.nome_usuario)}" style="color: var(--azul); font-weight:600; text-decoration:none;">
-            ${MEDALHA_EMOJI[m.medalha] || ""} ${m.nome}
-          </a>
-        </div>
-        <div class="cartao-alerta-federacao">${m.campeonato || "Competição"}${m.data ? " · " + formatarDataMedalhista(m.data) : ""}</div>
-      </div>
-    `).join("");
+    if (medalhistas.length) {
+      elLista.innerHTML = medalhistas.map(m => itemMedalhista(m, true)).join("");
+    } else {
+      elLista.innerHTML = MEDALHISTAS_FICTICIOS.map(m => itemMedalhista(m, false)).join("");
+    }
   } catch (err) {
     // sem medalhistas recentes — quadro fica escondido
   }
