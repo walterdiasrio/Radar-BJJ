@@ -708,6 +708,31 @@ button {
 
 .btn-secundario.ativo { background: var(--azul-claro); color: #fff; }
 
+/* Botão "Continuar com Google" no padrão oficial de marca do Google
+   (branco, borda cinza, logo colorido) — não usa as cores do site de
+   propósito, é a identidade visual exigida pelo Google pra esse botão. */
+.btn-google {
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  height: 40px;
+  background: #fff;
+  color: #1f1f1f;
+  border: 1px solid #747775;
+  border-radius: 4px;
+  font-family: Roboto, Arial, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.15px;
+  margin-top: 0;
+  cursor: pointer;
+}
+.btn-google:hover { background: #f8f9fa; box-shadow: none; transform: none; }
+.btn-google svg { flex-shrink: 0; }
+
 button:hover:not(:disabled) {
   background: var(--azul);
   transform: translateY(-1px);
