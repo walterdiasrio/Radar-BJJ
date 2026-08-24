@@ -88,6 +88,37 @@ def _cbjj_fjjrio(idade, genero):
     return _CBJJ_FJJRIO_ADULTO_FEM if genero == "feminino" else _CBJJ_FJJRIO_ADULTO_MASC
 
 
+# Tabela de peso Sem Kimono (No-Gi) pra idade de base/kids — bem mais leve
+# que a tabela Com Kimono acima (ex: "Pesado" do Mirim 3 vai até 40,90kg
+# aqui, contra 42,3kg na tabela de Kimono), confirmada em 23/08/2026 lendo
+# ao vivo as categorias do Campeonato Brasileiro de Jiu-Jitsu Sem Kimono
+# (idade 04 a 15 anos) 2026 (cbjj.com.br/events/3368/athletes-list-by-
+# divisions) — igual à tabela de Kimono, kids são unissex (só a partir do
+# Juvenil o peso passa a diferenciar por gênero). Idade 7-15 tem cobertura
+# real; os poucos valores sem nenhum atleta inscrito nesse evento foram
+# preenchidos batendo com o valor equivalente numa idade vizinha (o
+# "Pesado" de uma idade é sempre igual ao "Super-Pesado" da idade anterior,
+# um padrão confirmado em toda a tabela onde os dois existiam) — marcados
+# abaixo com # inferido. Sem dado nenhum pra Pré-Mirim (4-6 anos, poucos
+# inscritos nesse evento pra confirmar) nem pra Juvenil/Adulto Sem Kimono —
+# essas idades continuam caindo na tabela de Kimono (ver _cbjj_fjjrio_sem_kimono).
+_CBJJ_FJJRIO_SEM_KIMONO_POR_IDADE = {
+    7: _tabela(17.7, 19.7, 22.7, 25.7, 28.8, 31.8, 34.8, 37.9),  # Pesado inferido
+    8: _tabela(19.7, 22.7, 25.7, 28.8, 31.8, 34.8, 37.9, 40.9),  # Super-Pesado inferido
+    9: _tabela(22.7, 25.7, 28.8, 31.8, 34.8, 37.9, 40.9, 43.9),  # Super-Pesado inferido
+    10: _tabela(25.7, 28.8, 31.8, 34.8, 37.9, 40.9, 43.9, 46.9),  # Galo inferido
+    11: _tabela(28.8, 31.8, 34.8, 37.9, 40.9, 43.9, 46.9, 50.0),
+    12: _tabela(30.8, 34.8, 38.9, 42.9, 46.9, 51.0, 55.0, 59.0),
+    13: _tabela(34.8, 38.9, 42.9, 46.9, 51.0, 55.0, 59.0, 63.0),
+    14: _tabela(38.9, 42.9, 46.9, 51.0, 55.0, 59.0, 63.0, 67.0),
+    15: _tabela(42.9, 46.9, 51.0, 55.0, 59.0, 63.0, 67.0, 71.0),
+}
+
+
+def _cbjj_fjjrio_sem_kimono(idade, genero):
+    return _CBJJ_FJJRIO_SEM_KIMONO_POR_IDADE.get(idade) or _cbjj_fjjrio(idade, genero)
+
+
 # ---------------------------------------------------------------------------
 # CBJJD
 # ---------------------------------------------------------------------------
@@ -408,12 +439,24 @@ _FUNCOES = {
     "cbjjc": _cbjjc,
 }
 
+# Federações onde já confirmamos que a competição Sem Kimono usa uma tabela
+# de peso diferente da de Kimono (ver _cbjj_fjjrio_sem_kimono) — as demais
+# não têm essa tabela levantada ainda, então continuam usando a de Kimono
+# mesmo em evento Sem Kimono (mesmo comportamento de antes, não piora nada;
+# só corrige o que já foi confirmado).
+_FUNCOES_SEM_KIMONO = {
+    "cbjj": _cbjj_fjjrio_sem_kimono,
+    "fjjrio": _cbjj_fjjrio_sem_kimono,
+}
 
-def categoria_peso_para(federacao, idade, peso_kg, genero=""):
+
+def categoria_peso_para(federacao, idade, peso_kg, genero="", sem_kimono=False):
     """Retorna o nome da categoria de peso (ex: "Leve") para o peso (kg)
     informado, dada a idade exata do atleta e seu gênero. genero deve ser
-    "masculino" ou "feminino" (para idade >= 16); se vazio, assume masculino."""
-    funcao = _FUNCOES.get(federacao)
+    "masculino" ou "feminino" (para idade >= 16); se vazio, assume masculino.
+    sem_kimono=True usa a tabela de peso Sem Kimono da federação, se já
+    tivermos uma cadastrada (ver _FUNCOES_SEM_KIMONO)."""
+    funcao = (_FUNCOES_SEM_KIMONO.get(federacao) if sem_kimono else None) or _FUNCOES.get(federacao)
     if not funcao:
         return None
 

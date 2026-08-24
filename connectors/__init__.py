@@ -342,7 +342,9 @@ def _filtros_para_federacao(fed, filtros, evento_id=None, evento_nome=None):
                     "(a partir do Juvenil, o limite de peso muda entre masculino e feminino)"
                 )
             else:
-                categoria_peso = peso_mod.categoria_peso_para(fed, idade, peso_bruto, filtros.get("genero", ""))
+                categoria_peso = peso_mod.categoria_peso_para(
+                    fed, idade, peso_bruto, filtros.get("genero", ""), sem_kimono=sem_kimono
+                )
                 if categoria_peso:
                     filtros_fed["peso_categoria"] = categoria_peso
                 else:
