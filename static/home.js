@@ -36,11 +36,19 @@ function formatarDataMedalhista(data) {
   return `${dia}/${mes}/${ano}`;
 }
 
+// O Vinícius (dono da conta de demonstração do site) não conta como "gente
+// suficiente" sozinho pra tirar o quadro fictício do ar — sem isso, o
+// quadro passava a mostrar só ele repetido várias vezes assim que ele
+// lançava a primeira medalha, o que não passa a impressão de comunidade
+// que o quadro fictício tenta dar enquanto isso. Ver carregarUltimosMedalhistas.
+const NOME_USUARIO_IGNORADO_NA_CONTAGEM_REAL = "vinibulba";
+
 // Quadro fixo, sem nenhum atleta/conta real por trás — só pra não deixar o
 // quadro "Últimos Medalhistas" vazio na home antes de existir gente
 // suficiente cadastrando resultado de verdade. Assim que a API devolver
-// pelo menos 1 medalhista real, isso para de ser usado sozinho (ver
-// carregarUltimosMedalhistas) — remover esta lista quando não precisar mais.
+// pelo menos 1 medalhista real ALÉM do Vinícius, isso para de ser usado
+// sozinho (ver carregarUltimosMedalhistas) — remover esta lista (e a
+// constante acima) quando não precisar mais.
 const MEDALHISTAS_FICTICIOS = [
   { nome: "Rafael Monteiro Duarte", medalha: "ouro", campeonato: "Copa Estadual de Jiu-Jitsu 2026", data: "2026-08-20" },
   { nome: "Camila Ferraz Nogueira", medalha: "prata", campeonato: "Copa Regional de Jiu-Jitsu 2026", data: "2026-08-16" },
@@ -71,10 +79,13 @@ async function carregarUltimosMedalhistas() {
     if (!resp.ok) return;
 
     elCard.style.display = "block";
-    if (medalhistas.length) {
+    const temOutraPessoaReal = medalhistas.some(m => m.nome_usuario !== NOME_USUARIO_IGNORADO_NA_CONTAGEM_REAL);
+    if (temOutraPessoaReal) {
       elLista.innerHTML = medalhistas.map(m => itemMedalhista(m, true)).join("");
     } else {
-      elLista.innerHTML = MEDALHISTAS_FICTICIOS.map(m => itemMedalhista(m, false)).join("");
+      const reaisDoVinicius = medalhistas.map(m => itemMedalhista(m, true));
+      const fakesParaCompletar = MEDALHISTAS_FICTICIOS.slice(0, Math.max(0, 5 - reaisDoVinicius.length)).map(m => itemMedalhista(m, false));
+      elLista.innerHTML = reaisDoVinicius.concat(fakesParaCompletar).join("");
     }
   } catch (err) {
     // sem medalhistas recentes — quadro fica escondido
