@@ -259,14 +259,20 @@ def api_home_resumo():
         "tem_assinatura": tem_assinatura,
         "proximas_competicoes": agenda.listar(usuario_id)[:5],
     }
+    # Próximas Aulas fica fora do "if tem_assinatura" de propósito: mesmo
+    # Mestre no Free (sem acesso a Turmas ainda) precisa ver esse card na
+    # Home com um caminho pra assinar, em vez do espaço simplesmente sumir
+    # — /turmas já redireciona sozinho pra /assinatura se não tiver
+    # assinatura ativa (ver decorator assinatura_necessaria).
+    if usuario["tipo_perfil"] == "mestre":
+        resposta["proximas_aulas_turmas"] = turmas.resumo_proximas_aulas(usuario_id)
+
     if tem_assinatura:
         resposta["tem_filtro_salvo"] = bool(auth.obter_filtro_padrao(usuario_id))
         stats = carreira.calcular_estatisticas(usuario_id)
         resposta["medalhas"] = {
             "ouros": stats["ouros"], "pratas": stats["pratas"], "bronzes": stats["bronzes"],
         }
-        if usuario["tipo_perfil"] == "mestre":
-            resposta["proximas_aulas_turmas"] = turmas.resumo_proximas_aulas(usuario_id)
     return jsonify(resposta)
 
 

@@ -272,6 +272,10 @@ async function ajustarCartaoBoasVindas() {
 
   renderizarProximasHome(resumo.proximas_competicoes || []);
 
+  if (resumo.proximas_aulas_turmas) {
+    renderizarProximasAulasHome(resumo.proximas_aulas_turmas);
+  }
+
   if (!resumo.tem_assinatura) {
     elBotoesLogado.style.display = "none";
     return;
@@ -287,10 +291,6 @@ async function ajustarCartaoBoasVindas() {
 
   if (resumo.medalhas) {
     renderizarMedalhasHome(resumo.medalhas);
-  }
-
-  if (resumo.proximas_aulas_turmas) {
-    renderizarProximasAulasHome(resumo.proximas_aulas_turmas);
   }
 }
 
