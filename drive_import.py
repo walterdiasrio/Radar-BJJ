@@ -115,7 +115,8 @@ def _eh_arquivo_atletas(nome_arquivo):
     return bool(_PALAVRAS_ATLETAS.search(nome_arquivo))
 
 
-def _processar_par(drive, modulo, arquivo_evento, arquivo_atletas, origem_folder_id, destino_folder_id, log):
+def _processar_par(drive, modulo, arquivo_evento, arquivo_atletas, evento_ja_processado,
+                    origem_folder_id, destino_folder_id, log):
     nome = arquivo_evento["name"]
     try:
         evento = modulo.parse_evento_html(_baixar_texto(drive, arquivo_evento["id"]))
@@ -126,7 +127,14 @@ def _processar_par(drive, modulo, arquivo_evento, arquivo_atletas, origem_folder
             raise ValueError("nenhum atleta encontrado no arquivo de atletas")
         modulo.salvar_atletas(evento["id"], atletas)
 
-        _mover_para_processados(drive, arquivo_evento["id"], origem_folder_id, destino_folder_id)
+        # A página do evento só muda de nome de arquivo na primeira
+        # importação — nas seguintes, o Mestre só sobe um "Atletas.html"
+        # novo pra reimportar a lista atualizada, e casa aqui com a página
+        # do evento que já foi movida pra "Processados" da vez anterior
+        # (não precisa subir ela de novo, nem faz sentido tentar mover algo
+        # que já está lá).
+        if not evento_ja_processado:
+            _mover_para_processados(drive, arquivo_evento["id"], origem_folder_id, destino_folder_id)
         _mover_para_processados(drive, arquivo_atletas["id"], origem_folder_id, destino_folder_id)
         log.append(f"OK: {nome} ({len(atletas)} atletas)")
     except Exception as exc:
@@ -142,16 +150,31 @@ def _processar_pasta(drive, federacao, modulo, origem_folder_id, destino_folder_
         papel = "atletas" if _eh_arquivo_atletas(arquivo["name"]) else "evento"
         grupos.setdefault(chave, {})[papel] = arquivo
 
-    for grupo in grupos.values():
+    # Eventos já processados (evento.html movido pra "Processados" numa
+    # importação anterior) — usados só quando sobra um Atletas.html novo
+    # sem par na pasta principal, pra reimportar sem exigir a página do
+    # evento de novo (ver comentário em _processar_par).
+    eventos_processados = {}
+    if any("atletas" in g and "evento" not in g for g in grupos.values()):
+        for arquivo in _listar_htmls(drive, destino_folder_id):
+            if not _eh_arquivo_atletas(arquivo["name"]):
+                eventos_processados[_nome_normalizado(arquivo["name"])] = arquivo
+
+    for chave, grupo in grupos.items():
         arquivo_evento = grupo.get("evento")
         arquivo_atletas = grupo.get("atletas")
+        evento_ja_processado = False
+        if arquivo_atletas and not arquivo_evento:
+            arquivo_evento = eventos_processados.get(chave)
+            evento_ja_processado = arquivo_evento is not None
         if arquivo_evento and not arquivo_atletas:
             log.append(f"{federacao} pendente: {arquivo_evento['name']} sem o arquivo de atletas ainda")
             continue
         if arquivo_atletas and not arquivo_evento:
             log.append(f"{federacao} pendente: {arquivo_atletas['name']} sem o arquivo do evento correspondente")
             continue
-        _processar_par(drive, modulo, arquivo_evento, arquivo_atletas, origem_folder_id, destino_folder_id, log)
+        _processar_par(drive, modulo, arquivo_evento, arquivo_atletas, evento_ja_processado,
+                        origem_folder_id, destino_folder_id, log)
 
 
 def verificar_e_importar():
