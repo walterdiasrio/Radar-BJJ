@@ -185,9 +185,18 @@ function renderizarProximasAulasHome(turmasComAulas) {
   const elCard = document.getElementById("home-proximas-aulas-turmas");
   const elSeletor = document.getElementById("home-aulas-seletor-turmas");
   const elConteudo = document.getElementById("home-aulas-conteudo-turma");
-  if (!elCard || !turmasComAulas.length) return;
+  if (!elCard) return;
 
   elCard.style.display = "block";
+
+  if (!turmasComAulas.length) {
+    elSeletor.style.display = "none";
+    elConteudo.innerHTML = `
+      <p style="color:#55606b; font-size:0.85rem; margin-top:0;">Você ainda não tem nenhuma turma cadastrada.</p>
+      <a href="/turmas?nova=1"><button type="button" class="btn-secundario">Criar turma e lançar aulas</button></a>
+    `;
+    return;
+  }
 
   const mostrarConteudo = (turmaId) => {
     const turma = turmasComAulas.find(t => t.id === turmaId);
