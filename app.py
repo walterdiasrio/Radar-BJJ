@@ -1209,10 +1209,18 @@ def api_remover_alerta_competicao(alerta_id):
 @app.get("/carreira")
 @login_necessario
 def pagina_carreira():
-    # A aba Perfil é liberada pro Plano Free (só as outras — Registrar,
-    # Histórico, Pesquisa, Estatísticas, Compartilhar — exigem assinatura,
-    # bloqueadas no próprio front com o banner do Plano PRO).
+    # As abas (Registrar, Histórico, Pesquisa, Estatísticas, Compartilhar)
+    # exigem assinatura, bloqueadas no próprio front com o banner do Plano
+    # PRO — o Perfil em si morou aqui, mas virou página própria (ver /perfil).
     return send_from_directory("static", "carreira.html")
+
+
+@app.get("/perfil")
+@login_necessario
+def pagina_perfil():
+    # Livre pra qualquer cadastrado (Free inclusive) — nome, foto, faixa,
+    # nome de usuário e o vínculo com Mestre(s) não são feature paga.
+    return send_from_directory("static", "perfil.html")
 
 
 @app.get("/atleta/<nome_usuario>")
@@ -1365,6 +1373,35 @@ def api_definir_nome_usuario():
     ok, erro = auth.definir_nome_usuario(session["usuario_id"], dados.get("nome_usuario"))
     if not ok:
         return jsonify({"erro": erro}), 400
+    return jsonify({"ok": True})
+
+
+@app.post("/api/conta/tornar-mestre")
+@api_login_necessario
+def api_tornar_mestre():
+    """Autoatendimento (sem passar pelo admin) — troca o perfil da própria
+    conta pra Mestre. No Free, é imediato (não tem assinatura de Atleta
+    "presa" a trocar). Assinando Atleta PRO, trocar o tipo_perfil sozinho
+    deixaria a assinatura Stripe (ainda de atleta) e o perfil dessincronizados
+    — melhor mandar pra assinar o Mestre PRO, que aí sim reflete certo em
+    ambos (ver webhook do Stripe, que já grava o plano junto com o status)."""
+    usuario_id = session["usuario_id"]
+    usuario = auth.buscar_por_id(usuario_id)
+    if usuario["tipo_perfil"] == "mestre":
+        return jsonify({"erro": "sua conta já é Mestre"}), 400
+
+    assinatura = pagamentos.obter_assinatura(usuario_id)
+    tem_assinatura_atleta_ativa = (
+        assinatura and assinatura["status"] in pagamentos.STATUS_COM_ACESSO and assinatura["plano"] == "atleta"
+    )
+    if tem_assinatura_atleta_ativa:
+        return jsonify({
+            "ok": False,
+            "precisa_assinar_mestre": True,
+            "erro": "sua assinatura atual é do Atleta PRO — assine o Mestre PRO pra trocar",
+        }), 402
+
+    auth.definir_tipo_perfil(usuario_id, "mestre")
     return jsonify({"ok": True})
 
 

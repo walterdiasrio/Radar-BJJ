@@ -37,6 +37,7 @@ async function carregarSessaoNoMenu() {
   const ICONE_LOGIN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>';
   const ICONE_CADASTRO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>';
   const ICONE_ASSINATURA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>';
+  const ICONE_PERFIL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 8 0 0 1 16 0v1"/></svg>';
 
   const aplicarSessao = (dados) => {
     window.sessaoAtual = dados;
@@ -59,6 +60,7 @@ async function carregarSessaoNoMenu() {
         <div class="nav-admin-dropdown">
           <a href="#" class="nav-admin-toggle"><span class="nav-email">${dados.email}</span><span class="nav-admin-seta">▾</span></a>
           <div class="nav-admin-submenu">
+            <a href="/perfil">${ICONE_PERFIL}<span>Meu Perfil</span></a>
             <a href="/assinatura">${ICONE_ASSINATURA}<span>Minha Assinatura</span></a>
             <a href="#" class="nav-sair">${ICONE_LOGOUT}<span>Sair</span></a>
           </div>
@@ -68,7 +70,7 @@ async function carregarSessaoNoMenu() {
       el.classList.add("nav-usuario-compacto-mobile");
       if (elMobile) {
         elMobile.style.display = "";
-        elMobile.innerHTML = `<a href="/assinatura" title="Minha Assinatura">${ICONE_ASSINATURA}</a><a href="#" class="nav-sair" title="Sair">${ICONE_LOGOUT}</a>`;
+        elMobile.innerHTML = `<a href="/perfil" title="Meu Perfil">${ICONE_PERFIL}</a><a href="/assinatura" title="Minha Assinatura">${ICONE_ASSINATURA}</a><a href="#" class="nav-sair" title="Sair">${ICONE_LOGOUT}</a>`;
       }
       document.querySelectorAll(".nav-sair").forEach((btn) => {
         btn.addEventListener("click", async (ev) => {
