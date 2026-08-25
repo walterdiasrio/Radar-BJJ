@@ -114,7 +114,7 @@ def cadastrar(email, senha, tipo_perfil, nome_usuario):
         return None, "Selecione um tipo de perfil (Mestre ou Atleta)."
     nome_usuario = (nome_usuario or "").strip().lower()
     if not nome_usuario_valido(nome_usuario):
-        return None, "Nome de perfil deve ter 3 a 20 caracteres: letras minúsculas, números ou _"
+        return None, "Nome de usuário deve ter 3 a 20 caracteres: letras minúsculas, números ou _"
 
     senha_hash = generate_password_hash(senha)
     try:
@@ -126,7 +126,7 @@ def cadastrar(email, senha, tipo_perfil, nome_usuario):
             return cursor.lastrowid, None
     except sqlite3.IntegrityError as exc:
         if "nome_usuario" in str(exc):
-            return None, "Esse nome de perfil já está em uso."
+            return None, "Esse nome de usuário já está em uso."
         return None, "Esse e-mail já está cadastrado."
 
 
