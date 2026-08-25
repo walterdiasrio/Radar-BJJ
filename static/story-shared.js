@@ -127,6 +127,25 @@ function desenharIconeGeometrico(ctx, nome, cx, cy, tamanho, cor, largura = 3) {
     ctx.beginPath();
     ctx.arc(cx, cy - r * 0.25, r * 0.22, 0, Math.PI * 2);
     ctx.stroke();
+  } else if (nome === "luta") {
+    // Dois "bastões" cruzados com uma pontinha marcada em cada extremidade
+    // — representa embate/luta, sem ícone equivalente já usado no menu.
+    const pontas = [
+      [cx - r * 0.7, cy - r * 0.7, cx + r * 0.7, cy + r * 0.7],
+      [cx - r * 0.7, cy + r * 0.7, cx + r * 0.7, cy - r * 0.7],
+    ];
+    pontas.forEach(([x1, y1, x2, y2]) => {
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(x1, y1, r * 0.14, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(x2, y2, r * 0.14, 0, Math.PI * 2);
+      ctx.fill();
+    });
   } else if (nome === "globo") {
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);

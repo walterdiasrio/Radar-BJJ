@@ -606,49 +606,85 @@ async function gerarImagemStory() {
     return;
   }
 
-  // Fundo em gradiente, com um brilho difuso atrás do cabeçalho pra dar
-  // profundidade (parecido com o fundo "tech" do template de referência).
-  const grad = ctx.createLinearGradient(0, 0, W, H);
-  grad.addColorStop(0, "#0b3d63");
-  grad.addColorStop(1, "#050810");
+  // Fundo escuro azulado + tarjas de canto — mesma identidade visual do
+  // Story de Minha Agenda (ver static/agenda.js), pra manter as duas
+  // imagens geradas pelo site com a mesma família visual.
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, "#0d1d33");
+  grad.addColorStop(1, "#050b16");
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, W, H);
 
-  const brilho = ctx.createRadialGradient(W / 2, 260, 40, W / 2, 260, 520);
-  brilho.addColorStop(0, "rgba(127, 212, 255, 0.22)");
+  const brilho = ctx.createRadialGradient(W / 2, 200, 40, W / 2, 200, 480);
+  brilho.addColorStop(0, "rgba(127, 212, 255, 0.14)");
   brilho.addColorStop(1, "rgba(127, 212, 255, 0)");
   ctx.fillStyle = brilho;
   ctx.fillRect(0, 0, W, H);
 
+  desenharTarjasCanto(ctx, W, H);
+
   ctx.textAlign = "center";
 
-  // Banner do site, no topo
-  let yBanner = 70;
-  let yAposBanner = 280;
+  // Logo do site, no topo.
+  let yLogoFim = 90;
   try {
-    const banner = await carregarImagem("img/banner.jpg");
-    const larguraBanner = 580;
-    const alturaBanner = larguraBanner * (banner.height / banner.width);
-    ctx.save();
-    ctx.shadowColor = "rgba(127, 212, 255, 0.5)";
-    ctx.shadowBlur = 30;
-    roundRect(ctx, W / 2 - larguraBanner / 2, yBanner, larguraBanner, alturaBanner, 14);
-    ctx.clip();
-    ctx.drawImage(banner, W / 2 - larguraBanner / 2, yBanner, larguraBanner, alturaBanner);
-    ctx.restore();
-    yAposBanner = yBanner + alturaBanner + 32;
+    const logo = await carregarImagem("img/radar-bjj-logo-3d.png");
+    const larguraLogo = 340;
+    const alturaLogo = larguraLogo * (logo.height / logo.width);
+    ctx.drawImage(logo, W / 2 - larguraLogo / 2, 40, larguraLogo, alturaLogo);
+    yLogoFim = 40 + alturaLogo;
   } catch (err) {
-    // segue sem o banner se não conseguir carregar
+    // segue sem o logo se não conseguir carregar
   }
 
-  // Foto de perfil (redonda), logo abaixo do banner — usa a mesma foto já
+  // Cabeçalho "MINHA CARREIRA": linha — círculo com ícone de medalha —
+  // título — linha (mesmo padrão do cabeçalho de Minha Agenda; usa o
+  // ícone em vez da foto aqui porque a foto de perfil já tem um destaque
+  // maior e próprio logo abaixo, ver cxFoto/cyFoto).
+  const yTituloCabecalho = yLogoFim + 55;
+  const raioCirculoCabecalho = 40;
+  ctx.font = "bold 40px -apple-system, Arial, sans-serif";
+  ctx.letterSpacing = "1px";
+  const tituloCabecalho = "MINHA CARREIRA";
+  const larguraTituloCabecalho = ctx.measureText(tituloCabecalho).width;
+  const xCirculoCabecalho = W / 2 - larguraTituloCabecalho / 2 - raioCirculoCabecalho - 22;
+
+  ctx.fillStyle = "#0d1d33";
+  ctx.beginPath();
+  ctx.arc(xCirculoCabecalho, yTituloCabecalho, raioCirculoCabecalho, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = CIANO;
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+  desenharIcone(ctx, "medalha", xCirculoCabecalho, yTituloCabecalho, 38, CIANO, 2);
+
+  ctx.fillStyle = "#ffffff";
+  ctx.textAlign = "left";
+  ctx.fillText(tituloCabecalho, xCirculoCabecalho + raioCirculoCabecalho + 22, yTituloCabecalho + 14);
+  ctx.letterSpacing = "0px";
+
+  ctx.strokeStyle = "rgba(127, 212, 255, 0.6)";
+  ctx.lineWidth = 2;
+  const xLinhaCabecalhoEsq = xCirculoCabecalho - raioCirculoCabecalho - 18;
+  const xLinhaCabecalhoDir = xCirculoCabecalho + raioCirculoCabecalho + 22 + larguraTituloCabecalho + 18;
+  ctx.beginPath();
+  ctx.moveTo(60, yTituloCabecalho);
+  ctx.lineTo(xLinhaCabecalhoEsq, yTituloCabecalho);
+  ctx.moveTo(xLinhaCabecalhoDir, yTituloCabecalho);
+  ctx.lineTo(W - 60, yTituloCabecalho);
+  ctx.stroke();
+  ctx.textAlign = "center";
+
+  let yAposBanner = yTituloCabecalho + 70;
+
+  // Foto de perfil (redonda) — usa a mesma foto já
   // exibida no formulário de Perfil (evita buscar de novo, mesma lógica do
   // resto dos dados desta função). Sem foto cadastrada, cai num círculo com
   // o emoji padrão, pra não deixar um espaço vazio ali.
   const elFotoPreview = document.getElementById("p_foto_preview");
   const fotoUrl = elFotoPreview.style.display !== "none" ? elFotoPreview.src : null;
 
-  const raioFoto = 68;
+  const raioFoto = 60;
   const cxFoto = W / 2;
   const cyFoto = yAposBanner + raioFoto;
 
@@ -691,26 +727,7 @@ async function gerarImagemStory() {
   ctx.lineWidth = 5;
   ctx.stroke();
 
-  yAposBanner = cyFoto + raioFoto + 36;
-
-  // "RESUMO DE CARREIRA" com dois tracinhos decorativos ao lado
-  ctx.font = "26px -apple-system, Arial, sans-serif";
-  ctx.letterSpacing = "4px";
-  ctx.fillStyle = CINZA_AZULADO;
-  const rotuloResumo = "RESUMO DE CARREIRA";
-  const larguraResumo = ctx.measureText(rotuloResumo).width;
-  ctx.fillText(rotuloResumo, W / 2, yAposBanner);
-  ctx.letterSpacing = "0px";
-  ctx.strokeStyle = "rgba(127, 212, 255, 0.7)";
-  ctx.lineWidth = 2;
-  const xResumoEsq = W / 2 - larguraResumo / 2 - 40;
-  const xResumoDir = W / 2 + larguraResumo / 2 + 40;
-  ctx.beginPath();
-  ctx.moveTo(xResumoEsq - 26, yAposBanner - 8);
-  ctx.lineTo(xResumoEsq, yAposBanner - 8);
-  ctx.moveTo(xResumoDir, yAposBanner - 8);
-  ctx.lineTo(xResumoDir + 26, yAposBanner - 8);
-  ctx.stroke();
+  yAposBanner = cyFoto + raioFoto + 40;
 
   // Nome do atleta
   const nome = perfil.nome || "Atleta Radar BJJ";
@@ -721,7 +738,7 @@ async function gerarImagemStory() {
     ctx.font = `bold ${tamanhoNome}px -apple-system, Arial, sans-serif`;
   }
   ctx.fillStyle = "#ffffff";
-  const yNome = yAposBanner + 70;
+  const yNome = yAposBanner + 55;
   ctx.fillText(nome, W / 2, yNome);
 
   // Faixa (badge)
@@ -738,7 +755,7 @@ async function gerarImagemStory() {
   ctx.fillStyle = ["preta", "azul", "roxa", "marrom", "verde", "verde-preta", "cinza-preta", "laranja-preta", "amarela-preta"].includes(faixa.toLowerCase()) ? "#ffffff" : "#1c2733";
   ctx.fillText(faixaTexto, W / 2, yBadge + 39);
 
-  let yAcademia = yBadge + 58 + 40;
+  let yAcademia = yBadge + 58 + 28;
   if (perfil.academia) {
     ctx.font = "30px -apple-system, Arial, sans-serif";
     const larguraTextoAcademia = ctx.measureText(perfil.academia).width;
@@ -758,6 +775,7 @@ async function gerarImagemStory() {
   // lado a lado dentro de cada cartão com borda brilhante.
   const statsPrincipais = [
     { icone: "trofeu", valor: stats.competicoes || 0, label: "COMPETIÇÕES" },
+    { icone: "luta", valor: stats.lutas || 0, label: "TOTAL DE LUTAS" },
     { icone: "medalha", valor: stats.vitorias || 0, label: "VITÓRIAS" },
     { icone: "alvo", valor: (stats.taxa_vitoria || 0) + "%", label: "TAXA DE VITÓRIA" },
     { icone: "tendencia", valor: stats.sequencia_atual || 0, label: "SEQUÊNCIA ATUAL" },
@@ -766,10 +784,11 @@ async function gerarImagemStory() {
   ];
 
   const margem = 60;
-  const gapGrid = 18;
+  const gapGrid = 16;
   const colW = (W - margem * 2 - gapGrid) / 2;
-  const linhaAltura = 150;
-  const gridTopo = yAcademia + 42;
+  const linhaAltura = 114;
+  const linhasGrid = Math.ceil(statsPrincipais.length / 2);
+  const gridTopo = yAcademia + 28;
 
   statsPrincipais.forEach((item, i) => {
     const col = i % 2;
@@ -780,40 +799,40 @@ async function gerarImagemStory() {
     cartaoComGlow(ctx, x, y, colW, linhaAltura, 22, "rgba(127, 212, 255, 0.4)");
 
     const cy = y + linhaAltura / 2;
-    desenharIcone(ctx, item.icone, x + 90, cy, 54, "#ffffff", 2.2);
+    desenharIcone(ctx, item.icone, x + 84, cy, 46, "#ffffff", 2.2);
 
     ctx.textAlign = "left";
-    ctx.font = "bold 52px -apple-system, Arial, sans-serif";
+    ctx.font = "bold 44px -apple-system, Arial, sans-serif";
     ctx.fillStyle = CIANO;
-    ctx.fillText(String(item.valor), x + 155, cy - 6);
+    ctx.fillText(String(item.valor), x + 145, cy - 8);
 
-    ctx.font = "21px -apple-system, Arial, sans-serif";
+    ctx.font = "19px -apple-system, Arial, sans-serif";
     ctx.letterSpacing = "1px";
     ctx.fillStyle = CINZA_AZULADO;
-    ctx.fillText(item.label, x + 155, cy + 34);
+    ctx.fillText(item.label, x + 145, cy + 28);
     ctx.letterSpacing = "0px";
   });
   ctx.textAlign = "center";
 
-  const gridFim = gridTopo + 3 * linhaAltura + 2 * gapGrid;
+  const gridFim = gridTopo + linhasGrid * linhaAltura + (linhasGrid - 1) * gapGrid;
 
   // Pódio — barras com altura proporcional ao lugar (ouro no centro, mais
   // alta), medalha fixa no topo do painel e a contagem dentro de cada barra.
-  const painelY = gridFim + 30;
-  const painelAltura = 330;
+  const painelY = gridFim + 24;
+  const painelAltura = 260;
   cartaoComGlow(ctx, margem, painelY, W - margem * 2, painelAltura, 24, "rgba(127, 212, 255, 0.3)");
 
   const medalhas = [
-    { cor: "rgba(200, 210, 220, 0.35)", corMedalha: "#c9d3da", valor: stats.pratas || 0, alturaBarra: 95 },
-    { cor: "rgba(255, 215, 90, 0.4)", corMedalha: "#ffd75a", valor: stats.ouros || 0, alturaBarra: 148 },
-    { cor: "rgba(205, 140, 90, 0.4)", corMedalha: "#cd8c5a", valor: stats.bronzes || 0, alturaBarra: 70 },
+    { cor: "rgba(200, 210, 220, 0.35)", corMedalha: "#c9d3da", valor: stats.pratas || 0, alturaBarra: 75 },
+    { cor: "rgba(255, 215, 90, 0.4)", corMedalha: "#ffd75a", valor: stats.ouros || 0, alturaBarra: 118 },
+    { cor: "rgba(205, 140, 90, 0.4)", corMedalha: "#cd8c5a", valor: stats.bronzes || 0, alturaBarra: 55 },
   ];
   const larguraBarra = 200;
   const gapBarra = 40;
   const larguraTotalBarras = larguraBarra * 3 + gapBarra * 2;
   const xInicioBarras = margem + (W - margem * 2 - larguraTotalBarras) / 2;
-  const baseBarras = painelY + painelAltura - 43;
-  const yMedalha = painelY + 87;
+  const baseBarras = painelY + painelAltura - 36;
+  const yMedalha = painelY + 68;
 
   medalhas.forEach((m, i) => {
     const x = xInicioBarras + i * (larguraBarra + gapBarra);
@@ -843,7 +862,7 @@ async function gerarImagemStory() {
   const urlQr = perfil.nomeUsuario
     ? `https://www.radarbjj.com/atleta/${encodeURIComponent(perfil.nomeUsuario)}`
     : "https://www.radarbjj.com/cadastro";
-  const yQr = painelY + painelAltura + 30;
+  const yQr = painelY + painelAltura + 22;
   const alturaQr = desenharBlocoQrCode(ctx, {
     x: margem,
     y: yQr,
@@ -853,23 +872,25 @@ async function gerarImagemStory() {
     subtitulo: "Escaneie ou acesse www.radarbjj.com",
   });
 
-  // Rodapé — link em destaque, com fundo para chamar atenção no Stories
+  // Rodapé — linha — globo — url — linha, mesmo padrão do Story de Minha
+  // Agenda (ver static/agenda.js).
   const urlSite = "www.radarbjj.com";
-  ctx.font = "bold 40px -apple-system, Arial, sans-serif";
+  const yUrl = Math.min(yQr + alturaQr + 45, H - 90);
+  ctx.font = "bold 32px -apple-system, Arial, sans-serif";
   const larguraTextoUrl = ctx.measureText(urlSite).width;
-  const larguraUrl = larguraTextoUrl + 130;
-  const yUrl = Math.min(yQr + alturaQr + 35, H - 70);
-  ctx.fillStyle = "rgba(127, 212, 255, 0.15)";
-  roundRect(ctx, W / 2 - larguraUrl / 2, yUrl - 44, larguraUrl, 64, 32);
-  ctx.fill();
+  const larguraBlocoUrl = larguraTextoUrl + 50;
   ctx.strokeStyle = "rgba(127, 212, 255, 0.5)";
   ctx.lineWidth = 1.5;
-  roundRect(ctx, W / 2 - larguraUrl / 2, yUrl - 44, larguraUrl, 64, 32);
+  ctx.beginPath();
+  ctx.moveTo(60, yUrl);
+  ctx.lineTo(W / 2 - larguraBlocoUrl / 2, yUrl);
+  ctx.moveTo(W / 2 + larguraBlocoUrl / 2, yUrl);
+  ctx.lineTo(W - 60, yUrl);
   ctx.stroke();
-  desenharIcone(ctx, "globo", W / 2 - larguraTextoUrl / 2 - 24, yUrl - 12, 30, CIANO, 2.2);
-  ctx.fillStyle = CIANO;
+  desenharIcone(ctx, "globo", W / 2 - larguraTextoUrl / 2 - 26, yUrl, 26, CIANO, 2.2);
+  ctx.fillStyle = "#ffffff";
   ctx.textAlign = "left";
-  ctx.fillText(urlSite, W / 2 - larguraTextoUrl / 2 + 8, yUrl);
+  ctx.fillText(urlSite, W / 2 - larguraTextoUrl / 2 + 4, yUrl + 10);
   ctx.textAlign = "center";
 
   canvas.toBlob(blob => {
