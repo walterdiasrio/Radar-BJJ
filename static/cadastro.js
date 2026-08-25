@@ -34,9 +34,15 @@ elForm.addEventListener("submit", async (ev) => {
   ev.preventDefault();
   const nome = document.getElementById("nome").value;
   const email = document.getElementById("email").value;
+  const confirmarEmail = document.getElementById("confirmar_email").value;
   const senha = document.getElementById("senha").value;
   const nome_usuario = document.getElementById("nome_usuario").value.trim().toLowerCase();
   const tipo_perfil = document.querySelector('input[name="tipo_perfil"]:checked').value;
+
+  if (email.trim().toLowerCase() !== confirmarEmail.trim().toLowerCase()) {
+    mostrarStatus("Os e-mails digitados são diferentes — confere e tenta de novo.", true);
+    return;
+  }
 
   mostrarStatus("Cadastrando...");
 
