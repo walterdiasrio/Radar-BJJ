@@ -99,8 +99,12 @@ def email_valido(email):
     return bool(email) and bool(_EMAIL_REGEX.match(email.strip()))
 
 
-def cadastrar(email, senha, tipo_perfil):
-    """Retorna (usuario_id, erro). Em caso de sucesso, erro é None."""
+def cadastrar(email, senha, tipo_perfil, nome_usuario):
+    """Retorna (usuario_id, erro). Em caso de sucesso, erro é None.
+    nome_usuario passa a ser obrigatório desde o próprio cadastro (não só
+    depois, via Editar Perfil) — assim já nasce garantido único, e o
+    atleta já tem link de perfil público (/atleta/<nome_usuario>) desde o
+    primeiro dia."""
     email = (email or "").strip().lower()
     if not email_valido(email):
         return None, "E-mail inválido."
@@ -108,16 +112,21 @@ def cadastrar(email, senha, tipo_perfil):
         return None, "A senha precisa ter pelo menos 8 caracteres."
     if tipo_perfil not in TIPOS_PERFIL:
         return None, "Selecione um tipo de perfil (Mestre ou Atleta)."
+    nome_usuario = (nome_usuario or "").strip().lower()
+    if not nome_usuario_valido(nome_usuario):
+        return None, "Nome de perfil deve ter 3 a 20 caracteres: letras minúsculas, números ou _"
 
     senha_hash = generate_password_hash(senha)
     try:
         with _conn() as conn:
             cursor = conn.execute(
-                "INSERT INTO usuarios (email, senha_hash, tipo_perfil) VALUES (?, ?, ?)",
-                (email, senha_hash, tipo_perfil),
+                "INSERT INTO usuarios (email, senha_hash, tipo_perfil, nome_usuario) VALUES (?, ?, ?, ?)",
+                (email, senha_hash, tipo_perfil, nome_usuario),
             )
             return cursor.lastrowid, None
-    except sqlite3.IntegrityError:
+    except sqlite3.IntegrityError as exc:
+        if "nome_usuario" in str(exc):
+            return None, "Esse nome de perfil já está em uso."
         return None, "Esse e-mail já está cadastrado."
 
 
@@ -211,6 +220,28 @@ def remover_usuario(usuario_id):
         conn.execute("DELETE FROM verificacao_email WHERE usuario_id = ?", (usuario_id,))
         cursor = conn.execute("DELETE FROM usuarios WHERE id = ?", (usuario_id,))
         return cursor.rowcount > 0
+
+
+def alterar_email(usuario_id, novo_email):
+    """Retorna (ok, erro). Corrige o e-mail de uma conta já criada (ex:
+    digitado errado no cadastro, tipo "gamil.com") — usado pelo admin em
+    Gerenciar Usuários. Volta email_verificado pra 0: o endereço novo
+    ainda não foi confirmado, então quem chama deve reenviar o link de
+    confirmação (ver api_admin_alterar_email em app.py)."""
+    novo_email = (novo_email or "").strip().lower()
+    if not email_valido(novo_email):
+        return False, "e-mail inválido"
+    try:
+        with _conn() as conn:
+            cursor = conn.execute(
+                "UPDATE usuarios SET email = ?, email_verificado = 0 WHERE id = ?",
+                (novo_email, usuario_id),
+            )
+    except sqlite3.IntegrityError:
+        return False, "esse e-mail já está cadastrado em outra conta"
+    if cursor.rowcount == 0:
+        return False, "usuário não encontrado"
+    return True, None
 
 
 def nome_usuario_valido(nome_usuario):

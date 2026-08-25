@@ -74,6 +74,7 @@ function renderizarTabela(usuarios) {
       <td>${formatarData(u.criado_em)}</td>
       <td>
         <button type="button" class="btn-secundario btn-alternar-perfil" data-id="${u.id}" data-novo-perfil="${novoPerfil}">Tornar ${novoPerfil === "mestre" ? "Mestre" : "Atleta"}</button>
+        <button type="button" class="btn-secundario btn-editar-email" data-id="${u.id}">Editar e-mail</button>
         ${botaoApagar}
       </td>
     </tr>
@@ -101,6 +102,27 @@ async function alternarPerfil(usuario, novoPerfil, botao) {
   }
 }
 
+async function editarEmail(usuario, botao) {
+  const novoEmail = prompt(`Corrigir o e-mail de ${usuario.email} para:`, usuario.email);
+  if (!novoEmail || novoEmail.trim().toLowerCase() === usuario.email.toLowerCase()) return;
+
+  botao.disabled = true;
+  try {
+    const resp = await fetchAutenticado(`/api/usuarios/${usuario.id}/email`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: novoEmail.trim() }),
+    });
+    const dados = await resp.json();
+    if (!resp.ok) throw new Error(dados.erro || "erro ao alterar e-mail");
+    mostrarStatus(`E-mail corrigido para ${dados.email} — link de confirmação reenviado.`);
+    await carregarUsuarios();
+  } catch (err) {
+    mostrarStatus(`Erro: ${err.message}`, true);
+    botao.disabled = false;
+  }
+}
+
 async function apagarUsuario(usuario, botao) {
   if (!confirm(`Apagar a conta de ${usuario.email}? Essa ação não pode ser desfeita.`)) return;
 
@@ -121,6 +143,12 @@ elCorpoTabela.addEventListener("click", (ev) => {
   if (botaoPerfil) {
     const usuario = usuariosCarregados.find(u => String(u.id) === botaoPerfil.dataset.id);
     if (usuario) alternarPerfil(usuario, botaoPerfil.dataset.novoPerfil, botaoPerfil);
+    return;
+  }
+  const botaoEmail = ev.target.closest(".btn-editar-email");
+  if (botaoEmail) {
+    const usuario = usuariosCarregados.find(u => String(u.id) === botaoEmail.dataset.id);
+    if (usuario) editarEmail(usuario, botaoEmail);
     return;
   }
   const botaoApagar = ev.target.closest(".btn-apagar-usuario");

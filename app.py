@@ -569,6 +569,21 @@ def api_definir_tipo_perfil_usuario(usuario_id):
     return jsonify({"ok": True})
 
 
+@app.post("/api/usuarios/<int:usuario_id>/email")
+@api_admin_necessario
+def api_alterar_email_usuario(usuario_id):
+    dados = request.get_json(silent=True) or {}
+    ok, erro = auth.alterar_email(usuario_id, dados.get("email"))
+    if not ok:
+        return jsonify({"erro": erro}), 400
+    # E-mail corrigido ainda não está confirmado (ver auth.alterar_email) —
+    # já manda o link de confirmação pro endereço novo, senão a pessoa fica
+    # com a conta travada sem saber que precisa pedir reenvio.
+    usuario = auth.buscar_por_id(usuario_id)
+    _enviar_email_confirmacao(usuario_id, usuario["email"])
+    return jsonify({"ok": True, "email": usuario["email"]})
+
+
 @app.delete("/api/usuarios/<int:usuario_id>")
 @api_admin_necessario
 def api_remover_usuario(usuario_id):
@@ -714,9 +729,20 @@ def api_sessao():
 @app.post("/api/cadastro")
 def api_cadastro():
     dados = request.get_json(silent=True) or {}
-    usuario_id, erro = auth.cadastrar(dados.get("email"), dados.get("senha"), dados.get("tipo_perfil"))
+    nome_completo = (dados.get("nome") or "").strip()
+    if not nome_completo:
+        return jsonify({"erro": "Informe seu nome completo."}), 400
+
+    usuario_id, erro = auth.cadastrar(
+        dados.get("email"), dados.get("senha"), dados.get("tipo_perfil"), dados.get("nome_usuario")
+    )
     if erro:
         return jsonify({"erro": erro}), 400
+
+    # Nome completo é do perfil de Minha Carreira (carreira.py), não da
+    # conta em si (auth.py) — mesma separação já usada no resto do site
+    # (ver salvar_perfil/obter_perfil).
+    carreira.salvar_perfil(usuario_id, {"nome": nome_completo})
 
     email = dados.get("email", "").strip().lower()
     email_enviado = _enviar_email_confirmacao(usuario_id, email)

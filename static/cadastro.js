@@ -32,8 +32,10 @@ function escapeHtml(texto) {
 
 elForm.addEventListener("submit", async (ev) => {
   ev.preventDefault();
+  const nome = document.getElementById("nome").value;
   const email = document.getElementById("email").value;
   const senha = document.getElementById("senha").value;
+  const nome_usuario = document.getElementById("nome_usuario").value.trim().toLowerCase();
   const tipo_perfil = document.querySelector('input[name="tipo_perfil"]:checked').value;
 
   mostrarStatus("Cadastrando...");
@@ -42,7 +44,7 @@ elForm.addEventListener("submit", async (ev) => {
     const resp = await fetch("/api/cadastro", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, senha, tipo_perfil }),
+      body: JSON.stringify({ nome, email, senha, nome_usuario, tipo_perfil }),
     });
     const dados = await resp.json();
     if (!resp.ok) throw new Error(dados.erro || "erro ao cadastrar");
