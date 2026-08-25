@@ -161,8 +161,8 @@ async function gerarImagemAgendaStory() {
   // Cabeçalho "MINHA AGENDA": linha — círculo com a foto do perfil (ou o
   // ícone de calendário, sem foto cadastrada) — título — linha. Mesmo
   // ícone de calendário usado no menu do site (ver ICONES_STORY).
-  const yTitulo = yLogoFim + 70;
-  const raioCirculo = 46;
+  const yTitulo = yLogoFim + 80;
+  const raioCirculo = 60;
   ctx.font = "bold 46px -apple-system, Arial, sans-serif";
   ctx.letterSpacing = "1px";
   const titulo = "MINHA AGENDA";
@@ -185,9 +185,9 @@ async function gerarImagemAgendaStory() {
     }
   }
   if (fotoCarregada) {
-    desenharImagemCircular(ctx, fotoCarregada, xCirculo, yTitulo, raioCirculo - 4);
+    desenharImagemCircular(ctx, fotoCarregada, xCirculo, yTitulo, raioCirculo - 5);
   } else {
-    desenharIcone(ctx, "calendario", xCirculo, yTitulo, 44, CIANO, 2);
+    desenharIcone(ctx, "calendario", xCirculo, yTitulo, 56, CIANO, 2);
   }
 
   ctx.fillStyle = "#ffffff";
@@ -232,8 +232,8 @@ async function gerarImagemAgendaStory() {
   // grande / mês / ano), evento e o badge de status (Inscrição Confirmada
   // / Tenho Interesse). Cabe um número limitado de cartões no Stories; o
   // resto vira um resumo "+N outras".
-  const alturaCartaoBase = 172;
-  const alturaCartaoMax = 220;
+  const alturaCartaoBase = 210;
+  const alturaCartaoMax = 260;
   const gap = 24;
   const alturaRodape = 40 + ALTURA_BLOCO_QR + 35 + 64; // gap + QR + gap + pill
   const margemInferior = 70;
@@ -270,15 +270,15 @@ async function gerarImagemAgendaStory() {
     if (item.data_iso) {
       const [ano, mes, dia] = item.data_iso.split("-");
       ctx.textAlign = "left";
-      ctx.font = "bold 54px -apple-system, Arial, sans-serif";
+      ctx.font = "bold 60px -apple-system, Arial, sans-serif";
       ctx.fillStyle = "#ffffff";
-      ctx.fillText(String(Number(dia)), xData, cy - 14);
-      ctx.font = "bold 24px -apple-system, Arial, sans-serif";
+      ctx.fillText(String(Number(dia)), xData, cy - 16);
+      ctx.font = "bold 26px -apple-system, Arial, sans-serif";
       ctx.fillStyle = CIANO;
-      ctx.fillText(MESES_ABREV[Number(mes) - 1] || "", xData, cy + 16);
-      ctx.font = "20px -apple-system, Arial, sans-serif";
+      ctx.fillText(MESES_ABREV[Number(mes) - 1] || "", xData, cy + 18);
+      ctx.font = "22px -apple-system, Arial, sans-serif";
       ctx.fillStyle = CINZA_AZULADO;
-      ctx.fillText(ano, xData, cy + 42);
+      ctx.fillText(ano, xData, cy + 46);
     } else {
       ctx.textAlign = "left";
       ctx.font = "bold 24px -apple-system, Arial, sans-serif";
@@ -317,26 +317,46 @@ async function gerarImagemAgendaStory() {
     ctx.letterSpacing = "0px";
     desenharIcone(ctx, "sino", xSino, cy, 30, CIANO, 1.8);
 
-    // Conteúdo: bolinha + federação — nome, entre a divisória e o badge.
+    // Conteúdo: bolinha + federação — nome (até 2 linhas) + local (linha
+    // extra, menor) — bloco inteiro centralizado verticalmente no card.
     const xTexto = xDivisor + 30;
     const larguraTexto = xBadge - 24 - xTexto;
     ctx.textAlign = "left";
+
+    ctx.font = "bold 27px -apple-system, Arial, sans-serif";
+    const larguraFed = ctx.measureText(item.federacao + " —").width;
+    const linhasNome = quebrarLinhas(ctx, item.nome, larguraTexto);
+    ctx.font = "27px -apple-system, Arial, sans-serif";
+    const primeiraLinha = truncarTexto(ctx, linhasNome[0] || "", larguraTexto - larguraFed - 10);
+
+    const alturaLinhaNome = 36;
+    const alturaLinhaLocal = 30;
+    const totalLinhas = 1 + (linhasNome[1] ? 1 : 0);
+    const alturaBlocoTexto = totalLinhas * alturaLinhaNome + (item.local ? alturaLinhaLocal : 0);
+    let yCursor = cy - alturaBlocoTexto / 2 + alturaLinhaNome * 0.72;
+
     ctx.fillStyle = CIANO;
     ctx.beginPath();
-    ctx.arc(xDivisor + 12, cy - 22, 6, 0, Math.PI * 2);
+    ctx.arc(xDivisor + 12, yCursor - 10, 6, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.font = "bold 22px -apple-system, Arial, sans-serif";
+    ctx.font = "bold 27px -apple-system, Arial, sans-serif";
     ctx.fillStyle = CIANO;
-    const larguraFed = ctx.measureText(item.federacao + " —").width;
-    ctx.fillText(item.federacao + " —", xTexto, cy - 14);
-
-    ctx.font = "24px -apple-system, Arial, sans-serif";
+    ctx.fillText(item.federacao + " —", xTexto, yCursor);
+    ctx.font = "27px -apple-system, Arial, sans-serif";
     ctx.fillStyle = "#ffffff";
-    const linhasNome = quebrarLinhas(ctx, item.nome, larguraTexto);
-    ctx.fillText(truncarTexto(ctx, linhasNome[0] || "", larguraTexto - larguraFed - 10), xTexto + larguraFed + 10, cy - 14);
+    ctx.fillText(primeiraLinha, xTexto + larguraFed + 10, yCursor);
+    yCursor += alturaLinhaNome;
+
     if (linhasNome[1]) {
-      ctx.fillText(truncarTexto(ctx, linhasNome[1], larguraTexto), xTexto, cy + 16);
+      ctx.fillText(truncarTexto(ctx, linhasNome[1], larguraTexto), xTexto, yCursor);
+      yCursor += alturaLinhaNome;
+    }
+
+    if (item.local) {
+      ctx.font = "22px -apple-system, Arial, sans-serif";
+      ctx.fillStyle = CINZA_AZULADO;
+      ctx.fillText(truncarTexto(ctx, item.local, larguraTexto), xTexto, yCursor);
     }
   });
   ctx.textAlign = "center";
