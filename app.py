@@ -1405,6 +1405,16 @@ def api_tornar_mestre():
     return jsonify({"ok": True})
 
 
+@app.post("/api/conta/senha")
+@api_login_necessario
+def api_alterar_senha():
+    dados = request.get_json(silent=True) or {}
+    ok, erro = auth.alterar_senha(session["usuario_id"], dados.get("senha_atual"), dados.get("nova_senha"))
+    if not ok:
+        return jsonify({"erro": erro}), 400
+    return jsonify({"ok": True})
+
+
 @app.get("/meus-alunos")
 @assinatura_necessaria
 def pagina_meus_alunos():

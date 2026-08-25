@@ -183,6 +183,25 @@ def autenticar(email, senha):
     }, None
 
 
+def alterar_senha(usuario_id, senha_atual, nova_senha):
+    """Retorna (ok, erro). Troca a senha de quem já está logado — exige a
+    senha atual certa (diferente de auth.redefinir_senha, que troca via
+    token de "Esqueci minha senha", sem precisar saber a senha antiga)."""
+    with _conn() as conn:
+        linha = conn.execute("SELECT senha_hash FROM usuarios WHERE id = ?", (usuario_id,)).fetchone()
+    if not linha:
+        return False, "usuário não encontrado"
+    if not check_password_hash(linha["senha_hash"], senha_atual or ""):
+        return False, "senha atual incorreta"
+    if not nova_senha or len(nova_senha) < 8:
+        return False, "a nova senha precisa ter pelo menos 8 caracteres"
+
+    senha_hash = generate_password_hash(nova_senha)
+    with _conn() as conn:
+        conn.execute("UPDATE usuarios SET senha_hash = ? WHERE id = ?", (senha_hash, usuario_id))
+    return True, None
+
+
 def buscar_por_id(usuario_id):
     with _conn() as conn:
         linha = conn.execute(

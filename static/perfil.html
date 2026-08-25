@@ -204,6 +204,24 @@ src="https://www.facebook.com/tr?id=28254694314126516&ev=PageView&noscript=1"
     <button type="button" id="btn-tornar-mestre" class="btn-secundario">Trocar perfil para Mestre</button>
     <div id="status-tornar-mestre" class="status-importacao"></div>
   </div>
+
+  <form id="form-senha" class="card-carreira">
+    <h3 style="margin-top: 0; color: var(--azul);">Trocar senha</h3>
+    <div class="campo">
+      <label for="senha_atual">Senha atual</label>
+      <input type="password" id="senha_atual" required autocomplete="current-password">
+    </div>
+    <div class="campo">
+      <label for="nova_senha">Nova senha</label>
+      <input type="password" id="nova_senha" required minlength="8" autocomplete="new-password">
+    </div>
+    <div class="campo">
+      <label for="confirmar_nova_senha">Confirme a nova senha</label>
+      <input type="password" id="confirmar_nova_senha" required minlength="8" autocomplete="new-password">
+    </div>
+    <button type="submit">Trocar Senha</button>
+  </form>
+  <div id="status-senha" class="status-importacao"></div>
 </main>
 </div>
 

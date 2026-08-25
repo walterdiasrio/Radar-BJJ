@@ -274,6 +274,33 @@ document.getElementById("btn-tornar-mestre").addEventListener("click", async () 
   }
 });
 
+// ---------- Trocar senha ----------
+document.getElementById("form-senha").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const elSenhaAtual = document.getElementById("senha_atual");
+  const elNovaSenha = document.getElementById("nova_senha");
+  const elConfirmar = document.getElementById("confirmar_nova_senha");
+
+  if (elNovaSenha.value !== elConfirmar.value) {
+    mostrarStatus("status-senha", "A nova senha e a confirmação são diferentes.", true);
+    return;
+  }
+
+  try {
+    const resp = await fetchAutenticado("/api/conta/senha", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ senha_atual: elSenhaAtual.value, nova_senha: elNovaSenha.value }),
+    });
+    const dados = await resp.json();
+    if (!resp.ok) throw new Error(dados.erro || "não consegui trocar a senha");
+    mostrarStatus("status-senha", "Senha trocada!");
+    document.getElementById("form-senha").reset();
+  } catch (err) {
+    mostrarStatus("status-senha", `Erro: ${err.message}`, true);
+  }
+});
+
 // ---------- Init ----------
 carregarPerfil();
 carregarNomeUsuario();
