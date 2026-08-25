@@ -196,7 +196,8 @@ def listar_usuarios():
     painel administrativo de usuários."""
     with _conn() as conn:
         linhas = conn.execute(
-            "SELECT id, email, tipo_perfil, nome_usuario, criado_em FROM usuarios ORDER BY criado_em DESC"
+            """SELECT id, email, tipo_perfil, nome_usuario, criado_em, email_verificado
+               FROM usuarios ORDER BY criado_em DESC"""
         ).fetchall()
     return [dict(linha) for linha in linhas]
 

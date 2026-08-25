@@ -55,9 +55,16 @@ function contaEhFree(u) {
   return !["trialing", "active", "past_due"].includes(u.assinatura_status);
 }
 
+function badgePlano(plano) {
+  const classe = plano === "Atleta PRO" || plano === "Mestre PRO"
+    ? "badge-aberta"
+    : plano === "E-mail não confirmado" ? "badge-fechada" : "badge-desconhecida";
+  return `<span class="badge-inscricao ${classe}">${plano}</span>`;
+}
+
 function renderizarTabela(usuarios) {
   if (!usuarios.length) {
-    elCorpoTabela.innerHTML = '<tr><td colspan="6">Nenhum usuário encontrado.</td></tr>';
+    elCorpoTabela.innerHTML = '<tr><td colspan="7">Nenhum usuário encontrado.</td></tr>';
     return;
   }
   elCorpoTabela.innerHTML = usuarios.map(u => {
@@ -70,6 +77,7 @@ function renderizarTabela(usuarios) {
       <td>${u.email}</td>
       <td>${u.tipo_perfil === "mestre" ? "Mestre" : "Atleta"}</td>
       <td>${u.nome_usuario || "—"}</td>
+      <td>${badgePlano(u.plano)}</td>
       <td>${badgeAssinatura(u)}</td>
       <td>${formatarData(u.criado_em)}</td>
       <td>

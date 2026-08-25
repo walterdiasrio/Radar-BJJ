@@ -524,6 +524,18 @@ def pagina_gerenciar_usuarios():
     return send_from_directory("static", "gerenciar-usuarios.html")
 
 
+def _plano_do_usuario(usuario, assinatura, status):
+    """"Plano" pra exibição no admin — Free, Atleta PRO ou Mestre PRO se
+    tiver assinatura ativa/em teste grátis pro perfil correspondente,
+    senão Free (contas com e-mail ainda não confirmado nem chegam a
+    contar como Free de verdade — ainda não conseguem nem logar)."""
+    if not usuario["email_verificado"]:
+        return "E-mail não confirmado"
+    if status in ("trialing", "active"):
+        return "Atleta PRO" if assinatura["plano"] == "atleta" else "Mestre PRO"
+    return "Free"
+
+
 @app.get("/api/usuarios")
 @api_admin_necessario
 def api_listar_usuarios():
@@ -549,6 +561,8 @@ def api_listar_usuarios():
             "tipo_perfil": usuario["tipo_perfil"],
             "nome_usuario": usuario["nome_usuario"],
             "criado_em": usuario["criado_em"],
+            "email_verificado": bool(usuario["email_verificado"]),
+            "plano": _plano_do_usuario(usuario, assinatura, status),
             "assinatura_status": status,
             "assinatura_plano": assinatura["plano"] if assinatura else None,
             "assinatura_periodicidade": assinatura["periodicidade"] if assinatura else None,
