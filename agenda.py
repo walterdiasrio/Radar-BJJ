@@ -86,7 +86,11 @@ def desmarcar(usuario_id, federacao, nome, data):
 
 def listar(usuario_id):
     """Só competições que ainda não aconteceram, ordenadas por data, cada
-    item já com "mes" calculado (ex: "Setembro 2026") pro front agrupar."""
+    item já com "mes" calculado (ex: "Setembro 2026") pro front agrupar, e
+    "data_iso" (YYYY-MM-DD, ou None) — a data de cada federação vem num
+    texto livre bem variado ("8 ago até 9 ago", "sábado, 15 de agosto..."),
+    então quem precisa separar dia/mês/ano (ex: o Story de Minha Agenda,
+    ver static/agenda.js) usa data_iso em vez de tentar reparsear "data"."""
     with _conn() as conn:
         linhas = [
             dict(linha) for linha in
@@ -100,6 +104,7 @@ def listar(usuario_id):
         if data_obj and data_obj < hoje:
             continue
         linha["mes"] = datas_mod.rotulo_mes(data_obj)
+        linha["data_iso"] = data_obj.isoformat() if data_obj else None
         com_data.append((data_obj or date.max, linha))
 
     com_data.sort(key=lambda par: par[0])

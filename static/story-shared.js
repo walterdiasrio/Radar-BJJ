@@ -52,6 +52,10 @@ const ICONES_STORY = {
   trofeu: ["M8 21h8", "M12 17v4", "M7 4h10v5a5 5 0 0 1-10 0V4Z", "M7 5H4v1a4 4 0 0 0 4 4", "M17 5h3v1a4 4 0 0 1-4 4"],
   // Mesmo path do ícone "Minha Carreira" do menu (medalha/fita).
   medalha: ["M12 8m-5 0a5 5 0 1 0 10 0a5 5 0 1 0 -10 0", "M8.5 12.5 7 22l5-3 5 3-1.5-9.5"],
+  // Mesmo path do ícone "Minha Agenda"/"Turmas" do menu (calendário).
+  calendario: ["M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z", "M16 2v4", "M8 2v4", "M3 10h18"],
+  // Mesmo path do ícone "Meus Alertas" do menu (sino).
+  sino: ["M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9", "M13.73 21a2 2 0 0 1-3.46 0"],
 };
 
 function desenharIconePath(ctx, nome, cx, cy, tamanho, cor, largura = 1.8) {
@@ -243,6 +247,43 @@ function desenharBlocoQrCode(ctx, { x, y, largura, url, titulo, subtitulo }) {
   ctx.textAlign = "center";
 
   return alturaBloco;
+}
+
+// Desenha uma imagem já carregada (ver carregarImagem) recortada num
+// círculo de raio `raio` centrado em (cx, cy) — cobre o círculo inteiro
+// (crop, sem distorcer), igual a um avatar de perfil.
+function desenharImagemCircular(ctx, img, cx, cy, raio) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, raio, 0, Math.PI * 2);
+  ctx.closePath();
+  ctx.clip();
+  const lado = Math.min(img.width, img.height);
+  const sx = (img.width - lado) / 2;
+  const sy = (img.height - lado) / 2;
+  ctx.drawImage(img, sx, sy, lado, lado, cx - raio, cy - raio, raio * 2, raio * 2);
+  ctx.restore();
+}
+
+// Tarjas diagonais decorativas nos dois cantos inferiores — mesmo detalhe
+// visual do template de referência (Minha Agenda), reaproveitável em
+// qualquer Story pra fechar o visual sem deixar canto vazio.
+function desenharTarjasCanto(ctx, W, H, cor = "rgba(127, 212, 255, 0.35)") {
+  const desenhaTarja = (x0, direcao) => {
+    ctx.save();
+    ctx.strokeStyle = cor;
+    ctx.lineWidth = 14;
+    for (let i = 0; i < 4; i++) {
+      const offset = i * 22;
+      ctx.beginPath();
+      ctx.moveTo(x0 + direcao * offset, H);
+      ctx.lineTo(x0 + direcao * (offset + 50), H - 60);
+      ctx.stroke();
+    }
+    ctx.restore();
+  };
+  desenhaTarja(0, 1);
+  desenhaTarja(W, -1);
 }
 
 function quebrarLinhas(ctx, texto, larguraMax) {

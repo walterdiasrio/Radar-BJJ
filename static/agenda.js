@@ -93,12 +93,15 @@ carregar();
 // ---------- Exportar pro Instagram (Stories) ----------
 let ultimoBlobAgendaStory = null;
 
+const MESES_ABREV = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
+
 async function gerarImagemAgendaStory() {
   const canvas = document.getElementById("canvas-agenda-story");
   const ctx = canvas.getContext("2d");
   const W = canvas.width, H = canvas.height;
   const CIANO = "#7fd4ff";
-  const CINZA_AZULADO = "#b7cbdc";
+  const CINZA_AZULADO = "#8a9bb0";
+  const CINZA_CLARO = "#b7cbdc";
 
   mostrarStatusStory("Gerando imagem...");
 
@@ -117,98 +120,128 @@ async function gerarImagemAgendaStory() {
     return;
   }
 
-  let nome = "";
+  let fotoUrl = null;
   try {
     const respPerfil = await fetchAutenticado("/api/carreira/perfil");
     const perfil = await respPerfil.json();
-    nome = perfil.nome || "";
+    fotoUrl = perfil.foto_url || null;
   } catch (err) {
-    // segue sem nome — não é essencial pra imagem
+    // segue sem foto — não é essencial pra imagem
   }
 
-  const grad = ctx.createLinearGradient(0, 0, W, H);
-  grad.addColorStop(0, "#0b3d63");
-  grad.addColorStop(1, "#050810");
+  // Fundo escuro azulado, no estilo do template de referência (não o
+  // gradiente azul-claro do template antigo).
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, "#0d1d33");
+  grad.addColorStop(1, "#050b16");
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, W, H);
 
-  const brilho = ctx.createRadialGradient(W / 2, 260, 40, W / 2, 260, 520);
-  brilho.addColorStop(0, "rgba(127, 212, 255, 0.22)");
+  const brilho = ctx.createRadialGradient(W / 2, 200, 40, W / 2, 200, 480);
+  brilho.addColorStop(0, "rgba(127, 212, 255, 0.14)");
   brilho.addColorStop(1, "rgba(127, 212, 255, 0)");
   ctx.fillStyle = brilho;
   ctx.fillRect(0, 0, W, H);
 
+  desenharTarjasCanto(ctx, W, H);
+
   ctx.textAlign = "center";
 
-  let yAposBanner = 280;
+  let yLogoFim = 90;
   try {
-    const banner = await carregarImagem("img/banner.jpg");
-    const larguraBanner = 580;
-    const alturaBanner = larguraBanner * (banner.height / banner.width);
-    ctx.save();
-    ctx.shadowColor = "rgba(127, 212, 255, 0.5)";
-    ctx.shadowBlur = 30;
-    roundRect(ctx, W / 2 - larguraBanner / 2, 70, larguraBanner, alturaBanner, 14);
-    ctx.clip();
-    ctx.drawImage(banner, W / 2 - larguraBanner / 2, 70, larguraBanner, alturaBanner);
-    ctx.restore();
-    yAposBanner = 70 + alturaBanner + 40;
+    const logo = await carregarImagem("img/radar-bjj-logo-3d.png");
+    const larguraLogo = 460;
+    const alturaLogo = larguraLogo * (logo.height / logo.width);
+    ctx.drawImage(logo, W / 2 - larguraLogo / 2, 50, larguraLogo, alturaLogo);
+    yLogoFim = 50 + alturaLogo;
   } catch (err) {
-    // segue sem o banner se não conseguir carregar
+    // segue sem o logo se não conseguir carregar
   }
 
-  // "MINHAS PRÓXIMAS COMPETIÇÕES" com tracinhos decorativos, igual ao
-  // padrão do "RESUMO DE CARREIRA" em Minha Carreira → Compartilhar.
-  ctx.font = "26px -apple-system, Arial, sans-serif";
-  ctx.letterSpacing = "3px";
-  ctx.fillStyle = CINZA_AZULADO;
-  const rotulo = "MINHAS PRÓXIMAS COMPETIÇÕES";
-  const larguraRotulo = ctx.measureText(rotulo).width;
-  ctx.fillText(rotulo, W / 2, yAposBanner);
-  ctx.letterSpacing = "0px";
-  ctx.strokeStyle = "rgba(127, 212, 255, 0.7)";
-  ctx.lineWidth = 2;
-  const xEsq = W / 2 - larguraRotulo / 2 - 40;
-  const xDir = W / 2 + larguraRotulo / 2 + 40;
+  // Cabeçalho "MINHA AGENDA": linha — círculo com a foto do perfil (ou o
+  // ícone de calendário, sem foto cadastrada) — título — linha. Mesmo
+  // ícone de calendário usado no menu do site (ver ICONES_STORY).
+  const yTitulo = yLogoFim + 70;
+  const raioCirculo = 46;
+  ctx.font = "bold 46px -apple-system, Arial, sans-serif";
+  ctx.letterSpacing = "1px";
+  const titulo = "MINHA AGENDA";
+  const larguraTitulo = ctx.measureText(titulo).width;
+  const xCirculo = W / 2 - larguraTitulo / 2 - raioCirculo - 24;
+
+  ctx.fillStyle = "#0d1d33";
   ctx.beginPath();
-  ctx.moveTo(xEsq - 26, yAposBanner - 8);
-  ctx.lineTo(xEsq, yAposBanner - 8);
-  ctx.moveTo(xDir, yAposBanner - 8);
-  ctx.lineTo(xDir + 26, yAposBanner - 8);
+  ctx.arc(xCirculo, yTitulo, raioCirculo, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = CIANO;
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+  let fotoCarregada = null;
+  if (fotoUrl) {
+    try {
+      fotoCarregada = await carregarImagem(fotoUrl);
+    } catch (err) {
+      // segue com o ícone padrão se a foto não carregar
+    }
+  }
+  if (fotoCarregada) {
+    desenharImagemCircular(ctx, fotoCarregada, xCirculo, yTitulo, raioCirculo - 4);
+  } else {
+    desenharIcone(ctx, "calendario", xCirculo, yTitulo, 44, CIANO, 2);
+  }
+
+  ctx.fillStyle = "#ffffff";
+  ctx.textAlign = "left";
+  ctx.fillText(titulo, xCirculo + raioCirculo + 24, yTitulo + 16);
+  ctx.letterSpacing = "0px";
+
+  ctx.strokeStyle = "rgba(127, 212, 255, 0.6)";
+  ctx.lineWidth = 2;
+  const xLinhaEsq = xCirculo - raioCirculo - 20;
+  const xLinhaDir = xCirculo + raioCirculo + 24 + larguraTitulo + 20;
+  ctx.beginPath();
+  ctx.moveTo(60, yTitulo);
+  ctx.lineTo(xLinhaEsq, yTitulo);
+  ctx.moveTo(xLinhaDir, yTitulo);
+  ctx.lineTo(W - 60, yTitulo);
   ctx.stroke();
 
-  let yTopo = yAposBanner + 30;
-  if (nome) {
-    let tamanhoNome = 56;
-    ctx.font = `bold ${tamanhoNome}px -apple-system, Arial, sans-serif`;
-    while (ctx.measureText(nome).width > W - 120 && tamanhoNome > 32) {
-      tamanhoNome -= 4;
-      ctx.font = `bold ${tamanhoNome}px -apple-system, Arial, sans-serif`;
-    }
-    ctx.fillStyle = "#ffffff";
-    yTopo += 58;
-    ctx.fillText(nome, W / 2, yTopo);
-    yTopo += 20;
-  }
-
-  // Lista de competições — um cartão por item, com data, evento e o badge
-  // de status (Inscrição Confirmada / Tenho Interesse). Cabe um número
-  // limitado de cartões no Stories; o resto vira um resumo "+N outras".
-  const margem = 60;
+  // "PRÓXIMAS COMPETIÇÕES", alinhado à esquerda com uma linha se
+  // estendendo até a margem direita — mesmo padrão do template de
+  // referência.
+  const margem = 54;
   const larguraCartao = W - margem * 2;
-  const alturaCartaoBase = 185;
-  const alturaCartaoMax = 230;
-  const gap = 22;
-  const alturaRodape = 50 + ALTURA_BLOCO_QR + 35 + 64; // gap + QR + gap + pill
+  const yRotulo = yTitulo + 90;
+  ctx.font = "bold 24px -apple-system, Arial, sans-serif";
+  ctx.letterSpacing = "1.5px";
+  ctx.fillStyle = CIANO;
+  const rotulo = "PRÓXIMAS COMPETIÇÕES";
+  ctx.fillText(rotulo, margem, yRotulo);
+  const larguraRotulo = ctx.measureText(rotulo).width;
+  ctx.letterSpacing = "0px";
+  ctx.strokeStyle = "rgba(127, 212, 255, 0.35)";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(margem + larguraRotulo + 24, yRotulo - 8);
+  ctx.lineTo(margem + larguraCartao, yRotulo - 8);
+  ctx.stroke();
+
+  let yTopo = yRotulo + 30;
+
+  // Lista de competições — um cartão por item, com bloco de data (dia
+  // grande / mês / ano), evento e o badge de status (Inscrição Confirmada
+  // / Tenho Interesse). Cabe um número limitado de cartões no Stories; o
+  // resto vira um resumo "+N outras".
+  const alturaCartaoBase = 172;
+  const alturaCartaoMax = 220;
+  const gap = 24;
+  const alturaRodape = 40 + ALTURA_BLOCO_QR + 35 + 64; // gap + QR + gap + pill
   const margemInferior = 70;
-  const alturaDisponivelParaLista = H - (yTopo + 50) - alturaRodape - margemInferior;
+  const alturaDisponivelParaLista = H - yTopo - alturaRodape - margemInferior;
   const maxCartoes = Math.max(1, Math.floor((alturaDisponivelParaLista + gap) / (alturaCartaoBase + gap)));
   const visiveis = itens.slice(0, maxCartoes);
   const restantes = itens.length - visiveis.length;
 
-  // Com poucos itens, estica os cards (até um teto) pra ocupar melhor a
-  // largura vertical disponível — o conteúdo interno de cada card fica
-  // centralizado dentro da altura extra (deltaY).
   let alturaCartao = alturaCartaoBase;
   if (visiveis.length > 0) {
     const alturaTotalPadrao = visiveis.length * alturaCartaoBase + (visiveis.length - 1) * gap;
@@ -219,64 +252,91 @@ async function gerarImagemAgendaStory() {
       );
     }
   }
-  const deltaY = (alturaCartao - alturaCartaoBase) / 2;
 
-  // Mesmo esticando os cards até o teto, sobra espaço com poucos itens
-  // (ex: 1-2 competições) — em vez de deixar uma faixa vazia só embaixo,
-  // centraliza o bloco inteiro (lista + QR + rodapé) na altura que sobrou
-  // depois do cabeçalho, empurrando tudo pra baixo igualmente.
   const alturaListaReal = visiveis.length * (alturaCartao + gap) - gap + (restantes > 0 ? 60 : 0);
   const alturaConteudoReal = alturaListaReal + alturaRodape;
-  const espacoLivre = Math.max(0, H - (yTopo + 50) - alturaConteudoReal - margemInferior);
-  const yListaTopo = yTopo + 50 + espacoLivre / 2;
+  const espacoLivre = Math.max(0, H - yTopo - alturaConteudoReal - margemInferior);
+  const yListaTopo = yTopo + espacoLivre / 2;
 
   visiveis.forEach((item, i) => {
     const y = yListaTopo + i * (alturaCartao + gap);
-    const corBorda = item.status === "inscrito" ? "rgba(120, 220, 150, 0.55)" : "rgba(127, 212, 255, 0.4)";
-    cartaoComGlow(ctx, margem, y, larguraCartao, alturaCartao, 20, corBorda);
+    const cy = y + alturaCartao / 2;
+    cartaoComGlow(ctx, margem, y, larguraCartao, alturaCartao, 20, "rgba(127, 212, 255, 0.3)");
 
-    ctx.textAlign = "left";
-    const xTexto = margem + 36;
-    const larguraTexto = larguraCartao - 72;
+    // Bloco de data (dia / mês / ano), à esquerda, centralizado na altura
+    // do card — usa data_iso (já vem parseada do back, ver agenda.listar);
+    // sem data reconhecível, cai pro texto bruto centralizado no lugar.
+    const xData = margem + 30;
+    if (item.data_iso) {
+      const [ano, mes, dia] = item.data_iso.split("-");
+      ctx.textAlign = "left";
+      ctx.font = "bold 54px -apple-system, Arial, sans-serif";
+      ctx.fillStyle = "#ffffff";
+      ctx.fillText(String(Number(dia)), xData, cy - 14);
+      ctx.font = "bold 24px -apple-system, Arial, sans-serif";
+      ctx.fillStyle = CIANO;
+      ctx.fillText(MESES_ABREV[Number(mes) - 1] || "", xData, cy + 16);
+      ctx.font = "20px -apple-system, Arial, sans-serif";
+      ctx.fillStyle = CINZA_AZULADO;
+      ctx.fillText(ano, xData, cy + 42);
+    } else {
+      ctx.textAlign = "left";
+      ctx.font = "bold 24px -apple-system, Arial, sans-serif";
+      ctx.fillStyle = CIANO;
+      truncarTexto(ctx, item.data || "", 130).split(" ").slice(0, 3).forEach((linha, li) => {
+        ctx.fillText(linha, xData, cy - 10 + li * 26);
+      });
+    }
 
-    // Badge fica na mesma linha da data, no canto direito — desenhado
-    // primeiro pra já saber a largura disponível pro texto da data (evita
-    // sobrepor um no outro em nomes de evento/data mais longos).
+    // Divisória vertical entre a data e o conteúdo.
+    const xDivisor = margem + 145;
+    ctx.strokeStyle = "rgba(127, 212, 255, 0.3)";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(xDivisor, y + 24);
+    ctx.lineTo(xDivisor, y + alturaCartao - 24);
+    ctx.stroke();
+
+    // Badge + sino, à direita, centralizados na altura do card.
     const textoBadge = item.status === "inscrito" ? "INSCRITO" : "INTERESSE";
     const corBadge = item.status === "inscrito" ? "#3fd17e" : "#7fd4ff";
-    ctx.font = "bold 22px -apple-system, Arial, sans-serif";
+    ctx.font = "bold 20px -apple-system, Arial, sans-serif";
     ctx.letterSpacing = "1px";
-    const larguraBadge = ctx.measureText(textoBadge).width + 40;
-    const xBadge = margem + larguraCartao - larguraBadge - 30;
-    const yBadge = y + deltaY + 26;
-    const alturaBadge = 44;
+    const larguraBadge = ctx.measureText(textoBadge).width + 36;
+    const alturaBadge = 42;
+    const xSino = margem + larguraCartao - 30 - 18;
+    const xBadge = xSino - 30 - larguraBadge;
+    const yBadge = cy - alturaBadge / 2;
     ctx.strokeStyle = corBadge;
     ctx.lineWidth = 2;
     roundRect(ctx, xBadge, yBadge, larguraBadge, alturaBadge, alturaBadge / 2);
     ctx.stroke();
     ctx.fillStyle = corBadge;
     ctx.textAlign = "center";
-    ctx.fillText(textoBadge, xBadge + larguraBadge / 2, yBadge + 29);
+    ctx.fillText(textoBadge, xBadge + larguraBadge / 2, yBadge + 27);
     ctx.letterSpacing = "0px";
+    desenharIcone(ctx, "sino", xSino, cy, 30, CIANO, 1.8);
+
+    // Conteúdo: bolinha + federação — nome, entre a divisória e o badge.
+    const xTexto = xDivisor + 30;
+    const larguraTexto = xBadge - 24 - xTexto;
     ctx.textAlign = "left";
-
-    const larguraData = xBadge - xTexto - 24;
-    ctx.font = "bold 30px -apple-system, Arial, sans-serif";
     ctx.fillStyle = CIANO;
-    ctx.fillText(truncarTexto(ctx, item.data || "", larguraData), xTexto, y + deltaY + 54);
+    ctx.beginPath();
+    ctx.arc(xDivisor + 12, cy - 22, 6, 0, Math.PI * 2);
+    ctx.fill();
 
-    // Linha do evento começa bem abaixo do fundo do balão de status (y +
-    // 70), pra nunca encostar nele mesmo com fontes/métricas diferentes
-    // entre navegadores.
-    ctx.font = "bold 36px -apple-system, Arial, sans-serif";
+    ctx.font = "bold 22px -apple-system, Arial, sans-serif";
+    ctx.fillStyle = CIANO;
+    const larguraFed = ctx.measureText(item.federacao + " —").width;
+    ctx.fillText(item.federacao + " —", xTexto, cy - 14);
+
+    ctx.font = "24px -apple-system, Arial, sans-serif";
     ctx.fillStyle = "#ffffff";
-    const linhaEvento = `${item.federacao} — ${item.nome}`;
-    ctx.fillText(truncarTexto(ctx, linhaEvento, larguraTexto), xTexto, y + deltaY + 116);
-
-    if (item.local) {
-      ctx.font = "26px -apple-system, Arial, sans-serif";
-      ctx.fillStyle = CINZA_AZULADO;
-      ctx.fillText(truncarTexto(ctx, item.local, larguraTexto), xTexto, y + deltaY + 156);
+    const linhasNome = quebrarLinhas(ctx, item.nome, larguraTexto);
+    ctx.fillText(truncarTexto(ctx, linhasNome[0] || "", larguraTexto - larguraFed - 10), xTexto + larguraFed + 10, cy - 14);
+    if (linhasNome[1]) {
+      ctx.fillText(truncarTexto(ctx, linhasNome[1], larguraTexto), xTexto, cy + 16);
     }
   });
   ctx.textAlign = "center";
@@ -284,7 +344,7 @@ async function gerarImagemAgendaStory() {
   let yFimLista = yListaTopo + visiveis.length * (alturaCartao + gap) - gap;
   if (restantes > 0) {
     ctx.font = "28px -apple-system, Arial, sans-serif";
-    ctx.fillStyle = CINZA_AZULADO;
+    ctx.fillStyle = CINZA_CLARO;
     ctx.fillText(`+ ${restantes} outra(s) competição(ões)`, W / 2, yFimLista + 44);
     yFimLista += 60;
   }
@@ -293,7 +353,7 @@ async function gerarImagemAgendaStory() {
   // pra linkar num perfil público), então aqui o QR sempre convida quem
   // está vendo o Story a criar a própria conta grátis. Preenche o espaço
   // que sobra antes do rodapé.
-  const yQr = yFimLista + 50;
+  const yQr = yFimLista + 40;
   const alturaQr = desenharBlocoQrCode(ctx, {
     x: margem,
     y: yQr,
@@ -303,23 +363,25 @@ async function gerarImagemAgendaStory() {
     subtitulo: "Escaneie ou acesse www.radarbjj.com",
   });
 
-  // Rodapé — link em destaque, mesmo padrão do Compartilhar de Minha Carreira.
+  // Rodapé — link em destaque, mesmo padrão do template de referência
+  // (linha — globo — url — linha).
   const urlSite = "www.radarbjj.com";
-  ctx.font = "bold 40px -apple-system, Arial, sans-serif";
+  const yUrl = Math.min(yQr + alturaQr + 45, H - 90);
+  ctx.font = "bold 32px -apple-system, Arial, sans-serif";
   const larguraTextoUrl = ctx.measureText(urlSite).width;
-  const larguraUrl = larguraTextoUrl + 130;
-  const yUrl = Math.min(yQr + alturaQr + 35, H - 70);
-  ctx.fillStyle = "rgba(127, 212, 255, 0.15)";
-  roundRect(ctx, W / 2 - larguraUrl / 2, yUrl - 44, larguraUrl, 64, 32);
-  ctx.fill();
+  const larguraBlocoUrl = larguraTextoUrl + 50;
   ctx.strokeStyle = "rgba(127, 212, 255, 0.5)";
   ctx.lineWidth = 1.5;
-  roundRect(ctx, W / 2 - larguraUrl / 2, yUrl - 44, larguraUrl, 64, 32);
+  ctx.beginPath();
+  ctx.moveTo(60, yUrl);
+  ctx.lineTo(W / 2 - larguraBlocoUrl / 2, yUrl);
+  ctx.moveTo(W / 2 + larguraBlocoUrl / 2, yUrl);
+  ctx.lineTo(W - 60, yUrl);
   ctx.stroke();
-  desenharIcone(ctx, "globo", W / 2 - larguraTextoUrl / 2 - 24, yUrl - 12, 30, CIANO, 2.2);
-  ctx.fillStyle = CIANO;
+  desenharIcone(ctx, "globo", W / 2 - larguraTextoUrl / 2 - 26, yUrl, 26, CIANO, 2.2);
+  ctx.fillStyle = "#ffffff";
   ctx.textAlign = "left";
-  ctx.fillText(urlSite, W / 2 - larguraTextoUrl / 2 + 8, yUrl);
+  ctx.fillText(urlSite, W / 2 - larguraTextoUrl / 2 + 4, yUrl + 10);
   ctx.textAlign = "center";
 
   canvas.toBlob(blob => {
