@@ -501,14 +501,15 @@ def _extrair_uf(local, federacao=None):
 _PALAVRAS_KIDS = re.compile(r"pr[ée].?mirim|\bmirim\b|infantil|infanto|\bkids\b", re.I)
 _PALAVRAS_ADULTO = re.compile(r"\bmaster\b|\badulto\b|\bjuvenil\b", re.I)
 
-# CBJJD, CBJJO, CBJJE e AJP (na maioria dos eventos) não separam Kids num
-# evento com nome próprio como CBJJ/FJJRio fazem ("... Kids International
+# CBJJD, CBJJO, CBJJE, AJP e ADCC (na maioria dos eventos) não separam Kids
+# num evento com nome próprio como CBJJ/FJJRio fazem ("... Kids International
 # Open ...") — é uma competição só, com as categorias infantis inscritas
 # junto (nomeada só pela cidade/edição, ex: "AJP Rio de Janeiro
-# International Open"). Pra essas federações, na ausência de palavra-chave
-# no nome, o padrão é "ambos" (a competição pode ter categoria kids) em vez
-# de "adulto", senão o filtro Kids nunca mostra nada pra elas.
-_FEDERACOES_SEM_SEPARACAO_POR_NOME = {"cbjjd", "cbjjo", "cbjje", "ajp"}
+# International Open", "ADCC Brazil Open - Uberlândia"). Pra essas
+# federações, na ausência de palavra-chave no nome, o padrão é "ambos" (a
+# competição pode ter categoria kids) em vez de "adulto", senão o filtro
+# Kids nunca mostra nada pra elas.
+_FEDERACOES_SEM_SEPARACAO_POR_NOME = {"cbjjd", "cbjjo", "cbjje", "ajp", "adcc"}
 
 
 def _classificar_publico(nome, fed):
