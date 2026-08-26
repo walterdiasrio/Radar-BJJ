@@ -1,5 +1,7 @@
 import base64
+import html
 import os
+import re
 import secrets
 import threading
 import time
@@ -351,6 +353,27 @@ def api_redefinir_senha():
     return jsonify({"ok": True})
 
 
+def _texto_para_html_email(texto):
+    """Converte um corpo de e-mail em texto plano (parágrafos separados por
+    linha em branco; um bloco onde toda linha começa com "- " vira lista)
+    num HTML simples — usado no envio avulso pelo admin (ver
+    api_enviar_email_avulso). Escapa o texto antes de qualquer coisa; os
+    placeholders ([Nome], [LINK]...) sobrevivem porque colchetes não são
+    caractere especial de HTML."""
+    blocos = re.split(r"\n\s*\n", texto.strip())
+    partes = []
+    for bloco in blocos:
+        linhas = [l.strip() for l in bloco.split("\n") if l.strip()]
+        if not linhas:
+            continue
+        if all(l.startswith("- ") for l in linhas):
+            itens = "".join(f"<li>{html.escape(l[2:])}</li>" for l in linhas)
+            partes.append(f"<ul>{itens}</ul>")
+        else:
+            partes.append(f"<p>{'<br>'.join(html.escape(l) for l in linhas)}</p>")
+    return "".join(partes)
+
+
 def _enviar_email_confirmacao(usuario_id, email):
     token = auth.criar_token_verificacao(usuario_id)
     link = f"{alertas.URL_SITE}/confirmar-email?token={token}"
@@ -609,6 +632,55 @@ def api_admin_reenviar_confirmacao(usuario_id):
         return jsonify({"erro": "esse e-mail já está confirmado"}), 400
     email_enviado = _enviar_email_confirmacao(usuario_id, usuario["email"])
     return jsonify({"ok": True, "email_enviado": email_enviado})
+
+
+@app.post("/api/usuarios/enviar-email")
+@api_admin_necessario
+def api_enviar_email_avulso():
+    """E-mail avulso pra uma ou mais contas escolhidas em Gerenciar
+    Usuários — assunto/corpo digitados na hora, com placeholders
+    substituídos por conta ([Nome], [LINK] = confirmar e-mail se ainda não
+    confirmado (senão a home), [LINK PRICING] = /planos)."""
+    dados = request.get_json(silent=True) or {}
+    usuario_ids = dados.get("usuario_ids") or []
+    assunto = (dados.get("assunto") or "").strip()
+    corpo = (dados.get("corpo") or "").strip()
+    if not usuario_ids or not assunto or not corpo:
+        return jsonify({"erro": "selecione ao menos um destinatário e preencha assunto e corpo"}), 400
+
+    corpo_html_base = _texto_para_html_email(corpo)
+    link_planos = f"{alertas.URL_SITE}/planos"
+
+    resultados = []
+    for usuario_id in usuario_ids:
+        usuario = auth.buscar_por_id(usuario_id)
+        if not usuario:
+            resultados.append({"usuario_id": usuario_id, "erro": "não encontrado"})
+            continue
+        linha = auth.buscar_por_email(usuario["email"])
+        verificado = bool(linha and linha["email_verificado"])
+
+        perfil = carreira.obter_perfil(usuario_id)
+        nome_exibicao = (perfil.get("nome") or "").strip() or usuario["nome_usuario"] or usuario["email"].split("@")[0]
+
+        if verificado:
+            link_principal = alertas.URL_SITE
+        else:
+            token = auth.criar_token_verificacao(usuario_id)
+            link_principal = f"{alertas.URL_SITE}/confirmar-email?token={token}"
+
+        assunto_pessoal = assunto.replace("[Nome]", nome_exibicao)
+        corpo_pessoal = (
+            corpo_html_base
+            .replace("[Nome]", html.escape(nome_exibicao))
+            .replace("[LINK PRICING]", f'<a href="{link_planos}">{link_planos}</a>')
+            .replace("[LINK]", f'<a href="{link_principal}">{link_principal}</a>')
+        )
+
+        ok = alertas.enviar_email(usuario["email"], assunto_pessoal, corpo_pessoal)
+        resultados.append({"usuario_id": usuario_id, "email": usuario["email"], "enviado": ok})
+
+    return jsonify({"resultados": resultados})
 
 
 @app.delete("/api/usuarios/<int:usuario_id>")

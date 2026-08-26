@@ -107,6 +107,7 @@ src="https://www.facebook.com/tr?id=28254694314126516&ev=PageView&noscript=1"
     <table>
       <thead>
         <tr>
+          <th></th>
           <th>E-mail</th>
           <th>Perfil</th>
           <th>Nome de usuário</th>
@@ -118,6 +119,25 @@ src="https://www.facebook.com/tr?id=28254694314126516&ev=PageView&noscript=1"
       </thead>
       <tbody id="corpo-tabela-usuarios"></tbody>
     </table>
+  </div>
+
+  <div class="card-carreira" style="margin-top: 20px; max-width: 640px;">
+    <h3 style="margin-top: 0; color: var(--azul);">Enviar e-mail avulso</h3>
+    <p id="texto-selecionados" style="color: #55606b; font-size: 0.85rem; margin-top: 0;">
+      Marque um ou mais usuários na tabela acima pra habilitar o envio.
+    </p>
+    <div class="campo">
+      <label for="email_avulso_assunto">Assunto</label>
+      <input type="text" id="email_avulso_assunto">
+    </div>
+    <div class="campo">
+      <label for="email_avulso_corpo">Corpo do e-mail</label>
+      <textarea id="email_avulso_corpo" rows="10" placeholder="Parágrafos separados por linha em branco. Linhas começando com &quot;- &quot; viram lista.
+
+Placeholders disponíveis: [Nome], [LINK] (confirmar e-mail, se ainda não confirmado — senão a home), [LINK PRICING] (página de planos)."></textarea>
+    </div>
+    <button type="button" id="btn-enviar-email-avulso" disabled>Enviar e-mail</button>
+    <div id="status-email-avulso" class="status-importacao"></div>
   </div>
 </main>
 </div>

@@ -11,6 +11,7 @@ const LABEL_STATUS = {
 };
 
 let usuariosCarregados = [];
+const idsSelecionados = new Set();
 
 function mostrarStatus(texto, ehErro = false) {
   elStatus.textContent = texto;
@@ -64,7 +65,7 @@ function badgePlano(plano) {
 
 function renderizarTabela(usuarios) {
   if (!usuarios.length) {
-    elCorpoTabela.innerHTML = '<tr><td colspan="7">Nenhum usuário encontrado.</td></tr>';
+    elCorpoTabela.innerHTML = '<tr><td colspan="8">Nenhum usuário encontrado.</td></tr>';
     return;
   }
   elCorpoTabela.innerHTML = usuarios.map(u => {
@@ -77,6 +78,7 @@ function renderizarTabela(usuarios) {
       : "";
     return `
     <tr>
+      <td><input type="checkbox" class="chk-usuario" data-id="${u.id}" ${idsSelecionados.has(u.id) ? "checked" : ""}></td>
       <td>${u.email}</td>
       <td>${u.tipo_perfil === "mestre" ? "Mestre" : "Atleta"}</td>
       <td>${u.nome_usuario || "—"}</td>
@@ -187,6 +189,60 @@ elCorpoTabela.addEventListener("click", (ev) => {
   if (botaoApagar) {
     const usuario = usuariosCarregados.find(u => String(u.id) === botaoApagar.dataset.id);
     if (usuario) apagarUsuario(usuario, botaoApagar);
+  }
+});
+
+const elTextoSelecionados = document.getElementById("texto-selecionados");
+const elBtnEnviarEmailAvulso = document.getElementById("btn-enviar-email-avulso");
+
+function atualizarSelecaoUI() {
+  elBtnEnviarEmailAvulso.disabled = idsSelecionados.size === 0;
+  elTextoSelecionados.textContent = idsSelecionados.size
+    ? `${idsSelecionados.size} usuário(s) selecionado(s) pra receber o e-mail.`
+    : "Marque um ou mais usuários na tabela acima pra habilitar o envio.";
+}
+
+elCorpoTabela.addEventListener("change", (ev) => {
+  const chk = ev.target.closest(".chk-usuario");
+  if (!chk) return;
+  const id = Number(chk.dataset.id);
+  if (chk.checked) idsSelecionados.add(id); else idsSelecionados.delete(id);
+  atualizarSelecaoUI();
+});
+
+elBtnEnviarEmailAvulso.addEventListener("click", async () => {
+  const assunto = document.getElementById("email_avulso_assunto").value.trim();
+  const corpo = document.getElementById("email_avulso_corpo").value.trim();
+  if (!assunto || !corpo) {
+    mostrarStatus("Preencha o assunto e o corpo do e-mail.", true);
+    return;
+  }
+  const destinatarios = usuariosCarregados.filter(u => idsSelecionados.has(u.id)).map(u => u.email);
+  if (!confirm(`Enviar esse e-mail pra ${destinatarios.length} pessoa(s)?\n\n${destinatarios.join("\n")}`)) return;
+
+  const elStatusAvulso = document.getElementById("status-email-avulso");
+  elBtnEnviarEmailAvulso.disabled = true;
+  elStatusAvulso.textContent = "Enviando...";
+  elStatusAvulso.className = "status-importacao";
+  try {
+    const resp = await fetchAutenticado("/api/usuarios/enviar-email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ usuario_ids: [...idsSelecionados], assunto, corpo }),
+    });
+    const dados = await resp.json();
+    if (!resp.ok) throw new Error(dados.erro || "erro ao enviar e-mail");
+
+    const falhas = dados.resultados.filter(r => !r.enviado);
+    elStatusAvulso.textContent = falhas.length
+      ? `Enviado pra ${dados.resultados.length - falhas.length} de ${dados.resultados.length} — falhou pra: ${falhas.map(f => f.email || f.usuario_id).join(", ")}`
+      : `E-mail enviado pra ${dados.resultados.length} pessoa(s)!`;
+    elStatusAvulso.className = "status-importacao" + (falhas.length ? " erro" : "");
+  } catch (err) {
+    elStatusAvulso.textContent = `Erro: ${err.message}`;
+    elStatusAvulso.className = "status-importacao erro";
+  } finally {
+    elBtnEnviarEmailAvulso.disabled = idsSelecionados.size === 0;
   }
 });
 
