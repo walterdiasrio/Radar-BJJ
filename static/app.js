@@ -30,39 +30,24 @@ async function carregarFederacoes() {
   construirOpcoesFederacao(elFederacaoOpcoes, federacoes, onFederacaoMudou);
 }
 
-// Monta os checkboxes de federação: nenhuma marcada por padrão; marcar uma
-// individual desmarca "Todas"; desmarcar a última individual volta para "Todas"
-// (mas a busca sem nada marcado já considera todas as federações, ver
-// federacaoSelecionada).
+// Monta os checkboxes de federação: nenhuma marcada por padrão, sem atalho
+// "Todas as federações" de propósito (removido em 26/08/2026 — buscar em
+// todas as federações e todas as competições de uma vez é a combinação mais
+// pesada do site, ~58 competições de uma tacada só; tirar o atalho evita
+// disparar isso sem querer). Quem quiser mesmo buscar em tudo ainda
+// consegue, marcando cada federação uma por uma.
 function construirOpcoesFederacao(container, federacoes, onChange) {
-  container.innerHTML =
-    `<label class="opcao-todas"><input type="checkbox" value="${TODAS}"> Todas as federações</label>` +
-    federacoes.map(f => `<label><input type="checkbox" value="${f.id}"> ${f.label}</label>`).join("");
-
-  const checkboxes = Array.from(container.querySelectorAll('input[type="checkbox"]'));
-  const todasCheckbox = checkboxes[0];
-  const individuais = checkboxes.slice(1);
-
-  container.addEventListener("change", (ev) => {
-    if (ev.target === todasCheckbox) {
-      if (todasCheckbox.checked) individuais.forEach(c => { c.checked = false; });
-    } else {
-      if (ev.target.checked) todasCheckbox.checked = false;
-      if (!individuais.some(c => c.checked)) todasCheckbox.checked = true;
-    }
-    onChange();
-  });
+  container.innerHTML = federacoes.map(f => `<label><input type="checkbox" value="${f.id}"> ${f.label}</label>`).join("");
+  container.addEventListener("change", onChange);
 }
 
-// Retorna TODAS, um id único (string), uma lista de ids (seleção múltipla)
-// ou null se nada estiver marcado — nesse caso não buscamos nada (em vez de
+// Retorna um id único (string), uma lista de ids (seleção múltipla) ou null
+// se nada estiver marcado — nesse caso não buscamos nada (em vez de
 // silenciosamente cair pra "todas as federações", que confundia: se uma
 // federação demorasse/falhasse pra um termo específico, parecia que só uma
 // tinha sido pesquisada).
 function federacaoSelecionada(container) {
-  const checkboxes = Array.from(container.querySelectorAll('input[type="checkbox"]'));
-  if (checkboxes[0].checked) return TODAS;
-  const selecionadas = checkboxes.slice(1).filter(c => c.checked).map(c => c.value);
+  const selecionadas = Array.from(container.querySelectorAll('input[type="checkbox"]:checked')).map(c => c.value);
   if (!selecionadas.length) return null;
   return selecionadas.length === 1 ? selecionadas[0] : selecionadas;
 }
