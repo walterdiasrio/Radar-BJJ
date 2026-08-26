@@ -7,15 +7,17 @@ from datetime import date
 
 from . import cbjj, fjjrio, cbjjd, cbjjo, cbjje, fpjj, cbjjc, adcc, ajp, idade as idade_mod, peso as peso_mod, datas as datas_mod
 
-# Quantas buscas em paralelo por vez. O Render Starter só tem 512MB de RAM
-# — muitas threads simultâneas fazendo scraping (cada resposta pode ser
-# vários MB, ex: FPJJ chega a ~9MB por evento) já derrubou o serviço por
-# estouro de memória, mais de uma vez. Cada funcionalidade nova (Minha
-# Carreira, Fale Conosco, Assinaturas, AJP) aumenta um pouco a memória de
-# base do processo, sobrando menos folga pra esses picos — por isso o
-# valor foi reduzido de novo, de 8 pra 4. Dá pra reajustar por variável de
-# ambiente sem precisar mexer no código.
-MAX_WORKERS = int(os.environ.get("BUSCA_MAX_WORKERS", 4))
+# Quantas buscas em paralelo por vez. Já foi reduzido de 8 pra 4 quando o
+# Render Starter (512MB de RAM) derrubou o serviço por estouro de memória
+# fazendo muitas buscas simultâneas (cada resposta pode ser vários MB, ex:
+# FPJJ chega a ~9MB por evento). Voltou pra 8 em 26/08/2026 depois do
+# upgrade pro plano Standard (2GB, 4x mais RAM) — uma busca "todas as
+# federações, todas as competições" (~58 eventos) caiu de ~32s pra ~24s.
+# Testado com 12 e 16: não ajuda mais que isso (o gargalo virou algumas
+# federações individualmente lentas pra responder, tipo FPJJ, não falta de
+# paralelismo) — sem motivo pra subir além de 8 e gastar mais memória à
+# toa. Dá pra reajustar por variável de ambiente sem precisar mexer no código.
+MAX_WORKERS = int(os.environ.get("BUSCA_MAX_WORKERS", 8))
 
 FEDERACOES = {
     "cbjj": {"label": "CBJJ", "module": cbjj},
