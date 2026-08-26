@@ -215,11 +215,16 @@ def _sem_bugs(eventos):
 # conectores ignoram `filtros`: sempre devolvem todos os inscritos do
 # evento, e a filtragem acontece depois, em memória, em _atleta_combina).
 # É o principal gargalo de tempo numa busca "todas as federações, todas
-# as competições" — cachear aqui é o que mais acelera. TTL mais curto que
-# o de eventos porque inscrições abrem/fecham e mudam com mais frequência
-# durante a semana da competição. ADCC/AJP ficam de fora: já leem de um
-# JSON local instantâneo, cachear só adicionaria complexidade sem ganho.
-CACHE_TTL_ATLETAS_SEGUNDOS = int(os.environ.get("CACHE_TTL_ATLETAS_SEGUNDOS", 300))
+# as competições" — cachear aqui é o que mais acelera. 30 min (subiu de 5
+# em 25/08/2026: uma busca ampla ficava >30s toda vez que o cache expirava,
+# já que passa por ~50+ eventos com só 4 buscas em paralelo por vez —
+# MAX_WORKERS=4 é de propósito, não dá pra subir sem risco de faltar
+# memória de novo). Alinhado com INTERVALO_ALERTAS_SEGUNDOS: não faz
+# sentido a busca ficar mais "fresca" que isso, já que um inscrito novo só
+# vira alerta pra alguém a cada 30 min de qualquer forma. ADCC/AJP ficam de
+# fora: já leem de um JSON local instantâneo, cachear só adicionaria
+# complexidade sem ganho.
+CACHE_TTL_ATLETAS_SEGUNDOS = int(os.environ.get("CACHE_TTL_ATLETAS_SEGUNDOS", 1800))
 _cache_atletas = {}
 _cache_atletas_lock = threading.Lock()
 
