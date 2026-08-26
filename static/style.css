@@ -566,6 +566,13 @@ main {
   padding: 24px 16px 60px;
 }
 
+/* Páginas com tabelas largas (ex: Gerenciar Usuários) — o max-width de
+   960px do <main> padrão faz a tabela cortar/rolar mesmo sobrando muito
+   espaço vazio nas laterais da tela. */
+main.main-largo {
+  max-width: 1200px;
+}
+
 .pagina-titulo-logo {
   display: block;
   height: 153px;
