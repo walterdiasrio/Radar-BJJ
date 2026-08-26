@@ -72,6 +72,9 @@ function renderizarTabela(usuarios) {
     const botaoApagar = contaEhFree(u)
       ? `<button type="button" class="btn-secundario btn-apagar-usuario" data-id="${u.id}" style="color:#c0392b;">Apagar</button>`
       : "";
+    const botaoReenviar = !u.email_verificado
+      ? `<button type="button" class="btn-secundario btn-reenviar-confirmacao" data-id="${u.id}">Reenviar confirmação</button>`
+      : "";
     return `
     <tr>
       <td>${u.email}</td>
@@ -83,6 +86,7 @@ function renderizarTabela(usuarios) {
       <td>
         <button type="button" class="btn-secundario btn-alternar-perfil" data-id="${u.id}" data-novo-perfil="${novoPerfil}">Tornar ${novoPerfil === "mestre" ? "Mestre" : "Atleta"}</button>
         <button type="button" class="btn-secundario btn-editar-email" data-id="${u.id}">Editar e-mail</button>
+        ${botaoReenviar}
         ${botaoApagar}
       </td>
     </tr>
@@ -131,6 +135,20 @@ async function editarEmail(usuario, botao) {
   }
 }
 
+async function reenviarConfirmacao(usuario, botao) {
+  botao.disabled = true;
+  try {
+    const resp = await fetchAutenticado(`/api/usuarios/${usuario.id}/reenviar-confirmacao`, { method: "POST" });
+    const dados = await resp.json();
+    if (!resp.ok) throw new Error(dados.erro || "erro ao reenviar confirmação");
+    mostrarStatus(dados.email_enviado ? `Confirmação reenviada pra ${usuario.email}.` : `Conta atualizada, mas o envio do e-mail falhou — tenta de novo em alguns minutos.`, !dados.email_enviado);
+  } catch (err) {
+    mostrarStatus(`Erro: ${err.message}`, true);
+  } finally {
+    botao.disabled = false;
+  }
+}
+
 async function apagarUsuario(usuario, botao) {
   if (!confirm(`Apagar a conta de ${usuario.email}? Essa ação não pode ser desfeita.`)) return;
 
@@ -157,6 +175,12 @@ elCorpoTabela.addEventListener("click", (ev) => {
   if (botaoEmail) {
     const usuario = usuariosCarregados.find(u => String(u.id) === botaoEmail.dataset.id);
     if (usuario) editarEmail(usuario, botaoEmail);
+    return;
+  }
+  const botaoReenviar = ev.target.closest(".btn-reenviar-confirmacao");
+  if (botaoReenviar) {
+    const usuario = usuariosCarregados.find(u => String(u.id) === botaoReenviar.dataset.id);
+    if (usuario) reenviarConfirmacao(usuario, botaoReenviar);
     return;
   }
   const botaoApagar = ev.target.closest(".btn-apagar-usuario");

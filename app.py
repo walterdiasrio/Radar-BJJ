@@ -598,6 +598,19 @@ def api_alterar_email_usuario(usuario_id):
     return jsonify({"ok": True, "email": usuario["email"]})
 
 
+@app.post("/api/usuarios/<int:usuario_id>/reenviar-confirmacao")
+@api_admin_necessario
+def api_admin_reenviar_confirmacao(usuario_id):
+    usuario = auth.buscar_por_id(usuario_id)
+    if not usuario:
+        return jsonify({"erro": "usuário não encontrado"}), 404
+    linha = auth.buscar_por_email(usuario["email"])
+    if linha and linha["email_verificado"]:
+        return jsonify({"erro": "esse e-mail já está confirmado"}), 400
+    email_enviado = _enviar_email_confirmacao(usuario_id, usuario["email"])
+    return jsonify({"ok": True, "email_enviado": email_enviado})
+
+
 @app.delete("/api/usuarios/<int:usuario_id>")
 @api_admin_necessario
 def api_remover_usuario(usuario_id):
