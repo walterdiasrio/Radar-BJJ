@@ -12,6 +12,7 @@ const elStatus = document.getElementById("status");
 const elResultados = document.getElementById("resultados");
 const elForm = document.getElementById("form-busca");
 const elBtnBuscar = document.getElementById("btn-buscar");
+const elBarraCarregamento = document.getElementById("barra-carregamento");
 const elBtnCriarAlerta = document.getElementById("btn-criar-alerta");
 const elStatusAlerta = document.getElementById("status-alerta");
 const elBtnSalvarFiltroPadrao = document.getElementById("btn-salvar-filtro-padrao");
@@ -290,6 +291,7 @@ elForm.addEventListener("submit", async (ev) => {
   const buscandoTudo = federacao === TODAS || Array.isArray(federacao) || evento === TODAS;
   mostrarStatus(buscandoTudo ? "Buscando em várias competições, pode levar alguns segundos..." : "Buscando...");
   elResultados.innerHTML = "";
+  elBarraCarregamento.hidden = false;
 
   try {
     const resp = await fetchAutenticado(`/api/atletas?${params.toString()}`);
@@ -313,6 +315,7 @@ elForm.addEventListener("submit", async (ev) => {
     mostrarStatus(`Erro na busca: ${err.message}`, true);
   } finally {
     elBtnBuscar.disabled = false;
+    elBarraCarregamento.hidden = true;
   }
 });
 

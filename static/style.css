@@ -750,6 +750,28 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 
 #status.erro { color: #b3261e; }
 
+.barra-carregamento {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: #e3e8f0;
+  overflow: hidden;
+  margin: -8px 0 16px;
+}
+
+.barra-carregamento-preenchimento {
+  width: 40%;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--azul);
+  animation: barra-carregamento-mover 1.1s ease-in-out infinite;
+}
+
+@keyframes barra-carregamento-mover {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(350%); }
+}
+
 #resultados {
   display: flex;
   flex-direction: column;
