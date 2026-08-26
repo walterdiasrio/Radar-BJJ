@@ -8,12 +8,12 @@ _session.headers.update({
 
 
 def get(url, **kwargs):
-    kwargs.setdefault("timeout", 40)
+    kwargs.setdefault("timeout", 18)
     return _session.get(url, **kwargs)
 
 
 def post(url, **kwargs):
-    kwargs.setdefault("timeout", 40)
+    kwargs.setdefault("timeout", 18)
     return _session.post(url, **kwargs)
 
 
