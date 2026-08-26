@@ -215,27 +215,39 @@ def _sem_bugs(eventos):
 # conectores ignoram `filtros`: sempre devolvem todos os inscritos do
 # evento, e a filtragem acontece depois, em memória, em _atleta_combina).
 # É o principal gargalo de tempo numa busca "todas as federações, todas
-# as competições" — cachear aqui é o que mais acelera. 30 min (subiu de 5
-# em 25/08/2026: uma busca ampla ficava >30s toda vez que o cache expirava,
-# já que passa por ~50+ eventos com só 4 buscas em paralelo por vez —
-# MAX_WORKERS=4 é de propósito, não dá pra subir sem risco de faltar
-# memória de novo). Alinhado com INTERVALO_ALERTAS_SEGUNDOS: não faz
-# sentido a busca ficar mais "fresca" que isso, já que um inscrito novo só
-# vira alerta pra alguém a cada 30 min de qualquer forma. ADCC/AJP ficam de
-# fora: já leem de um JSON local instantâneo, cachear só adicionaria
-# complexidade sem ganho.
-CACHE_TTL_ATLETAS_SEGUNDOS = int(os.environ.get("CACHE_TTL_ATLETAS_SEGUNDOS", 1800))
-_cache_atletas = {}
+# as competições" — cachear aqui é o que mais acelera.
+#
+# Dois caches separados (25/08/2026) em vez de um só, porque os dois usos
+# têm necessidades opostas:
+# - "alerta": o verificador de Alertas (app.py, a cada
+#   INTERVALO_ALERTAS_SEGUNDOS) precisa achar atleta NOVO o quanto antes —
+#   fica com TTL curto, igual ao próprio intervalo do verificador. Um TTL
+#   longo aqui faria os e-mails de alerta atrasarem horas.
+# - "busca": a busca manual do usuário (Radar de Atletas) tolera dado mais
+#   velho numa boa — sobretudo no começo, quando as buscas acontecem em
+#   intervalos bem maiores que 30 min, e um TTL curto nunca chega a "pegar"
+#   (toda busca vira cache miss de qualquer jeito). TTL bem mais longo.
+# ADCC/AJP ficam de fora dos dois: já leem de um JSON local instantâneo,
+# cachear só adicionaria complexidade sem ganho.
+CACHE_TTL_ATLETAS_ALERTA_SEGUNDOS = int(os.environ.get("CACHE_TTL_ATLETAS_ALERTA_SEGUNDOS", 30 * 60))
+CACHE_TTL_ATLETAS_BUSCA_SEGUNDOS = int(os.environ.get("CACHE_TTL_ATLETAS_BUSCA_SEGUNDOS", 6 * 60 * 60))
+_cache_atletas_alerta = {}
+_cache_atletas_busca = {}
 _cache_atletas_lock = threading.Lock()
 
 
-def buscar_atletas(federacao, evento_id, filtros):
+def buscar_atletas(federacao, evento_id, filtros, contexto="busca"):
     cacheavel = federacao not in FEDERACOES_SMOOTHCOMP
+    if contexto == "alerta":
+        cache, ttl = _cache_atletas_alerta, CACHE_TTL_ATLETAS_ALERTA_SEGUNDOS
+    else:
+        cache, ttl = _cache_atletas_busca, CACHE_TTL_ATLETAS_BUSCA_SEGUNDOS
+
     if cacheavel:
         chave = (federacao, evento_id)
         with _cache_atletas_lock:
-            entrada = _cache_atletas.get(chave)
-            if entrada and time.time() - entrada[0] < CACHE_TTL_ATLETAS_SEGUNDOS:
+            entrada = cache.get(chave)
+            if entrada and time.time() - entrada[0] < ttl:
                 return entrada[1]
 
     modulo = FEDERACOES[federacao]["module"]
@@ -243,7 +255,7 @@ def buscar_atletas(federacao, evento_id, filtros):
 
     if cacheavel:
         with _cache_atletas_lock:
-            _cache_atletas[chave] = (time.time(), atletas)
+            cache[chave] = (time.time(), atletas)
     return atletas
 
 
@@ -368,9 +380,12 @@ def _federacoes_alvo(federacao):
     return [federacao]
 
 
-def buscar_atletas_agregado(federacao, evento_id, filtros):
+def buscar_atletas_agregado(federacao, evento_id, filtros, contexto="busca"):
     """Busca atletas podendo abranger uma, várias ou todas as federações,
-    e todas as competições de uma vez, disparando as buscas em paralelo."""
+    e todas as competições de uma vez, disparando as buscas em paralelo.
+    contexto="busca" (padrão, cache mais longo) ou "alerta" (cache curto,
+    ver CACHE_TTL_ATLETAS_ALERTA_SEGUNDOS/BUSCA_SEGUNDOS) — quem chama do
+    verificador de Alertas deve passar contexto="alerta" explicitamente."""
     federacoes_alvo = _federacoes_alvo(federacao)
     federacao_unica = len(federacoes_alvo) == 1
 
@@ -414,7 +429,7 @@ def buscar_atletas_agregado(federacao, evento_id, filtros):
     resultados = []
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         futuros = {
-            executor.submit(buscar_atletas, fed, evento["id"], filtros_fed): (fed, evento, filtros_fed)
+            executor.submit(buscar_atletas, fed, evento["id"], filtros_fed, contexto): (fed, evento, filtros_fed)
             for fed, evento, filtros_fed in tarefas
         }
         for futuro in as_completed(futuros):

@@ -142,7 +142,7 @@ def _rodar_busca(alerta):
         "peso_sem_kimono": alerta["peso_sem_kimono"] or "",
         "faixa": alerta["faixa"] or "",
     }
-    atletas, _erros, _total = buscar_atletas_agregado(federacao, TODAS, filtros)
+    atletas, _erros, _total = buscar_atletas_agregado(federacao, TODAS, filtros, contexto="alerta")
     return atletas
 
 
