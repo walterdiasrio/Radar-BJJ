@@ -437,6 +437,9 @@ _FUNCOES = {
     "cbjje": _cbjje,
     "fpjj": _fpjj,
     "cbjjc": _cbjjc,
+    # FJJPE segue a "TABELA OFICIAL CBJJ/IBJJF" (rótulo do próprio PDF de
+    # peso da federação) — reaproveita a mesma tabela da CBJJ/FJJRio.
+    "fjjpe": _cbjj_fjjrio,
 }
 
 # Federações onde já confirmamos que a competição Sem Kimono usa uma tabela
@@ -447,6 +450,7 @@ _FUNCOES = {
 _FUNCOES_SEM_KIMONO = {
     "cbjj": _cbjj_fjjrio_sem_kimono,
     "fjjrio": _cbjj_fjjrio_sem_kimono,
+    "fjjpe": _cbjj_fjjrio_sem_kimono,
 }
 
 

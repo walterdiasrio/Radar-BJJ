@@ -168,6 +168,14 @@ TABELAS = {
     "cbjje": _CBJJE,
     "fpjj": _FPJJ,
     "cbjjc": _CBJJC,
+    # FJJPE: o próprio PDF de tabela de peso da federação (fjjpe.com.br)
+    # se identifica como "TABELA OFICIAL CBJJ/IBJJF" — mesmas faixas de
+    # idade e nomes de categoria da CBJJ/FJJRio (conferido contra a
+    # checagem real de dois eventos: Juvenil 1/2, Adulto, Master 1-6 no
+    # masculino adulto; Pré-Mirim a Infanto-Juvenil nos kids — batem
+    # exatamente). O conector normaliza o texto sem acento do site
+    # ("PRE MIRIM 1") para esses rótulos (ver fjjpe._idade_normalizada).
+    "fjjpe": _CBJJ_FJJRIO,
 }
 
 

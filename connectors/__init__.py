@@ -5,7 +5,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date
 
-from . import cbjj, fjjrio, cbjjd, cbjjo, cbjje, fpjj, cbjjc, adcc, ajp, idade as idade_mod, peso as peso_mod, datas as datas_mod
+from . import cbjj, fjjrio, cbjjd, cbjjo, cbjje, fpjj, cbjjc, fjjpe, adcc, ajp, idade as idade_mod, peso as peso_mod, datas as datas_mod
 
 # Quantas buscas em paralelo por vez. Já foi reduzido de 8 pra 4 quando o
 # Render Starter (512MB de RAM) derrubou o serviço por estouro de memória
@@ -27,6 +27,7 @@ FEDERACOES = {
     "cbjje": {"label": "CBJJE", "module": cbjje},
     "fpjj": {"label": "FPJJ", "module": fpjj},
     "cbjjc": {"label": "CBJJC", "module": cbjjc},
+    "fjjpe": {"label": "FJJPE", "module": fjjpe},
     "adcc": {"label": "ADCC", "module": adcc},
     "ajp": {"label": "AJP", "module": ajp},
 }
