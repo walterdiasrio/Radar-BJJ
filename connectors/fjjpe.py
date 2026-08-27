@@ -36,6 +36,7 @@ falta de fonte em texto).
 """
 import re
 import unicodedata
+from datetime import date
 from urllib.parse import urlparse
 
 from bs4 import BeautifulSoup
@@ -114,6 +115,33 @@ def _caminho_do_evento(url):
     return urlparse(url).path.strip("/")
 
 
+def _inscricoes_abertas(caminho):
+    """A página do evento (login/checagem) tem um card "Valores das
+    inscrições" com um ou mais lotes, cada um com uma data limite
+    (".lot-date", ex: "até 09/09/2026") — inscrições contam como abertas
+    enquanto a data de hoje não passar do último lote. None se a página não
+    tiver nenhum lote (não dá pra saber)."""
+    try:
+        resp = get(f"{DOMINIO_EVENTOS}/{caminho}")
+    except Exception:
+        return None
+    soup = BeautifulSoup(resp.text, "lxml")
+
+    limites = []
+    for el in soup.select(".lot-date"):
+        m = re.search(r"(\d{1,2})/(\d{1,2})/(\d{4})", el.get_text(strip=True))
+        if not m:
+            continue
+        dia, mes, ano = (int(x) for x in m.groups())
+        try:
+            limites.append(date(ano, mes, dia))
+        except ValueError:
+            continue
+    if not limites:
+        return None
+    return date.today() <= max(limites)
+
+
 def listar_eventos():
     resp = get(f"{SITE}/")
     soup = BeautifulSoup(resp.text, "lxml")
@@ -140,6 +168,7 @@ def listar_eventos():
             "nome": nome,
             "data": _data_do_evento(nome, entradas_calendario),
             "local": _LOCAL_PADRAO,
+            "inscricoes_abertas": _inscricoes_abertas(caminho),
         })
     return eventos
 

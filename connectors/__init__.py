@@ -521,6 +521,46 @@ def _extrair_uf(local, federacao=None):
     return _UF_FIXA_POR_FEDERACAO.get(federacao)
 
 
+_PREPOSICOES_LOCAL = {"de", "da", "do", "das", "dos", "e"}
+
+
+def _titulo_pt(texto):
+    palavras = texto.strip().lower().split()
+    return " ".join(p if p in _PREPOSICOES_LOCAL else p.capitalize() for p in palavras)
+
+
+def _simplifica_local(local, federacao=None):
+    """Reduz o texto livre de "local" (que cada federação escreve do seu
+    jeito — endereço completo, nome do ginásio, "Cidade/UF", "Cidade -
+    Estado por extenso"...) pra só "Município, UF", que é o que interessa
+    pra quem está vendo a lista de competições. Primeiro tenta achar
+    "<algo>, <UF>"/"<algo> - <UF>"/"<algo>/<UF>" (o <algo> vira o
+    município, descartando endereço/nome de ginásio antes dele); sem UF de
+    2 letras, tenta o nome do estado por extenso e usa esse mesmo trecho
+    como candidato a município (funciona quando cidade e estado têm o
+    mesmo nome, ex: "Rio de Janeiro"). Sem nenhum dos dois, cai pro estado
+    fixo da federação (ver _UF_FIXA_POR_FEDERACAO) só com a UF; sem isso
+    também, mantém o texto original (não tem como saber cidade nem estado)."""
+    if not local:
+        return local
+
+    melhor = None
+    for m in re.finditer(r"([^,\-/]+?)\s*[,\-/]\s*([A-Za-z]{2})\b", local):
+        cidade, uf = m.group(1).strip(), m.group(2).upper()
+        if uf in _UF_VALIDAS and cidade:
+            melhor = (cidade, uf)
+    if melhor:
+        return f"{_titulo_pt(melhor[0])}, {melhor[1]}"
+
+    texto = local.lower()
+    for nome in _NOMES_ESTADO_POR_TAMANHO:
+        if nome in texto:
+            return f"{_titulo_pt(nome)}, {_NOME_ESTADO_PARA_UF[nome]}"
+
+    uf_fixa = _UF_FIXA_POR_FEDERACAO.get(federacao)
+    return uf_fixa or local
+
+
 _PALAVRAS_KIDS = re.compile(r"pr[ée].?mirim|\bmirim\b|infantil|infanto|\bkids\b", re.I)
 _PALAVRAS_ADULTO = re.compile(r"\bmaster\b|\badulto\b|\bjuvenil\b", re.I)
 
@@ -586,7 +626,7 @@ def listar_competicoes(federacao):
                     "nome": nome,
                     "data": datas_mod.formatar(evento.get("data", "")),
                     "mes": datas_mod.rotulo_mes(data_ordenacao),
-                    "local": evento.get("local", ""),
+                    "local": _simplifica_local(evento.get("local", ""), fed),
                     "uf": _extrair_uf(evento.get("local", ""), fed),
                     "inscricoes_abertas": inscricoes_abertas,
                     "publico": _classificar_publico(nome, fed),
