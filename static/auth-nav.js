@@ -179,9 +179,25 @@ function configurarDropdowns(escopo) {
       elSubmenu.style.top = `${r.bottom}px`;
       elSubmenu.style.left = `${calcularLeftClampado(r)}px`;
     };
+    // Desktop (menu lateral esquerdo, ver style.css): abre AO LADO (à
+    // direita do item), não embaixo — embaixo ficaria espremido contra a
+    // borda estreita do menu (220px) e cortado. top clampado igual ao
+    // left de posicionarNormal, só que no eixo vertical.
+    const posicionarAoLado = () => {
+      const r = elToggle.getBoundingClientRect();
+      const altura = elSubmenu.offsetHeight || 0;
+      elSubmenu.style.bottom = "auto";
+      elSubmenu.style.top = `${Math.max(8, Math.min(r.top, window.innerHeight - altura - 8))}px`;
+      elSubmenu.style.left = `${r.right}px`;
+    };
     const ehRodape = elDropdown.closest(".menu-lateral-rodape") !== null;
+    const posicionar = () => {
+      if (ehRodape) return posicionarParaCima();
+      if (window.matchMedia("(min-width: 901px)").matches) return posicionarAoLado();
+      return posicionarNormal();
+    };
 
-    elDropdown.addEventListener("mouseenter", ehRodape ? posicionarParaCima : posicionarNormal);
+    elDropdown.addEventListener("mouseenter", posicionar);
 
     // "Admin" não tem destino próprio (href="#") — sempre só abre/fecha o
     // submenu. "Turmas" tem destino de verdade (href="/turmas"): no
@@ -199,13 +215,13 @@ function configurarDropdowns(escopo) {
       if (semDestinoProprio) {
         ev.preventDefault();
         elDropdown.classList.toggle("aberto");
-        if (elDropdown.classList.contains("aberto")) (ehRodape ? posicionarParaCima : posicionarNormal)();
+        if (elDropdown.classList.contains("aberto")) posicionar();
         return;
       }
       if (noMobile && !elDropdown.classList.contains("aberto")) {
         ev.preventDefault();
         elDropdown.classList.add("aberto");
-        (ehRodape ? posicionarParaCima : posicionarNormal)();
+        posicionar();
       }
     });
 
