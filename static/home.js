@@ -40,7 +40,7 @@ async function carregarDestaques() {
     `;
     elDestaques.querySelectorAll(".destaque-card").forEach(card => {
       const noticia = lista[Number(card.dataset.indice)];
-      card.addEventListener("click", () => abrirNoticiaModal(noticia.imagem_url, noticia.manchete, noticia.texto));
+      card.addEventListener("click", () => { location.href = `/noticias/${noticia.id}`; });
     });
   } catch (err) {
     elDestaques.innerHTML = "";

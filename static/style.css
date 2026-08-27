@@ -1239,74 +1239,40 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
   cursor: pointer;
 }
 
-.noticia-modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(6, 10, 18, 0.85);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  z-index: 1000;
+.noticia-detalhe-voltar {
+  display: inline-block;
+  margin-bottom: 16px;
+  color: var(--azul);
+  text-decoration: none;
+  font-weight: 600;
 }
 
-.noticia-modal-overlay.escondido { display: none; }
+.noticia-detalhe-voltar:hover { text-decoration: underline; }
 
-.noticia-modal {
-  background: white;
-  border-radius: 10px;
-  overflow: hidden;
-  max-width: 700px;
+.noticia-detalhe-imagem {
   width: 100%;
-  max-height: 90vh;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-}
-
-.noticia-modal img {
-  width: 100%;
-  max-height: 50vh;
+  max-height: 420px;
   object-fit: contain;
   background: #060a12;
-  flex-shrink: 0;
+  border-radius: 10px;
+  display: block;
 }
 
-.noticia-modal-manchete {
-  padding: 18px 22px 4px;
-  font-size: 1.7rem;
+.noticia-detalhe-manchete {
+  margin: 20px 0 8px;
+  font-size: 1.9rem;
   font-weight: 700;
   color: var(--azul);
   font-family: "Times New Roman", Times, serif;
 }
 
-.noticia-modal-texto {
-  padding: 10px 22px 22px;
-  overflow-y: auto;
+.noticia-detalhe-texto {
   white-space: pre-wrap;
-  line-height: 1.5;
+  line-height: 1.6;
   color: var(--texto);
   font-family: "Times New Roman", Times, serif;
-  font-size: 1.05rem;
+  font-size: 1.1rem;
 }
-
-.noticia-modal-fechar {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  background: rgba(0, 0, 0, 0.55);
-  color: white;
-  border: none;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  cursor: pointer;
-  font-size: 1.3rem;
-  line-height: 1;
-  margin-top: 0;
-}
-
-.noticia-modal-fechar:hover { background: rgba(0, 0, 0, 0.75); }
 
 .grade-planos {
   display: grid;
@@ -1420,8 +1386,6 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
   .cartao-alerta { background: #1b2127; }
   .destaque-card { background: #1b2127; }
   .noticia-item { background: #1b2127; }
-  .noticia-modal { background: #1b2127; }
-  .noticia-modal-texto { color: var(--texto); }
   .plano-card { background: #1b2127; }
 }
 

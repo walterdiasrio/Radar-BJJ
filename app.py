@@ -432,6 +432,21 @@ def api_listar_noticias():
     ])
 
 
+@app.get("/api/noticias/<int:noticia_id>")
+def api_obter_noticia(noticia_id):
+    n = noticias.obter_noticia(noticia_id)
+    if not n:
+        return jsonify({"erro": "notícia não encontrada"}), 404
+    return jsonify({
+        "id": n["id"],
+        "manchete": n["manchete"],
+        "texto": n["texto"],
+        "data_limite": n["data_limite"],
+        "imagem_url": f"/noticias-imagens/{n['imagem_arquivo']}",
+        "criado_em": n["criado_em"],
+    })
+
+
 @app.get("/noticias-imagens/<path:nome_arquivo>")
 def servir_imagem_noticia(nome_arquivo):
     return send_from_directory(noticias.DIR_IMAGENS, nome_arquivo)
@@ -465,6 +480,12 @@ def api_remover_noticia(noticia_id):
 def pagina_noticias():
     # Pública — igual Competições, aberta a todo mundo.
     return send_from_directory("static", "noticias.html")
+
+
+@app.get("/noticias/<int:noticia_id>")
+def pagina_noticia_detalhe(noticia_id):
+    # Página própria da notícia (URL compartilhável), em vez do popup/modal.
+    return send_from_directory("static", "noticia-detalhe.html")
 
 
 @app.get("/gerenciar-noticias")

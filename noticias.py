@@ -91,6 +91,14 @@ def listar_noticias(limite=20):
     return [dict(linha) for linha in linhas]
 
 
+def obter_noticia(noticia_id):
+    with _conn() as conn:
+        linha = conn.execute(
+            "SELECT * FROM noticias WHERE id = ?", (noticia_id,)
+        ).fetchone()
+    return dict(linha) if linha else None
+
+
 def remover_noticia(noticia_id):
     with _conn() as conn:
         linha = conn.execute(
