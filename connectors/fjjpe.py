@@ -20,8 +20,22 @@ Nomes de categoria de idade/peso no site vêm em CAIXA ALTA e sem acento
 já que a FJJPE segue a "TABELA OFICIAL CBJJ/IBJJF" (rótulo do próprio PDF
 de peso da federação, fjjpe.com.br) — mesmas faixas de idade/peso da
 CBJJ/FJJRio.
+Data de cada evento: a home não traz data em texto (só no cartaz/imagem do
+evento, ilegível por scraping) — mas a FJJPE mantém um post de notícia
+"Calendário <ano> FJJPE" com a agenda do ano inteiro em texto corrido (um
+resumo por mês, cada linha "DD[ e DD][/MM] - Nome do evento - ..."). Casamos
+cada evento descoberto na home com a linha desse calendário que compartilha
+uma palavra distintiva do nome (ex: "Estima", "Derval") — impreciso pra
+nomes genéricos, mas essas etapas sempre carregam o nome de um mestre
+homenageado, o suficiente pra achar a linha certa.
+
+Local: não aparece em texto em lugar nenhum do site (só no cartaz/imagem) —
+usamos o local mais recente confirmado manualmente (ver _LOCAL_PADRAO
+abaixo), igual à tabela de peso da CBJJC (também lida de uma imagem por
+falta de fonte em texto).
 """
 import re
+import unicodedata
 from urllib.parse import urlparse
 
 from bs4 import BeautifulSoup
@@ -30,6 +44,70 @@ from .http import get
 
 SITE = "https://site.fjjpe.com.br"
 DOMINIO_EVENTOS = "https://site.campfacil.com.br"
+
+# Lido do cartaz oficial (imagem) do "Campeonato Pernambucano 2026 — NoGi -
+# Etapa Bráulio Estima", conferido em 27/08/2026. Sem fonte em texto no
+# site pra confirmar automaticamente — pode ficar desatualizado se a FJJPE
+# trocar de local numa próxima etapa.
+_LOCAL_PADRAO = "Secretaria de Educação do Estado de Pernambuco, Recife-PE"
+
+_PALAVRAS_IGNORADAS = {
+    "campeonato", "campeonatos", "pernambucano", "pernambuco", "fjjpe",
+    "etapa", "estadual", "nogi", "camp", "kids", "juvenil", "masters",
+    "adulto", "master", "de", "do", "da", "dos", "das",
+}
+
+
+def _sem_acento(texto):
+    texto = unicodedata.normalize("NFKD", texto or "")
+    return "".join(c for c in texto if not unicodedata.combining(c)).lower()
+
+
+def _palavras_distintas(texto):
+    palavras = re.findall(r"[a-zà-ú]+", _sem_acento(texto))
+    return {p for p in palavras if len(p) > 3 and p not in _PALAVRAS_IGNORADAS}
+
+
+def _entradas_calendario():
+    """Lê o post de notícia "Calendário <ano> FJJPE" da home e devolve uma
+    lista de (dia, mes, ano, texto_da_linha). Retorna [] se o post não
+    existir ou não achar nada reconhecível (ex: mudou de formato)."""
+    try:
+        resp = get(f"{SITE}/")
+    except Exception:
+        return []
+    soup = BeautifulSoup(resp.text, "lxml")
+
+    botao = soup.select_one('[data-titulo*="Calendário"]')
+    if not botao:
+        return []
+
+    titulo = botao.get("data-titulo") or ""
+    descricao = botao.get("data-descricao") or ""
+    m_ano = re.search(r"\b(20\d{2})\b", titulo)
+    if not m_ano or not descricao:
+        return []
+    ano = int(m_ano.group(1))
+
+    entradas = []
+    for linha in descricao.split("\n"):
+        linha = linha.strip()
+        m = re.match(r"^(\d{1,2})\b.*?/(\d{1,2})\s*-\s*(.+)$", linha)
+        if not m:
+            continue
+        dia, mes, resto = int(m.group(1)), int(m.group(2)), m.group(3)
+        entradas.append((dia, mes, ano, resto))
+    return entradas
+
+
+def _data_do_evento(nome_evento, entradas_calendario):
+    palavras_evento = _palavras_distintas(nome_evento)
+    if not palavras_evento:
+        return ""
+    for dia, mes, ano, texto in entradas_calendario:
+        if palavras_distintas := (_palavras_distintas(texto) & palavras_evento):
+            return f"{dia:02d}/{mes:02d}/{ano}"
+    return ""
 
 
 def _caminho_do_evento(url):
@@ -44,6 +122,8 @@ def listar_eventos():
     if not container:
         return []
 
+    entradas_calendario = _entradas_calendario()
+
     eventos = []
     for card in container.select(".card"):
         link = card.select_one("a[href]")
@@ -55,7 +135,12 @@ def listar_eventos():
         caminho = _caminho_do_evento(url)
         if not url or not nome or not caminho:
             continue
-        eventos.append({"id": f"fjjpe-{caminho}", "nome": nome, "data": "", "local": ""})
+        eventos.append({
+            "id": f"fjjpe-{caminho}",
+            "nome": nome,
+            "data": _data_do_evento(nome, entradas_calendario),
+            "local": _LOCAL_PADRAO,
+        })
     return eventos
 
 
