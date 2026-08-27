@@ -429,6 +429,39 @@ def _cbjjc(idade, genero):
     return _CBJJC_POR_IDADE[max(chaves_validas)][genero_chave]
 
 
+# ---------------------------------------------------------------------------
+# FJJEMG — "Tabela de Peso FJJEMG - GI" oficial (fjjemg.adm.br/.../
+# tabela_de_pesos.asp, imagem TABELA_PESOS_FJJEMG_GI.jpeg, lida manualmente
+# em 27/08/2026). Kids (4 a 15 anos) em bandas de 2 anos (igual CBJJC — não
+# uma tabela por idade exata) com tabela própria da FJJEMG. Do Juvenil
+# (16/17, já separado por gênero) em diante os números batem exatamente com
+# a tabela CBJJ/FJJRio (mesmo "padrão IBJJF/CBJJ") — reaproveita essas
+# tabelas já existentes em vez de duplicar os mesmos números.
+# Sem Kimono: a FJJEMG tem tabela própria só até os 15 anos, e do Juvenil
+# em diante não usa categoria com nome (só faixas de peso abertas, iguais
+# pra Juvenil/Adulto/Master e pros dois gêneros) — como o conector só lê as
+# divisões De Kimono por enquanto (ver connectors/fjjemg.py), essa tabela
+# Sem Kimono não é usada ainda; não cadastrada aqui de propósito.
+# ---------------------------------------------------------------------------
+_FJJEMG_POR_IDADE = {
+    4: _tabela(14.7, 17.9, 20.0, 24.0, 26.0, 29.0, 32.0, 35.0),
+    6: _tabela(18.2, 21.0, 24.0, 27.0, 30.2, 33.2, 36.2, 39.3),
+    8: _tabela(24.0, 27.0, 30.2, 33.2, 36.2, 39.3, 42.3, 45.3),
+    10: _tabela(30.2, 33.2, 36.2, 39.3, 42.3, 45.3, 48.3, 51.5),
+    12: _tabela(36.2, 40.3, 44.3, 48.3, 52.5, 56.5, 60.5, 65.0),
+    14: _tabela(44.3, 48.3, 52.5, 56.5, 60.5, 65.0, 69.0, 73.0),
+}
+
+
+def _fjjemg(idade, genero):
+    if idade <= 15:
+        chaves_validas = [k for k in _FJJEMG_POR_IDADE if k <= idade]
+        return _FJJEMG_POR_IDADE[max(chaves_validas)] if chaves_validas else _FJJEMG_POR_IDADE[4]
+    if idade in (16, 17):
+        return _CBJJ_FJJRIO_JUVENIL_FEM if genero == "feminino" else _CBJJ_FJJRIO_JUVENIL_MASC[17]
+    return _CBJJ_FJJRIO_ADULTO_FEM if genero == "feminino" else _CBJJ_FJJRIO_ADULTO_MASC
+
+
 _FUNCOES = {
     "cbjj": _cbjj_fjjrio,
     "fjjrio": _cbjj_fjjrio,
@@ -440,6 +473,7 @@ _FUNCOES = {
     # FJJPE segue a "TABELA OFICIAL CBJJ/IBJJF" (rótulo do próprio PDF de
     # peso da federação) — reaproveita a mesma tabela da CBJJ/FJJRio.
     "fjjpe": _cbjj_fjjrio,
+    "fjjemg": _fjjemg,
 }
 
 # Federações onde já confirmamos que a competição Sem Kimono usa uma tabela

@@ -160,6 +160,33 @@ _CBJJC = [
     (56, None, "Master 6"),
 ]
 
+# ---------------------------------------------------------------------------
+# FJJEMG — rótulos exatamente como aparecem na checagem real (fjjemg.adm.br,
+# ".categoria": "FAIXA: X | MIRIM A (6/7 anos) | ..."), incluindo "Pre-Mirim"
+# sem acento (é assim que o próprio site escreve — "Pré-Mirim" não bateria,
+# _combina_exata não ignora acento). Faixas em bandas de 2 anos (A/B pros
+# grupos intermediários) até o Juvenil; do Adulto em diante segue o mesmo
+# padrão Master 1-6 de 5 em 5 anos comum a todas as federações daqui
+# (conferido contra a checagem real de um evento: Adulto 18-29, Master 1
+# 30-35 ... Master 5 51-55 aparecem exatamente assim).
+# ---------------------------------------------------------------------------
+_FJJEMG = [
+    (4, 5, "Pre-Mirim"),
+    (6, 7, "Mirim A"),
+    (8, 9, "Mirim B"),
+    (10, 11, "Infantil"),
+    (12, 13, "Infanto-Juvenil A"),
+    (14, 15, "Infanto-Juvenil B"),
+    (16, 17, "Juvenil"),
+    (18, 29, "Adulto"),
+    (30, 35, "Master 1"),
+    (36, 40, "Master 2"),
+    (41, 45, "Master 3"),
+    (46, 50, "Master 4"),
+    (51, 55, "Master 5"),
+    (56, None, "Master 6"),
+]
+
 TABELAS = {
     "cbjj": _CBJJ_FJJRIO,
     "fjjrio": _CBJJ_FJJRIO,
@@ -176,6 +203,7 @@ TABELAS = {
     # exatamente). O conector normaliza o texto sem acento do site
     # ("PRE MIRIM 1") para esses rótulos (ver fjjpe._idade_normalizada).
     "fjjpe": _CBJJ_FJJRIO,
+    "fjjemg": _FJJEMG,
 }
 
 

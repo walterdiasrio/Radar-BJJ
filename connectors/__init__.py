@@ -5,7 +5,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date
 
-from . import cbjj, fjjrio, cbjjd, cbjjo, cbjje, fpjj, cbjjc, fjjpe, adcc, ajp, idade as idade_mod, peso as peso_mod, datas as datas_mod
+from . import cbjj, fjjrio, cbjjd, cbjjo, cbjje, fpjj, cbjjc, fjjpe, fjjemg, adcc, ajp, idade as idade_mod, peso as peso_mod, datas as datas_mod
 
 # Quantas buscas em paralelo por vez. Já foi reduzido de 8 pra 4 quando o
 # Render Starter (512MB de RAM) derrubou o serviço por estouro de memória
@@ -28,6 +28,7 @@ FEDERACOES = {
     "fpjj": {"label": "FPJJ", "module": fpjj},
     "cbjjc": {"label": "CBJJC", "module": cbjjc},
     "fjjpe": {"label": "FJJPE", "module": fjjpe},
+    "fjjemg": {"label": "FJJEMG", "module": fjjemg},
     "adcc": {"label": "ADCC", "module": adcc},
     "ajp": {"label": "AJP", "module": ajp},
 }
@@ -501,6 +502,7 @@ _NOMES_ESTADO_POR_TAMANHO = sorted(_NOME_ESTADO_PARA_UF, key=len, reverse=True)
 _UF_FIXA_POR_FEDERACAO = {
     "fjjrio": "RJ",  # Federação de Jiu-Jitsu do Rio de Janeiro
     "fpjj": "SP",    # Federação Paulista de Jiu-Jitsu
+    "fjjemg": "MG",  # Federação de Jiu-Jitsu do Estado de Minas Gerais
 }
 
 
@@ -557,8 +559,13 @@ def _simplifica_local(local, federacao=None):
         if nome in texto:
             return f"{_titulo_pt(nome)}, {_NOME_ESTADO_PARA_UF[nome]}"
 
+    # Sem UF nenhuma no texto: federação regional (estado sempre o mesmo) —
+    # gruda a UF fixa no texto que já tem (às vezes já é só o nome do
+    # município, tipo "Juiz de Fora" da FJJEMG) em vez de descartá-lo.
     uf_fixa = _UF_FIXA_POR_FEDERACAO.get(federacao)
-    return uf_fixa or local
+    if uf_fixa:
+        return f"{local}, {uf_fixa}"
+    return local
 
 
 _PALAVRAS_KIDS = re.compile(r"pr[ée].?mirim|\bmirim\b|infantil|infanto|\bkids\b", re.I)
@@ -572,7 +579,7 @@ _PALAVRAS_ADULTO = re.compile(r"\bmaster\b|\badulto\b|\bjuvenil\b", re.I)
 # federações, na ausência de palavra-chave no nome, o padrão é "ambos" (a
 # competição pode ter categoria kids) em vez de "adulto", senão o filtro
 # Kids nunca mostra nada pra elas.
-_FEDERACOES_SEM_SEPARACAO_POR_NOME = {"cbjjd", "cbjjo", "cbjje", "ajp", "adcc"}
+_FEDERACOES_SEM_SEPARACAO_POR_NOME = {"cbjjd", "cbjjo", "cbjje", "ajp", "adcc", "fjjemg"}
 
 
 def _classificar_publico(nome, fed):
