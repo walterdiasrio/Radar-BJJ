@@ -1,3 +1,40 @@
+// Páginas de ferramenta exclusiva do Plano PRO (Radar de Atletas, Meus
+// Alunos, Turmas, detalhe de aluno) não exigem mais assinatura só pra
+// ABRIR — a pessoa consegue ver a página, mas com esse aviso por cima do
+// conteúdo em vez do formulário/lista de verdade, com um link pra testar
+// grátis. As rotas de API continuam bloqueadas por conta própria
+// (api_assinatura_necessaria, em app.py), então mesmo se essa checagem
+// falhasse por algum motivo, não dava pra usar a ferramenta de fato —
+// isso aqui é só a experiência visual, não a proteção real dos dados.
+// `seletorConteudo` é o elemento (ou seletor) a esconder; o aviso entra
+// no lugar dele.
+// Retorna true se bloqueou (sem acesso) — quem chama usa isso pra pular
+// outras chamadas de API que também exigem assinatura (essas continuam
+// dando 402, e fetchAutenticado já redireciona sozinho nesse caso — sem
+// pular, a pessoa via o aviso por uma fração de segundo e já saía voando
+// pra /assinatura de novo, por causa de alguma OUTRA chamada da página).
+async function bloquearSePlanoFree(seletorConteudo) {
+  let dados;
+  try {
+    const resp = await fetch("/api/sessao");
+    dados = await resp.json();
+  } catch (err) {
+    return false;
+  }
+  if (!dados.logado) return false;
+  if (dados.admin || (dados.assinatura && dados.assinatura.tem_acesso)) return false;
+
+  const elConteudo = typeof seletorConteudo === "string" ? document.querySelector(seletorConteudo) : seletorConteudo;
+  if (!elConteudo) return true;
+
+  const aviso = document.createElement("div");
+  aviso.className = "aviso-plano-pro";
+  aviso.innerHTML = `🔒 Ferramenta exclusiva para o Plano PRO. <a href="/assinatura">Teste Grátis clicando aqui</a>.`;
+  elConteudo.parentNode.insertBefore(aviso, elConteudo);
+  elConteudo.style.display = "none";
+  return true;
+}
+
 // Barrinha fixa por cima do banner, só no desktop (CSS esconde no mobile,
 // que já tem seu próprio tratamento de conta — ver .nav-usuario-mobile) —
 // os 2 atalhos mais usados + a conta, pra não depender de rolar até o

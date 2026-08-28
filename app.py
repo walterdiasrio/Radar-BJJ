@@ -246,20 +246,6 @@ def _usuario_atual_tem_assinatura():
     return _usuario_atual_eh_admin() or pagamentos.usuario_tem_acesso(session.get("usuario_id"))
 
 
-def assinatura_necessaria(view):
-    """Protege páginas do Buscador/Alertas: sem sessão manda pro login,
-    logado mas sem assinatura ativa (nem em teste grátis) manda pra
-    página de planos."""
-    @wraps(view)
-    def wrapper(*args, **kwargs):
-        if not session.get("usuario_id"):
-            return redirect("/login")
-        if not _usuario_atual_tem_assinatura():
-            return redirect(f"/assinatura?de={request.path}")
-        return view(*args, **kwargs)
-    return wrapper
-
-
 def api_assinatura_necessaria(view):
     """Protege endpoints de API do Buscador/Alertas."""
     @wraps(view)
@@ -295,8 +281,8 @@ def api_home_resumo():
     # Próximas Aulas fica fora do "if tem_assinatura" de propósito: mesmo
     # Mestre no Free (sem acesso a Turmas ainda) precisa ver esse card na
     # Home com um caminho pra assinar, em vez do espaço simplesmente sumir
-    # — /turmas já redireciona sozinho pra /assinatura se não tiver
-    # assinatura ativa (ver decorator assinatura_necessaria).
+    # — /turmas deixa entrar mesmo sem assinatura e mostra um aviso "Plano
+    # PRO" por cima do conteúdo (ver bloquearSePlanoFree em auth-nav.js).
     if usuario["tipo_perfil"] == "mestre":
         resposta["proximas_aulas_turmas"] = turmas.resumo_proximas_aulas(usuario_id)
 
@@ -310,8 +296,14 @@ def api_home_resumo():
 
 
 @app.get("/buscador")
-@assinatura_necessaria
+@login_necessario
 def index():
+    # Antes exigia assinatura pra nem carregar a página (redirect direto
+    # pra /assinatura, sem contexto nenhum). Agora deixa entrar — o JS
+    # (ver bloquearSePlanoFree em auth-nav.js) mostra um aviso "ferramenta
+    # exclusiva PRO" por cima do formulário pra quem não tem acesso, em
+    # vez de já sair voando pra outra página. As rotas de API continuam
+    # protegidas por @api_assinatura_necessaria de qualquer forma.
     return send_from_directory("static", "index.html")
 
 
@@ -1557,10 +1549,12 @@ def api_alterar_senha():
 
 
 @app.get("/meus-alunos")
-@assinatura_necessaria
+@login_necessario
 def pagina_meus_alunos():
     if not _usuario_atual_eh_mestre():
         return "Página não encontrada", 404
+    # Deixa entrar mesmo sem assinatura — ver comentário em index()/
+    # /buscador acima. As APIs continuam exigindo assinatura.
     return send_from_directory("static", "meus-alunos.html")
 
 
@@ -1698,10 +1692,12 @@ def api_aceitar_aluno(aluno_id):
 
 
 @app.get("/meus-alunos/<int:aluno_id>")
-@assinatura_necessaria
+@login_necessario
 def pagina_aluno_detalhe(aluno_id):
     if not _usuario_atual_eh_mestre():
         return "Página não encontrada", 404
+    # Deixa entrar mesmo sem assinatura — ver comentário em index()/
+    # /buscador acima. As APIs continuam exigindo assinatura.
     return send_from_directory("static", "aluno-detalhe.html")
 
 
@@ -1723,10 +1719,12 @@ def api_aluno_detalhe(aluno_id):
 
 
 @app.get("/turmas")
-@assinatura_necessaria
+@login_necessario
 def pagina_turmas():
     if not _usuario_atual_eh_mestre():
         return "Página não encontrada", 404
+    # Deixa entrar mesmo sem assinatura — ver comentário em index()/
+    # /buscador acima. As APIs continuam exigindo assinatura.
     return send_from_directory("static", "turmas.html")
 
 

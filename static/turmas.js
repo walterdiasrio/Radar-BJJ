@@ -1,3 +1,5 @@
+const promessaBloqueioPlanoFree = bloquearSePlanoFree("#conteudo-plano-pro");
+
 const elStatus = document.getElementById("status");
 const elLista = document.getElementById("lista-turmas");
 const elForm = document.getElementById("form-turma");
@@ -957,4 +959,4 @@ async function removerAlunoDaTurma(turmaId, alunoId) {
   }
 }
 
-carregarTurmas();
+promessaBloqueioPlanoFree.then((bloqueado) => { if (!bloqueado) carregarTurmas(); });

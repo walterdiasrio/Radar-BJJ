@@ -1,3 +1,5 @@
+const promessaBloqueioPlanoFree = bloquearSePlanoFree("#conteudo-plano-pro");
+
 const elStatus = document.getElementById("status");
 const elConteudo = document.getElementById("conteudo-aluno");
 
@@ -125,4 +127,4 @@ async function carregar() {
   }
 }
 
-carregar();
+promessaBloqueioPlanoFree.then((bloqueado) => { if (!bloqueado) carregar(); });

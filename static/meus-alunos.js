@@ -1,3 +1,5 @@
+const promessaBloqueioPlanoFree = bloquearSePlanoFree("#conteudo-plano-pro");
+
 const elStatus = document.getElementById("status");
 const elLista = document.getElementById("lista-alunos");
 
@@ -218,4 +220,4 @@ document.getElementById("btn-alunos-competidores").addEventListener("click", asy
   }
 });
 
-carregarAlunos();
+promessaBloqueioPlanoFree.then((bloqueado) => { if (!bloqueado) carregarAlunos(); });

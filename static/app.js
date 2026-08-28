@@ -1,5 +1,11 @@
 const TODAS = "todas";
 
+// Guarda a Promise (não o resultado ainda) — o carregamento inicial mais
+// abaixo espera ela resolver antes de decidir se chama carregarFiltroPadrao
+// (também exige assinatura): sem esperar, fetchAutenticado já redirecionava
+// sozinho pra /assinatura antes da pessoa nem ver o aviso.
+const promessaBloqueioPlanoFree = bloquearSePlanoFree("#conteudo-plano-pro");
+
 const elFederacaoOpcoes = document.getElementById("federacao-opcoes");
 const elEvento = document.getElementById("evento");
 const elGenero = document.getElementById("genero");
@@ -456,7 +462,8 @@ elBtnSalvarFiltroPadrao.addEventListener("click", async () => {
 });
 
 carregarFederacoes()
-  .then(() => carregarFiltroPadrao())
+  .then(() => promessaBloqueioPlanoFree)
+  .then((bloqueado) => bloqueado ? null : carregarFiltroPadrao())
   .then(() => {
     elResultados.innerHTML = "";
     mostrarStatus("");

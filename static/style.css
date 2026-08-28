@@ -657,6 +657,28 @@ nav.menu-lateral.menu-lateral-rodape {
 
 .aviso-alerta strong { display: block; font-size: 1rem; margin-bottom: 2px; }
 
+.aviso-plano-pro {
+  background: #fdf3e3;
+  border: 1px solid #e8c27a;
+  color: #7a5a10;
+  border-radius: 10px;
+  padding: 18px 20px;
+  margin: 16px 0;
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.aviso-plano-pro a {
+  color: var(--azul);
+  text-decoration: underline;
+}
+
+@media (prefers-color-scheme: dark) {
+  .aviso-plano-pro { background: #3a2c0b; border-color: #6b5116; color: #f0cf89; }
+  .aviso-plano-pro a { color: #7fd4ff; }
+}
+
 @media (prefers-color-scheme: dark) {
   .form-auth { background: #1b2127; }
   .aviso-lembrete { background: #3a2f0b; border-color: #6b5716; color: #f0d789; }
