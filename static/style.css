@@ -311,14 +311,16 @@ header {
     --menu-fade-inicio: 220px;
     /* Duas camadas: um brilho diagonal sutil no canto superior (efeito
        "vidro"/futurista) por cima do degradê azul semi-transparente de
-       sempre. */
+       sempre. Azul 9,40,130 — mais perto do azul real do banner (média
+       amostrada de img/banner.jpg) e da marca (--azul, #093093) do que o
+       --azul-menu antigo (mais claro/arroxeado). */
     background:
       linear-gradient(135deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0) 45%),
       linear-gradient(
         180deg,
-        rgba(31, 67, 146, 0.82) 0%,
-        rgba(31, 67, 146, 0.82) var(--menu-fade-inicio),
-        rgba(31, 67, 146, 0) calc(var(--menu-fade-inicio) + 140px)
+        rgba(9, 40, 130, 0.72) 0%,
+        rgba(9, 40, 130, 0.72) var(--menu-fade-inicio),
+        rgba(9, 40, 130, 0) calc(var(--menu-fade-inicio) + 140px)
       );
     border-bottom: none;
     border-right: 1px solid rgba(130, 180, 255, 0.35);
