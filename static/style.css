@@ -267,23 +267,35 @@ header {
 }
 
 @media (min-width: 901px) {
-  /* Coluna fixa à esquerda, encostada embaixo do banner principal (29.5vw =
-     proporção real altura/largura de img/banner.jpg, 641/2172 — acompanha o
-     banner escalando com a largura da tela sem precisar medir via JS).
-     Desce até o fim da tela; o fundo semi-transparente vira degradê nos
-     últimos ~35% da altura, então quando os botões acabam (sempre bem antes
-     do fim, ver overflow-y abaixo) a cor esvai em vez de terminar num corte
-     seco no meio da página. Sem blur de propósito: qualquer filter/
-     backdrop-filter num ancestral vira o "containing block" dos
-     descendentes position:fixed (spec do CSS) — os submenus (Admin/Turmas/
-     conta) são position:fixed bem de propósito, pra escapar do overflow
-     escondido deste menu (ver .nav-admin-submenu); com blur aqui eles
-     ficariam presos a este menu estreito em vez de à tela, cortados. */
+  /* .layout vira uma linha flex: o menu vira uma coluna ao lado do
+     conteúdo, em vez de position:fixed com padding-left calculado à parte
+     (era assim antes — o menu ficava "congelado" numa altura fixa em vw
+     que não acompanhava o scroll, porque top:29.5vw é sempre o mesmo
+     ponto da TELA, não do documento). */
+  .layout {
+    display: flex;
+    align-items: flex-start;
+  }
+
+  /* position:sticky (não fixed): nasce no fluxo normal, logo abaixo do
+     banner — sem precisar calcular a altura dele em vw. Ao rolar a
+     página, gruda no topo assim que o banner sai da tela (top:0) e
+     acompanha o scroll dali em diante, feito um menu fixo de verdade.
+     Desce até o fim da tela (100vh assim que gruda); o fundo semi-
+     transparente vira degradê nos últimos ~35% da altura, então quando os
+     botões acabam (sempre bem antes do fim, ver overflow-y abaixo) a cor
+     esvai em vez de terminar num corte seco. Sem blur de propósito:
+     qualquer filter/backdrop-filter num ancestral vira o "containing
+     block" dos descendentes position:fixed (spec do CSS) — os submenus
+     (Admin/Turmas/conta) são position:fixed bem de propósito, pra escapar
+     do overflow escondido deste menu (ver .nav-admin-submenu); com blur
+     aqui eles ficariam presos a este menu estreito em vez de à tela,
+     cortados. */
   nav.menu-lateral:not(.menu-lateral-rodape) {
-    position: fixed;
-    top: 29.5vw;
-    left: 0;
-    height: calc(100vh - 29.5vw);
+    position: sticky;
+    top: 0;
+    flex-shrink: 0;
+    height: 100vh;
     width: 220px;
     flex-direction: column;
     align-items: stretch;
@@ -313,12 +325,6 @@ header {
     justify-content: flex-start;
   }
   nav.menu-lateral:not(.menu-lateral-rodape) a svg { width: 16px; height: 16px; }
-
-  /* Conteúdo da página empurrado pra direita, abrindo espaço pro menu —
-     padding em vez de margin no .layout pra não brigar com o
-     margin:0 auto do <main> (que continua centralizando no espaço que
-     sobrou). */
-  .layout { padding-left: 220px; }
 
   nav.menu-lateral:not(.menu-lateral-rodape) .nav-usuario {
     flex-shrink: 0;
