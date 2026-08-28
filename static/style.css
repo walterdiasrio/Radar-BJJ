@@ -1157,9 +1157,12 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
 }
 
 .home-hero-saudacao {
-  color: var(--azul-claro);
-  font-size: 1.15rem;
-  font-weight: 700;
+  color: var(--azul);
+  font-family: var(--fonte-menu);
+  font-size: 2rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  margin: 0 0 20px;
 }
 
 .home-hero-subheadline {

@@ -326,14 +326,16 @@ async function ajustarCartaoBoasVindas() {
     renderizarProximasAulasHome(resumo.proximas_aulas_turmas);
   }
 
-  if (!resumo.tem_assinatura) {
-    elBotoesLogado.style.display = "none";
-    return;
-  }
-
+  // Antes escondia TODOS os atalhos (inclusive Competições/Minha Carreira/
+  // Minha Agenda, que não pedem assinatura) pra quem não tinha plano ativo
+  // — sobrava um vão vazio feio no lugar. Agora só o botão do Radar de
+  // Atletas muda (o único que realmente exige assinatura); o resto do
+  // bloco sempre aparece.
   elBotoesLogado.style.display = "block";
   const elBotaoBuscaRapida = document.getElementById("home-botao-busca-rapida");
-  if (resumo.tem_filtro_salvo) {
+  if (!resumo.tem_assinatura) {
+    elBotaoBuscaRapida.innerHTML = '<a href="/assinatura"><button type="button">Assinar para usar o Radar de Atletas</button></a>';
+  } else if (resumo.tem_filtro_salvo) {
     elBotaoBuscaRapida.innerHTML = '<a href="/buscador?auto=1"><button type="button">Buscar Atleta com meu filtro salvo</button></a>';
   } else {
     elBotaoBuscaRapida.innerHTML = '<a href="/buscador"><button type="button">Ir para o Radar de Atletas</button></a>';
