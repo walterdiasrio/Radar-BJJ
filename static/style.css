@@ -1001,6 +1001,64 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
 .badge-fechada { background: #fdeceb; color: #b3261e; }
 .badge-desconhecida { background: #eef2f6; color: #55606b; }
 
+/* Menu de ações da tabela de Usuários (Gerenciar Usuários) — um "⋮" só
+   por linha em vez de 2-4 botões soltos (Tornar Mestre, Editar e-mail,
+   Reenviar confirmação, Apagar), que empurravam a tabela pra muito
+   larga. O menu é montado em JS e anexado no <body> (position:fixed),
+   não dentro da tabela — foge do overflow-x:auto dela, que cortaria um
+   dropdown normal. */
+.btn-menu-acoes {
+  background: transparent;
+  color: var(--azul);
+  border: 1px solid var(--borda);
+  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  margin-top: 0;
+}
+
+.btn-menu-acoes:hover { background: #eef4fa; }
+
+.menu-acoes-usuario {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  min-width: 200px;
+  background: #ffffff;
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  padding: 6px;
+  z-index: 60;
+}
+
+.item-acao {
+  background: transparent;
+  border: none;
+  text-align: left;
+  padding: 9px 10px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  color: var(--texto);
+  cursor: pointer;
+  margin-top: 0;
+}
+
+.item-acao:hover { background: #eef4fa; }
+.item-acao-perigo { color: #c0392b; }
+.item-acao-perigo:hover { background: #fdeceb; }
+
+@media (prefers-color-scheme: dark) {
+  .btn-menu-acoes { border-color: rgba(255, 255, 255, 0.15); color: #eaf2f9; }
+  .btn-menu-acoes:hover { background: rgba(255, 255, 255, 0.08); }
+  .menu-acoes-usuario { background: #1b2127; border-color: rgba(255, 255, 255, 0.15); }
+  .item-acao { color: #eaf2f9; }
+  .item-acao:hover { background: rgba(255, 255, 255, 0.08); }
+}
+
 .botoes-agenda {
   display: flex;
   flex-direction: column;

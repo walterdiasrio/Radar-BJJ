@@ -221,6 +221,23 @@ def remover_alerta(usuario_id, alerta_id):
         return cursor.rowcount > 0
 
 
+def contar_alertas_por_usuario():
+    """{usuario_id: total de alertas (atleta + competição) cadastrados
+    agora} — usado no admin (Gerenciar Usuários). Conta os dois tipos
+    juntos; remover_alerta apaga a linha de verdade, então isso já reflete
+    só o que está ativo/existente, sem precisar filtrar por "ativo"."""
+    with _conn() as conn:
+        linhas = conn.execute("""
+            SELECT usuario_id, COUNT(*) AS total FROM (
+                SELECT usuario_id FROM alertas
+                UNION ALL
+                SELECT usuario_id FROM alertas_competicao
+            )
+            GROUP BY usuario_id
+        """).fetchall()
+    return {linha["usuario_id"]: linha["total"] for linha in linhas}
+
+
 def usuarios_com_alerta_de_atleta_ativo():
     """IDs distintos de usuários com pelo menos um alerta de atleta ativo —
     usado periodicamente (ver app.py) pra cancelar quem não tem mais

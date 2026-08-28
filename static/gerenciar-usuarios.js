@@ -65,18 +65,10 @@ function badgePlano(plano) {
 
 function renderizarTabela(usuarios) {
   if (!usuarios.length) {
-    elCorpoTabela.innerHTML = '<tr><td colspan="8">Nenhum usuário encontrado.</td></tr>';
+    elCorpoTabela.innerHTML = '<tr><td colspan="9">Nenhum usuário encontrado.</td></tr>';
     return;
   }
-  elCorpoTabela.innerHTML = usuarios.map(u => {
-    const novoPerfil = u.tipo_perfil === "mestre" ? "atleta" : "mestre";
-    const botaoApagar = contaEhFree(u)
-      ? `<button type="button" class="btn-secundario btn-apagar-usuario" data-id="${u.id}" style="color:#c0392b;">Apagar</button>`
-      : "";
-    const botaoReenviar = !u.email_verificado
-      ? `<button type="button" class="btn-secundario btn-reenviar-confirmacao" data-id="${u.id}">Reenviar confirmação</button>`
-      : "";
-    return `
+  elCorpoTabela.innerHTML = usuarios.map(u => `
     <tr>
       <td><input type="checkbox" class="chk-usuario" data-id="${u.id}" ${idsSelecionados.has(u.id) ? "checked" : ""}></td>
       <td>${u.email}</td>
@@ -85,16 +77,66 @@ function renderizarTabela(usuarios) {
       <td>${badgePlano(u.plano)}</td>
       <td>${badgeAssinatura(u)}</td>
       <td>${formatarData(u.criado_em)}</td>
-      <td>
-        <button type="button" class="btn-secundario btn-alternar-perfil" data-id="${u.id}" data-novo-perfil="${novoPerfil}">Tornar ${novoPerfil === "mestre" ? "Mestre" : "Atleta"}</button>
-        <button type="button" class="btn-secundario btn-editar-email" data-id="${u.id}">Editar e-mail</button>
-        ${botaoReenviar}
-        ${botaoApagar}
-      </td>
+      <td style="text-align:center;">${u.alertas || 0}</td>
+      <td><button type="button" class="btn-secundario btn-menu-acoes" data-id="${u.id}" title="Ações">⋮</button></td>
     </tr>
-  `;
-  }).join("");
+  `).join("");
 }
+
+// Todos os botões de ação (Tornar Mestre/Atleta, Editar e-mail, Reenviar
+// confirmação, Apagar) ficavam soltos na linha — com a coluna de Plano/
+// Assinatura/Alertas já preenchendo a tabela, virava uma fileira enorme
+// de botões por usuário. Agora ficam atrás de um "⋮" só, num menu que
+// abre por cima da tabela (position:fixed, calculado igual o submenu do
+// menu principal do site — foge do overflow-x:auto da tabela, que corta
+// qualquer dropdown position:absolute).
+let elMenuAcoesAberto = null;
+
+function fecharMenuAcoes() {
+  if (elMenuAcoesAberto) {
+    elMenuAcoesAberto.remove();
+    elMenuAcoesAberto = null;
+  }
+}
+
+function abrirMenuAcoes(usuario, botao) {
+  fecharMenuAcoes();
+  const novoPerfil = usuario.tipo_perfil === "mestre" ? "atleta" : "mestre";
+
+  const menu = document.createElement("div");
+  menu.className = "menu-acoes-usuario";
+  menu.innerHTML = `
+    <button type="button" class="item-acao" data-acao="perfil">Tornar ${novoPerfil === "mestre" ? "Mestre" : "Atleta"}</button>
+    <button type="button" class="item-acao" data-acao="email">Editar e-mail</button>
+    ${!usuario.email_verificado ? `<button type="button" class="item-acao" data-acao="reenviar">Reenviar confirmação</button>` : ""}
+    ${contaEhFree(usuario) ? `<button type="button" class="item-acao item-acao-perigo" data-acao="apagar">Apagar</button>` : ""}
+  `;
+  document.body.appendChild(menu);
+
+  const r = botao.getBoundingClientRect();
+  const largura = menu.offsetWidth;
+  const altura = menu.offsetHeight;
+  menu.style.top = `${Math.max(8, Math.min(r.bottom + 4, window.innerHeight - altura - 8))}px`;
+  menu.style.left = `${Math.max(8, Math.min(r.right - largura, window.innerWidth - largura - 8))}px`;
+
+  menu.addEventListener("click", (ev) => {
+    const item = ev.target.closest(".item-acao");
+    if (!item) return;
+    fecharMenuAcoes();
+    if (item.dataset.acao === "perfil") alternarPerfil(usuario, novoPerfil, botao);
+    else if (item.dataset.acao === "email") editarEmail(usuario, botao);
+    else if (item.dataset.acao === "reenviar") reenviarConfirmacao(usuario, botao);
+    else if (item.dataset.acao === "apagar") apagarUsuario(usuario, botao);
+  });
+
+  elMenuAcoesAberto = menu;
+}
+
+document.addEventListener("click", (ev) => {
+  if (!elMenuAcoesAberto) return;
+  if (elMenuAcoesAberto.contains(ev.target) || ev.target.closest(".btn-menu-acoes")) return;
+  fecharMenuAcoes();
+});
 
 async function alternarPerfil(usuario, novoPerfil, botao) {
   const rotulo = novoPerfil === "mestre" ? "Mestre" : "Atleta";
@@ -167,29 +209,11 @@ async function apagarUsuario(usuario, botao) {
 }
 
 elCorpoTabela.addEventListener("click", (ev) => {
-  const botaoPerfil = ev.target.closest(".btn-alternar-perfil");
-  if (botaoPerfil) {
-    const usuario = usuariosCarregados.find(u => String(u.id) === botaoPerfil.dataset.id);
-    if (usuario) alternarPerfil(usuario, botaoPerfil.dataset.novoPerfil, botaoPerfil);
-    return;
-  }
-  const botaoEmail = ev.target.closest(".btn-editar-email");
-  if (botaoEmail) {
-    const usuario = usuariosCarregados.find(u => String(u.id) === botaoEmail.dataset.id);
-    if (usuario) editarEmail(usuario, botaoEmail);
-    return;
-  }
-  const botaoReenviar = ev.target.closest(".btn-reenviar-confirmacao");
-  if (botaoReenviar) {
-    const usuario = usuariosCarregados.find(u => String(u.id) === botaoReenviar.dataset.id);
-    if (usuario) reenviarConfirmacao(usuario, botaoReenviar);
-    return;
-  }
-  const botaoApagar = ev.target.closest(".btn-apagar-usuario");
-  if (botaoApagar) {
-    const usuario = usuariosCarregados.find(u => String(u.id) === botaoApagar.dataset.id);
-    if (usuario) apagarUsuario(usuario, botaoApagar);
-  }
+  const botaoMenu = ev.target.closest(".btn-menu-acoes");
+  if (!botaoMenu) return;
+  ev.stopPropagation(); // não deixa o listener de "clicar fora" (abaixo) fechar na mesma hora
+  const usuario = usuariosCarregados.find(u => String(u.id) === botaoMenu.dataset.id);
+  if (usuario) abrirMenuAcoes(usuario, botaoMenu);
 });
 
 const elTextoSelecionados = document.getElementById("texto-selecionados");

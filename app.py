@@ -620,6 +620,8 @@ def api_listar_usuarios():
         "por_status_assinatura": {"trialing": 0, "active": 0, "past_due": 0, "canceled": 0, "sem_assinatura": 0},
     }
 
+    contagem_alertas = alertas.contar_alertas_por_usuario()
+
     lista = []
     for usuario in usuarios:
         assinatura = pagamentos.obter_assinatura(usuario["id"])
@@ -640,6 +642,7 @@ def api_listar_usuarios():
             "assinatura_status": status,
             "assinatura_plano": assinatura["plano"] if assinatura else None,
             "assinatura_periodicidade": assinatura["periodicidade"] if assinatura else None,
+            "alertas": contagem_alertas.get(usuario["id"], 0),
         })
 
     return jsonify({"resumo": resumo, "usuarios": lista})
