@@ -309,15 +309,20 @@ header {
     justify-content: flex-start;
     flex-wrap: nowrap;
     --menu-fade-inicio: 220px;
-    background: linear-gradient(
-      180deg,
-      rgba(31, 67, 146, 0.93) 0%,
-      rgba(31, 67, 146, 0.93) var(--menu-fade-inicio),
-      rgba(31, 67, 146, 0) calc(var(--menu-fade-inicio) + 140px)
-    );
+    /* Duas camadas: um brilho diagonal sutil no canto superior (efeito
+       "vidro"/futurista) por cima do degradê azul semi-transparente de
+       sempre. */
+    background:
+      linear-gradient(135deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0) 45%),
+      linear-gradient(
+        180deg,
+        rgba(31, 67, 146, 0.82) 0%,
+        rgba(31, 67, 146, 0.82) var(--menu-fade-inicio),
+        rgba(31, 67, 146, 0) calc(var(--menu-fade-inicio) + 140px)
+      );
     border-bottom: none;
-    border-right: 1px solid rgba(255, 255, 255, 0.15);
-    box-shadow: 2px 0 16px rgba(0, 0, 0, 0.12);
+    border-right: 1px solid rgba(130, 180, 255, 0.35);
+    box-shadow: 3px 0 24px rgba(9, 48, 147, 0.35), inset -1px 0 14px rgba(130, 180, 255, 0.08);
     overflow-y: auto;
     overflow-x: hidden;
     scrollbar-width: none;
@@ -333,6 +338,13 @@ header {
     justify-content: flex-start;
   }
   nav.menu-lateral:not(.menu-lateral-rodape) a svg { width: 16px; height: 16px; }
+
+  /* O item ativo usa border-bottom branco como indicador — faz sentido
+     numa barra HORIZONTAL (sublinhado embaixo da aba), mas no menu
+     vertical isso vira uma listra branca esquisita embaixo do item. Aqui
+     o fundo mais claro (--azul-claro, herdado de .ativo) já basta como
+     indicador. */
+  nav.menu-lateral:not(.menu-lateral-rodape) a.ativo { border-bottom-color: transparent; }
 
   /* Conta já mora na barrinha do topo (ver .barra-topo-desktop) — esconde
      a réplica original aqui pra não duplicar (o #nav-usuario original
