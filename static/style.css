@@ -1551,6 +1551,13 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
 
 .plano-anual button { margin-top: 0; }
 
+/* Escondido por enquanto: PIX pronto no código, mas o Stripe exige 60 dias
+   de conta antes de liberar PIX como forma de pagamento (só descobrimos
+   isso depois de implementar) — reativa tirando essa linha assim que
+   criar os Prices avulsos no Stripe e configurar as env vars
+   STRIPE_PRICE_PIX_*. */
+.btn-pix { display: none; }
+
 .btn-pix {
   margin-top: 8px;
   background: transparent;
