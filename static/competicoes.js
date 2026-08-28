@@ -14,14 +14,16 @@ let competicoesCarregadas = [];
 async function carregarFederacoes() {
   const resp = await fetchAutenticado("/api/federacoes");
   const federacoes = await resp.json();
-  construirOpcoesFederacao(elFederacaoOpcoes, federacoes, carregar);
+  construirOpcoesFederacao(elFederacaoOpcoes, federacoes);
 }
 
 // Monta os checkboxes de federação: nenhuma marcada por padrão; marcar uma
 // individual desmarca "Todas"; desmarcar a última individual volta para "Todas"
 // (mas a busca sem nada marcado já considera todas as federações, ver
-// federacaoSelecionada).
-function construirOpcoesFederacao(container, federacoes, onChange) {
+// federacaoSelecionada). Marcar uma caixa só ajusta as OUTRAS caixas
+// (Todas vs. individuais) — não dispara busca nenhuma; isso só acontece
+// quando a pessoa clica em "Buscar" (ver elForm submit, mais abaixo).
+function construirOpcoesFederacao(container, federacoes) {
   container.innerHTML =
     `<label class="opcao-todas"><input type="checkbox" value="${TODAS}"> Todas as federações</label>` +
     federacoes.map(f => `<label><input type="checkbox" value="${f.id}"> ${f.label}</label>`).join("");
@@ -37,7 +39,6 @@ function construirOpcoesFederacao(container, federacoes, onChange) {
       if (ev.target.checked) todasCheckbox.checked = false;
       if (!individuais.some(c => c.checked)) todasCheckbox.checked = true;
     }
-    onChange();
   });
 }
 
@@ -119,13 +120,6 @@ function popularEstados() {
     '<option value="">Todos os estados</option>' +
     ufs.map(uf => `<option value="${uf}">${NOMES_UF[uf] || uf} (${uf})</option>`).join("");
   if (ufs.includes(selecionadoAntes)) elEstadoOpcoes.value = selecionadoAntes;
-}
-
-function aplicarFiltroPublico() {
-  const filtradas = competicoesFiltradas();
-  renderizarCompeticoes(filtradas);
-  const resumo = `${filtradas.length} de ${competicoesCarregadas.length} competição(ões) encontrada(s).`;
-  mostrarStatus(resumo);
 }
 
 function renderizarCompeticoes(competicoes) {
@@ -223,6 +217,12 @@ async function carregar() {
     mostrarStatus("Selecione ao menos uma federação para buscar.", true);
     return;
   }
+  if (!elPublicoAdulto.checked && !elPublicoKids.checked) {
+    competicoesCarregadas = [];
+    elResultados.innerHTML = "";
+    mostrarStatus("Selecione ao menos um público (Adulto ou Kids) para buscar.", true);
+    return;
+  }
   elBtn.disabled = true;
   elPublicoAdulto.disabled = true;
   elPublicoKids.disabled = true;
@@ -304,9 +304,5 @@ elBtnCriarAlertaCompeticao.addEventListener("click", async () => {
     elBtnCriarAlertaCompeticao.disabled = false;
   }
 });
-
-elPublicoAdulto.addEventListener("change", aplicarFiltroPublico);
-elPublicoKids.addEventListener("change", aplicarFiltroPublico);
-elEstadoOpcoes.addEventListener("change", aplicarFiltroPublico);
 
 carregarFederacoes().then(carregar);
