@@ -267,42 +267,81 @@ header {
 }
 
 @media (min-width: 901px) {
-  /* Sempre fixo e transparente no topo, encaixado na faixa em degradê do
-     banner — nunca some nem muda de padrão/cor durante o scroll. Altura em
-     vw pra acompanhar a faixa do banner (que escala com a largura da tela). */
-  .menu-lateral {
+  /* Coluna fixa à esquerda, encostada embaixo do banner principal (29.5vw =
+     proporção real altura/largura de img/banner.jpg, 641/2172 — acompanha o
+     banner escalando com a largura da tela sem precisar medir via JS).
+     Desce até o fim da tela; o fundo semi-transparente vira degradê nos
+     últimos ~35% da altura, então quando os botões acabam (sempre bem antes
+     do fim, ver overflow-y abaixo) a cor esvai em vez de terminar num corte
+     seco no meio da página. Sem blur de propósito: qualquer filter/
+     backdrop-filter num ancestral vira o "containing block" dos
+     descendentes position:fixed (spec do CSS) — os submenus (Admin/Turmas/
+     conta) são position:fixed bem de propósito, pra escapar do overflow
+     escondido deste menu (ver .nav-admin-submenu); com blur aqui eles
+     ficariam presos a este menu estreito em vez de à tela, cortados. */
+  nav.menu-lateral:not(.menu-lateral-rodape) {
     position: fixed;
-    top: 0;
+    top: 29.5vw;
     left: 0;
-    height: clamp(40px, 3.9vw, 60px);
-    background: transparent;
-    border-bottom: none;
-    box-shadow: none;
+    height: calc(100vh - 29.5vw);
+    width: 220px;
+    flex-direction: column;
+    align-items: stretch;
     justify-content: flex-start;
     flex-wrap: nowrap;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    background: linear-gradient(
+      180deg,
+      rgba(31, 67, 146, 0.74) 0%,
+      rgba(31, 67, 146, 0.74) 62%,
+      rgba(31, 67, 146, 0) 100%
+    );
+    border-bottom: none;
+    border-right: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 2px 0 16px rgba(0, 0, 0, 0.12);
+    overflow-y: auto;
+    overflow-x: hidden;
     scrollbar-width: none;
-    padding: 0 28px;
+    padding: 20px 0 24px;
+    z-index: 40;
   }
-  .menu-lateral::-webkit-scrollbar { display: none; }
-  .menu-lateral a {
+  nav.menu-lateral:not(.menu-lateral-rodape)::-webkit-scrollbar { display: none; }
+  nav.menu-lateral:not(.menu-lateral-rodape) a {
     flex-shrink: 0;
-    padding: 4px 10px;
-    font-size: clamp(0.6rem, 0.78vw, 0.8rem);
+    width: 100%;
+    padding: 10px 22px;
+    font-size: 0.8rem;
+    justify-content: flex-start;
   }
-  .menu-lateral a svg { width: 15px; height: 15px; }
+  nav.menu-lateral:not(.menu-lateral-rodape) a svg { width: 16px; height: 16px; }
 
-  .nav-usuario { flex-shrink: 0; }
-  .nav-usuario a { padding: 4px 8px; font-size: clamp(0.58rem, 0.72vw, 0.76rem); }
-  .nav-usuario a svg { width: 14px; height: 14px; }
-  .nav-usuario .nav-email { font-size: clamp(0.58rem, 0.72vw, 0.76rem); padding: 4px 8px; }
+  /* Conteúdo da página empurrado pra direita, abrindo espaço pro menu —
+     padding em vez de margin no .layout pra não brigar com o
+     margin:0 auto do <main> (que continua centralizando no espaço que
+     sobrou). */
+  .layout { padding-left: 220px; }
 
-  /* O menu tem overflow-x:auto (pra caber numa linha só), o que o navegador
-     trata como overflow-y:auto também — cortando qualquer submenu
-     position:absolute que abrisse pra baixo dele. position:fixed escapa
-     desse corte; o top/left exatos são calculados via JS (auth-nav.js) no
-     hover/clique, porque fixed não sabe a posição do item sozinho. */
+  nav.menu-lateral:not(.menu-lateral-rodape) .nav-usuario {
+    flex-shrink: 0;
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    border-left: none;
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+    padding: 0 0 8px;
+    margin-bottom: 8px;
+  }
+  nav.menu-lateral:not(.menu-lateral-rodape) .nav-usuario a { padding: 10px 22px; font-size: 0.78rem; }
+  nav.menu-lateral:not(.menu-lateral-rodape) .nav-usuario a svg { width: 15px; height: 15px; }
+  nav.menu-lateral:not(.menu-lateral-rodape) .nav-usuario .nav-email { font-size: 0.78rem; padding: 10px 22px; }
+
+  /* O menu tem overflow-y:auto (pra rolar quando tiver mais itens do que
+     cabem na tela) — o que corta qualquer submenu position:absolute que
+     abrisse dentro dele. position:fixed escapa desse corte; o top/left
+     exatos são calculados via JS (auth-nav.js) no hover/clique, porque
+     fixed não sabe a posição do item sozinho. No menu vertical, o submenu
+     abre À DIREITA do item (não embaixo, que ficaria espremido contra a
+     borda estreita de 220px) — ver posicionarAoLado em auth-nav.js. */
   .nav-admin-submenu {
     position: fixed;
     top: 0;
