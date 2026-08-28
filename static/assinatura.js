@@ -10,6 +10,7 @@ const NOMES_STATUS = {
   past_due: "pagamento pendente",
   canceled: "cancelada",
   incomplete: "pendente",
+  vencida: "vencida",
 };
 
 function mostrarStatus(texto, ehErro = false) {
@@ -57,17 +58,37 @@ async function carregarAssinaturaAtual() {
     const a = dados.assinatura;
     marcarPlanoAtualNosBotoes(a);
     elAssinaturaAtiva.style.display = "";
+
+    const ehPix = a.forma_pagamento === "pix";
+    let infoVencimento = "";
+    if (ehPix && a.periodo_atual_fim) {
+      const dataFim = new Date(Number(a.periodo_atual_fim) * 1000);
+      const rotulo = a.status === "vencida" ? "Venceu em" : "Vence em";
+      infoVencimento = ` · ${rotulo} ${dataFim.toLocaleDateString("pt-BR")}`;
+    }
+    // PIX não tem portal do Stripe pra gerenciar (não é uma assinatura de
+    // verdade lá — ver pagamentos.py) — o botão vira "Renovar com PIX" em
+    // vez de "Gerenciar assinatura".
+    const botaoGerenciar = ehPix
+      ? `<button type="button" id="btn-renovar-pix">Renovar com PIX</button>`
+      : `<button type="button" id="btn-gerenciar">Gerenciar assinatura</button>`;
+
     elAssinaturaAtiva.innerHTML = `
       <div class="plano-card" style="max-width: 420px; margin-bottom: 24px;">
         <h3>Plano atual: ${NOMES_PLANO[a.plano] || a.plano}</h3>
         <p class="plano-desc">
           Status: ${NOMES_STATUS[a.status] || a.status}
           ${a.periodicidade ? ` · cobrança ${a.periodicidade}` : ""}
+          ${ehPix ? " · pago por PIX" : ""}${infoVencimento}
         </p>
-        <button type="button" id="btn-gerenciar">Gerenciar assinatura</button>
+        ${botaoGerenciar}
       </div>
     `;
-    document.getElementById("btn-gerenciar").addEventListener("click", abrirPortal);
+    if (ehPix) {
+      document.getElementById("btn-renovar-pix").addEventListener("click", () => iniciarCheckoutPix(a.plano, a.periodicidade));
+    } else {
+      document.getElementById("btn-gerenciar").addEventListener("click", abrirPortal);
+    }
 
     if (a.tem_acesso) {
       elPlanosContainer.querySelector("h2").textContent = "Trocar de plano";
@@ -105,8 +126,28 @@ async function iniciarCheckout(plano, periodicidade) {
   }
 }
 
+async function iniciarCheckoutPix(plano, periodicidade) {
+  mostrarStatus("Preparando o pagamento no PIX...");
+  try {
+    const resp = await fetchAutenticado("/api/checkout-pix", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ plano, periodicidade }),
+    });
+    const dados = await resp.json();
+    if (!resp.ok) throw new Error(dados.erro || "não consegui iniciar o pagamento");
+    window.location.href = dados.url;
+  } catch (err) {
+    mostrarStatus(`Erro: ${err.message}`, true);
+  }
+}
+
 document.querySelectorAll(".btn-assinar").forEach(btn => {
   btn.addEventListener("click", () => iniciarCheckout(btn.dataset.plano, btn.dataset.periodicidade));
+});
+
+document.querySelectorAll(".btn-pix").forEach(btn => {
+  btn.addEventListener("click", () => iniciarCheckoutPix(btn.dataset.plano, btn.dataset.periodicidade));
 });
 
 async function autoIniciarCheckoutSeVeioDoCadastro() {

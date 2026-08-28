@@ -1,13 +1,25 @@
-"""Assinaturas pagas via Stripe Checkout (mode=subscription).
+"""Assinaturas pagas via Stripe Checkout (mode=subscription para cartão,
+mode=payment para PIX).
 
 Dois planos (atleta/mestre), cada um mensal ou anual, com 7 dias de teste
-grátis. O Stripe é a fonte da verdade sobre cobrança — aqui a gente só
-guarda um espelho local (assinaturas.db) atualizado pelos webhooks, pra
-não precisar bater na API do Stripe a cada requisição só pra saber se o
-usuário tem acesso.
-"""
+grátis (só no cartão — PIX não tem teste grátis, ver criar_sessao_checkout_
+pix). O Stripe é a fonte da verdade sobre cobrança de cartão — aqui a
+gente só guarda um espelho local (assinaturas.db) atualizado pelos
+webhooks, pra não precisar bater na API do Stripe a cada requisição só
+pra saber se o usuário tem acesso.
+
+PIX é diferente: não existe "assinatura PIX" de verdade — PIX é uma
+transferência instantânea sem cartão salvo, então o Stripe não permite
+cobrança recorrente automática por PIX (só mode=payment, pagamento
+avulso). Por isso quem paga por PIX compra o PERÍODO (mês ou ano) de uma
+vez, e a gente mesmo controla localmente quando isso vence
+(forma_pagamento="pix" + periodo_atual_fim calculado aqui, não vindo do
+Stripe) — sem renovação automática, com lembrete por e-mail perto do
+vencimento (ver verificar_pix() e app.py, chamado no loop periódico já
+existente pros alertas)."""
 import os
 import sqlite3
+import time
 from pathlib import Path
 
 import stripe
@@ -30,7 +42,27 @@ PRECOS = {
     ("mestre", "anual"): os.environ.get("STRIPE_PRICE_MESTRE_ANUAL", ""),
 }
 
-# Status do Stripe que contam como "acesso liberado".
+# Preços AVULSOS (não recorrentes) pro checkout com PIX — precisam ser
+# Prices diferentes dos de cima no Stripe (esses são "one time", os de
+# cima são "recurring"), mesmo cobrando o mesmo valor.
+PRECOS_PIX = {
+    ("atleta", "mensal"): os.environ.get("STRIPE_PRICE_PIX_ATLETA_MENSAL", ""),
+    ("atleta", "anual"): os.environ.get("STRIPE_PRICE_PIX_ATLETA_ANUAL", ""),
+    ("mestre", "mensal"): os.environ.get("STRIPE_PRICE_PIX_MESTRE_MENSAL", ""),
+    ("mestre", "anual"): os.environ.get("STRIPE_PRICE_PIX_MESTRE_ANUAL", ""),
+}
+
+# Quantos dias um período pago por PIX dura, por periodicidade — usado
+# pra calcular periodo_atual_fim localmente (o Stripe não sabe disso,
+# porque pra ele é só um pagamento avulso, sem noção de "assinatura").
+DIAS_PIX = {"mensal": 30, "anual": 365}
+
+# Quantos dias antes do vencimento o lembrete de renovação por PIX é
+# mandado (ver verificar_pix() / app.py).
+DIAS_LEMBRETE_PIX = 3
+
+# Status do Stripe (ou, pro PIX, status que a gente mesmo controla) que
+# contam como "acesso liberado".
 STATUS_COM_ACESSO = {"trialing", "active"}
 
 
@@ -57,10 +89,20 @@ def init_db():
                 atualizado_em TEXT NOT NULL DEFAULT (datetime('now'))
             )
         """)
+        # Migrações pra bancos criados antes desses campos existirem.
+        colunas = {linha["name"] for linha in conn.execute("PRAGMA table_info(assinaturas)")}
+        if "forma_pagamento" not in colunas:
+            conn.execute("ALTER TABLE assinaturas ADD COLUMN forma_pagamento TEXT NOT NULL DEFAULT 'stripe'")
+        if "pix_lembrete_enviado_em" not in colunas:
+            conn.execute("ALTER TABLE assinaturas ADD COLUMN pix_lembrete_enviado_em TEXT")
 
 
 def plano_valido(plano, periodicidade):
     return (plano, periodicidade) in PRECOS and bool(PRECOS[(plano, periodicidade)])
+
+
+def plano_valido_pix(plano, periodicidade):
+    return (plano, periodicidade) in PRECOS_PIX and bool(PRECOS_PIX[(plano, periodicidade)])
 
 
 def obter_assinatura(usuario_id):
@@ -131,6 +173,40 @@ def criar_sessao_checkout(usuario, plano, periodicidade):
     return sessao.url, None
 
 
+def criar_sessao_checkout_pix(usuario, plano, periodicidade):
+    """Retorna (url, erro). Igual criar_sessao_checkout, mas mode=payment
+    (avulso) com PIX — sem teste grátis (não faz sentido cobrar de novo
+    "manualmente" 7 dias depois) e sem tokenizar cliente pra cobrança
+    futura (PIX não permite). A liberação do acesso acontece no webhook
+    (ver processar_evento_webhook), calculando periodo_atual_fim aqui —
+    não vem do Stripe porque pra ele isso não é uma assinatura."""
+    if not plano_valido_pix(plano, periodicidade):
+        return None, "plano inválido"
+
+    price_id = PRECOS_PIX[(plano, periodicidade)]
+    parametros = {
+        "mode": "payment",
+        "payment_method_types": ["pix"],
+        "line_items": [{"price": price_id, "quantity": 1}],
+        "client_reference_id": str(usuario["id"]),
+        "customer_email": usuario["email"],
+        "metadata": {
+            "usuario_id": str(usuario["id"]),
+            "plano": plano,
+            "periodicidade": periodicidade,
+            "forma_pagamento": "pix",
+        },
+        "success_url": f"{URL_SITE}/assinatura/sucesso?plano={plano}&periodicidade={periodicidade}",
+        "cancel_url": f"{URL_SITE}/assinatura",
+    }
+
+    try:
+        sessao = stripe.checkout.Session.create(**parametros)
+    except stripe.error.StripeError as exc:
+        return None, str(exc)
+    return sessao.url, None
+
+
 def criar_sessao_portal(usuario):
     """Retorna (url, erro). Portal do Stripe pra gerenciar/cancelar a
     assinatura — trocar cartão, ver faturas, cancelar."""
@@ -177,6 +253,36 @@ def _refletir_subscription(subscription, usuario_id=None):
         status=subscription.get("status"),
         trial_fim=str(trial_fim) if trial_fim else None,
         periodo_atual_fim=str(periodo_atual_fim) if periodo_atual_fim else None,
+        forma_pagamento="stripe",
+        pix_lembrete_enviado_em=None,
+    )
+
+
+def _refletir_pagamento_pix(sessao_checkout):
+    """Grava localmente um pagamento avulso via PIX (checkout.session.
+    completed com mode=payment) — sem subscription do Stripe pra
+    espelhar, então calcula o vencimento aqui mesmo (hoje + DIAS_PIX)."""
+    metadata = sessao_checkout.get("metadata") or {}
+    usuario_id = sessao_checkout.get("client_reference_id") or metadata.get("usuario_id")
+    plano = metadata.get("plano")
+    periodicidade = metadata.get("periodicidade")
+    if not usuario_id or not plano or not periodicidade:
+        return
+    usuario_id = int(usuario_id)
+
+    periodo_atual_fim = int(time.time()) + DIAS_PIX.get(periodicidade, 30) * 86400
+
+    _upsert(
+        usuario_id,
+        stripe_customer_id=sessao_checkout.get("customer"),
+        stripe_subscription_id=None,
+        plano=plano,
+        periodicidade=periodicidade,
+        status="active",
+        trial_fim=None,
+        periodo_atual_fim=str(periodo_atual_fim),
+        forma_pagamento="pix",
+        pix_lembrete_enviado_em=None,
     )
 
 
@@ -192,11 +298,25 @@ def processar_evento_webhook(payload, assinatura_header):
     dados = evento["data"]["object"]
 
     if tipo == "checkout.session.completed":
-        subscription_id = dados.get("subscription")
-        usuario_id = dados.get("client_reference_id") or (dados.get("metadata") or {}).get("usuario_id")
-        if subscription_id and usuario_id:
-            subscription = stripe.Subscription.retrieve(subscription_id)
-            _refletir_subscription(subscription, usuario_id=usuario_id)
+        if dados.get("mode") == "payment":
+            # PIX é um "delayed payment method" — o Stripe considera a
+            # sessão "completed" assim que a pessoa gera o QR Code, ANTES
+            # de cair o dinheiro de verdade. Só libera acesso aqui se já
+            # veio marcado como pago (raro, mas acontece pra valores que
+            # confirmam na hora); o caminho normal é o evento
+            # async_payment_succeeded abaixo, que só dispara depois da
+            # confirmação real do PIX.
+            if dados.get("payment_status") == "paid":
+                _refletir_pagamento_pix(dados)
+        else:
+            subscription_id = dados.get("subscription")
+            usuario_id = dados.get("client_reference_id") or (dados.get("metadata") or {}).get("usuario_id")
+            if subscription_id and usuario_id:
+                subscription = stripe.Subscription.retrieve(subscription_id)
+                _refletir_subscription(subscription, usuario_id=usuario_id)
+
+    elif tipo == "checkout.session.async_payment_succeeded":
+        _refletir_pagamento_pix(dados)
 
     elif tipo in ("customer.subscription.updated", "customer.subscription.created"):
         _refletir_subscription(dados)
@@ -205,3 +325,41 @@ def processar_evento_webhook(payload, assinatura_header):
         _refletir_subscription(dados)
 
     return tipo
+
+
+def listar_pix_a_lembrar():
+    """Assinaturas pagas por PIX, ativas, vencendo dentro de DIAS_LEMBRETE_PIX
+    dias, que ainda não receberam o lembrete de renovação nesse período."""
+    limite = int(time.time()) + DIAS_LEMBRETE_PIX * 86400
+    with _conn() as conn:
+        linhas = conn.execute(
+            """SELECT * FROM assinaturas
+               WHERE forma_pagamento = 'pix' AND status = 'active'
+                 AND pix_lembrete_enviado_em IS NULL
+                 AND CAST(periodo_atual_fim AS INTEGER) <= ?
+                 AND CAST(periodo_atual_fim AS INTEGER) > ?""",
+            (limite, int(time.time())),
+        ).fetchall()
+    return [dict(linha) for linha in linhas]
+
+
+def listar_pix_vencidos():
+    """Assinaturas pagas por PIX, ainda marcadas "active", cujo período já
+    passou — perdem o acesso (status vira "vencida", fora de
+    STATUS_COM_ACESSO) até pagar de novo."""
+    with _conn() as conn:
+        linhas = conn.execute(
+            """SELECT * FROM assinaturas
+               WHERE forma_pagamento = 'pix' AND status = 'active'
+                 AND CAST(periodo_atual_fim AS INTEGER) <= ?""",
+            (int(time.time()),),
+        ).fetchall()
+    return [dict(linha) for linha in linhas]
+
+
+def marcar_pix_lembrete_enviado(usuario_id):
+    _upsert(usuario_id, pix_lembrete_enviado_em=str(int(time.time())))
+
+
+def marcar_pix_vencida(usuario_id):
+    _upsert(usuario_id, status="vencida")

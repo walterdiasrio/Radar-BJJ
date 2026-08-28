@@ -1481,12 +1481,29 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-top: 10px;
   font-size: 0.85rem;
   color: #55606b;
 }
 
 .plano-anual button { margin-top: 0; }
+
+.btn-pix {
+  margin-top: 8px;
+  background: transparent;
+  color: var(--azul-claro);
+  border: 1.5px solid var(--azul-claro);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+}
+
+.btn-pix:hover { background: #eef6fb; }
 
 @media (prefers-color-scheme: dark) {
   .cartao-alerta { background: #1b2127; }

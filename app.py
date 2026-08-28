@@ -74,6 +74,32 @@ def _cancelar_alertas_de_atleta_sem_assinatura():
         alertas.cancelar_alertas_de_atleta(usuario_id)
 
 
+_NOMES_PLANO_PIX = {"atleta": "Atleta PRO", "mestre": "Mestre PRO"}
+
+
+def _verificar_assinaturas_pix():
+    """PIX não renova sozinho (ver pagamentos.py) — aqui a gente: (1) manda
+    um lembrete de renovação pra quem está a poucos dias de vencer, e (2)
+    tira o acesso de quem já venceu sem renovar."""
+    for item in pagamentos.listar_pix_a_lembrar():
+        usuario = auth.buscar_por_id(item["usuario_id"])
+        if not usuario:
+            continue
+        link = f"{alertas.URL_SITE}/assinatura"
+        nome_plano = _NOMES_PLANO_PIX.get(item["plano"], item["plano"])
+        corpo = _texto_para_html_email(
+            f"Oi!\n\nSeu plano {nome_plano} (pago por PIX) vence em breve. "
+            "Como o PIX não renova sozinho, é só entrar no site e pagar de novo "
+            "pra continuar com acesso sem interrupção.\n\n"
+            "Renovar agora: [LINK]"
+        ).replace("[LINK]", f'<a href="{link}">{link}</a>')
+        if alertas.enviar_email(usuario["email"], f"Seu plano {nome_plano} está quase vencendo", corpo):
+            pagamentos.marcar_pix_lembrete_enviado(item["usuario_id"])
+
+    for item in pagamentos.listar_pix_vencidos():
+        pagamentos.marcar_pix_vencida(item["usuario_id"])
+
+
 def _iniciar_verificacao_periodica_de_alertas():
     def loop():
         while True:
@@ -92,6 +118,10 @@ def _iniciar_verificacao_periodica_de_alertas():
                 traceback.print_exc()
             try:
                 noticias.remover_noticias_expiradas()
+            except Exception:
+                traceback.print_exc()
+            try:
+                _verificar_assinaturas_pix()
             except Exception:
                 traceback.print_exc()
 
@@ -842,6 +872,8 @@ def api_sessao():
             "status": assinatura["status"] if assinatura else None,
             "plano": assinatura["plano"] if assinatura else None,
             "periodicidade": assinatura["periodicidade"] if assinatura else None,
+            "forma_pagamento": assinatura["forma_pagamento"] if assinatura else None,
+            "periodo_atual_fim": assinatura["periodo_atual_fim"] if assinatura else None,
         },
     })
 
@@ -2005,6 +2037,20 @@ def api_checkout():
 
     usuario = auth.buscar_por_id(session["usuario_id"])
     url, erro = pagamentos.criar_sessao_checkout(usuario, plano, periodicidade)
+    if erro:
+        return jsonify({"erro": erro}), 400
+    return jsonify({"ok": True, "url": url})
+
+
+@app.post("/api/checkout-pix")
+@api_login_necessario
+def api_checkout_pix():
+    dados = request.get_json(silent=True) or {}
+    plano = dados.get("plano", "")
+    periodicidade = dados.get("periodicidade", "")
+
+    usuario = auth.buscar_por_id(session["usuario_id"])
+    url, erro = pagamentos.criar_sessao_checkout_pix(usuario, plano, periodicidade)
     if erro:
         return jsonify({"erro": erro}), 400
     return jsonify({"ok": True, "url": url})
