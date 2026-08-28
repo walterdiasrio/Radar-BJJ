@@ -334,7 +334,10 @@ async function ajustarCartaoBoasVindas() {
   elBotoesLogado.style.display = "block";
   const elBotaoBuscaRapida = document.getElementById("home-botao-busca-rapida");
   if (!resumo.tem_assinatura) {
-    elBotaoBuscaRapida.innerHTML = '<a href="/assinatura"><button type="button">Assinar para usar o Radar de Atletas</button></a>';
+    // Sem "assinar pra usar" no texto — o botão leva pro /buscador normal,
+    // que já redireciona sozinho pra /assinatura se precisar (ver
+    // assinatura_necessaria em app.py).
+    elBotaoBuscaRapida.innerHTML = '<a href="/buscador"><button type="button">Radar de Atletas</button></a>';
   } else if (resumo.tem_filtro_salvo) {
     elBotaoBuscaRapida.innerHTML = '<a href="/buscador?auto=1"><button type="button">Buscar Atleta com meu filtro salvo</button></a>';
   } else {
