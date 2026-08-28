@@ -166,19 +166,26 @@ async function carregarSubmenuTurmas() {
   const elSubmenu = document.getElementById("nav-turmas-submenu");
   const elPainelMobile = document.getElementById("painel-nav-turmas");
   if (!elSubmenu && !elPainelMobile) return;
+
+  // "+ Nova turma" sempre aparece, mesmo se a lista de turmas não vier —
+  // sem isso, um erro na API (ex: 402 de Mestre no plano Free, que ainda
+  // não tem assinatura) deixava o submenu inteiro vazio, parecendo que o
+  // clique em "Turmas" simplesmente não fazia nada.
+  const itemNova = `<a href="/turmas?nova=1"><strong>+ Nova turma</strong></a>`;
+  let html = itemNova;
   try {
     const resp = await fetch("/api/turmas");
-    if (!resp.ok) return;
-    const turmas = await resp.json();
-    const itemNova = `<a href="/turmas?nova=1"><strong>+ Nova turma</strong></a>`;
-    const html = itemNova + (turmas.length
-      ? turmas.map(t => `<a href="/turmas?turma=${t.id}">${t.nome ? t.nome + " — " : ""}${t.categoria}</a>`).join("")
-      : "");
-    if (elSubmenu) elSubmenu.innerHTML = html;
-    if (elPainelMobile) elPainelMobile.innerHTML = html;
+    if (resp.ok) {
+      const turmas = await resp.json();
+      if (turmas.length) {
+        html += turmas.map(t => `<a href="/turmas?turma=${t.id}">${t.nome ? t.nome + " — " : ""}${t.categoria}</a>`).join("");
+      }
+    }
   } catch {
-    // silencioso — submenu só é um atalho, a página /turmas continua acessível
+    // sem conexão etc — mantém pelo menos o "+ Nova turma" já montado acima
   }
+  if (elSubmenu) elSubmenu.innerHTML = html;
+  if (elPainelMobile) elPainelMobile.innerHTML = html;
 }
 
 // Submenus "Admin" e "Turmas": abrem com hover no desktop (via CSS), e com
