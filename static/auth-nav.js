@@ -1,3 +1,26 @@
+// Barrinha fixa por cima do banner, só no desktop (CSS esconde no mobile,
+// que já tem seu próprio tratamento de conta — ver .nav-usuario-mobile) —
+// os 2 atalhos mais usados + a conta, pra não depender de rolar até o
+// menu lateral pra essas ações do dia a dia. Criada em JS (não em cada
+// HTML) pra não precisar duplicar esse bloco em todas as páginas do site.
+function montarBarraTopoDesktop() {
+  let elTopo = document.getElementById("nav-usuario-topo");
+  if (elTopo) return elTopo;
+
+  const barra = document.createElement("div");
+  barra.id = "barra-topo-desktop";
+  barra.className = "barra-topo-desktop";
+  barra.innerHTML = `
+    <div class="atalhos-topo">
+      <a href="/buscador" class="atalho-topo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16" y2="16"/></svg><span>Radar de Atletas</span></a>
+      <a href="/competicoes" class="atalho-topo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 5H4v1a4 4 0 0 0 4 4"/><path d="M17 5h3v1a4 4 0 0 1-4 4"/></svg><span>Competições</span></a>
+    </div>
+    <div id="nav-usuario-topo" class="nav-usuario"></div>
+  `;
+  document.body.insertBefore(barra, document.body.firstChild);
+  return document.getElementById("nav-usuario-topo");
+}
+
 // Compartilhado entre todas as páginas: mostra o estado de login no menu.
 async function carregarSessaoNoMenu() {
   const el = document.getElementById("nav-usuario");
@@ -16,6 +39,14 @@ async function carregarSessaoNoMenu() {
       elHeader.appendChild(elMobile);
     }
   }
+
+  // Réplica da conta na barrinha fixa do topo (desktop) — o menu lateral
+  // tem só a navegação; conta fica ali em cima, junto dos 2 atalhos mais
+  // usados (ver montarBarraTopoDesktop, mais abaixo). Mesmo conteúdo do
+  // #nav-usuario "de baixo" (que continua existindo — no mobile ele é a
+  // fonte de Entrar/Cadastrar dentro do menu rolante), só que num elemento
+  // à parte, porque um mesmo nó não pode estar em dois lugares do DOM.
+  const elTopo = montarBarraTopoDesktop();
 
   const elNavAdmin = document.getElementById("nav-admin");
   const elNavAdminMobile = document.getElementById("nav-admin-toggle-mobile");
@@ -47,6 +78,11 @@ async function carregarSessaoNoMenu() {
       if (campo) campo.style.display = dados.mestre ? "" : "none";
     }
     document.dispatchEvent(new CustomEvent("sessao-carregada", { detail: dados }));
+    // Itens do menu mudam de visibilidade conforme a sessão (Admin só pra
+    // admin, Turmas só pra mestre etc) — precisa recalcular onde o
+    // degradê do menu lateral começa depois de aplicar isso (ver
+    // ajustarDegradeMenu, definida mais abaixo).
+    ajustarDegradeMenu();
   };
 
   try {
@@ -68,6 +104,10 @@ async function carregarSessaoNoMenu() {
       `;
       configurarDropdowns(el);
       el.classList.add("nav-usuario-compacto-mobile");
+      if (elTopo) {
+        elTopo.innerHTML = el.innerHTML;
+        configurarDropdowns(elTopo);
+      }
       if (elMobile) {
         elMobile.style.display = "";
         elMobile.innerHTML = `<a href="/perfil" title="Meu Perfil">${ICONE_PERFIL}</a><a href="/assinatura" title="Minha Assinatura">${ICONE_ASSINATURA}</a><a href="#" class="nav-sair" title="Sair">${ICONE_LOGOUT}</a>`;
@@ -93,6 +133,7 @@ async function carregarSessaoNoMenu() {
       // que sai do menu e vira ícone compacto no banner, no mobile.
       el.classList.remove("nav-usuario-compacto-mobile");
       el.innerHTML = `<a href="/login" title="Entrar">${ICONE_LOGIN}<span>Entrar</span></a><a href="/cadastro" title="Cadastrar">${ICONE_CADASTRO}<span>Cadastrar</span></a>`;
+      if (elTopo) elTopo.innerHTML = el.innerHTML;
       if (elMobile) { elMobile.style.display = "none"; elMobile.innerHTML = ""; }
       if (elNavAdmin) elNavAdmin.style.display = "none";
       if (elNavAdminMobile) elNavAdminMobile.style.display = "none";
@@ -106,6 +147,7 @@ async function carregarSessaoNoMenu() {
   } catch (err) {
     el.classList.remove("nav-usuario-compacto-mobile");
     el.innerHTML = `<a href="/login">Entrar</a><a href="/cadastro">Cadastrar</a>`;
+    if (elTopo) elTopo.innerHTML = el.innerHTML;
     if (elMobile) { elMobile.style.display = "none"; elMobile.innerHTML = ""; }
     if (elNavAdmin) elNavAdmin.style.display = "none";
     if (elNavAdminMobile) elNavAdminMobile.style.display = "none";
@@ -191,9 +233,14 @@ function configurarDropdowns(escopo) {
       elSubmenu.style.left = `${r.right}px`;
     };
     const ehRodape = elDropdown.closest(".menu-lateral-rodape") !== null;
+    // Só o menu lateral (nav vertical) abre AO LADO — a barrinha do topo
+    // (.barra-topo-desktop) é horizontal, então o dropdown de conta ali
+    // abre EMBAIXO, como sempre foi (senão passava da borda direita da
+    // tela, já que o toggle fica bem no canto).
+    const ehMenuLateral = elDropdown.closest("nav.menu-lateral:not(.menu-lateral-rodape)") !== null;
     const posicionar = () => {
       if (ehRodape) return posicionarParaCima();
-      if (window.matchMedia("(min-width: 901px)").matches) return posicionarAoLado();
+      if (ehMenuLateral && window.matchMedia("(min-width: 901px)").matches) return posicionarAoLado();
       return posicionarNormal();
     };
 
@@ -231,6 +278,30 @@ function configurarDropdowns(escopo) {
   });
 }
 configurarDropdowns(document);
+
+// No menu lateral do desktop (ver style.css), o fundo azul vira degradê a
+// partir de --menu-fade-inicio — recalculada aqui pra começar logo depois
+// do ÚLTIMO item VISÍVEL (a lista muda: Admin só aparece pra admin, Turmas
+// só pra mestre etc, então um valor fixo no CSS sobrava vazio abaixo do
+// último botão real ou cortava antes da hora). Chamada de novo sempre que
+// a sessão muda (aplicarSessao, acima) e no resize (pode cruzar o
+// breakpoint de 900px pra o menu horizontal do mobile, onde isso não
+// importa — o guard de innerWidth abaixo pula o cálculo nesse caso).
+function ajustarDegradeMenu() {
+  const elMenu = document.querySelector("nav.menu-lateral:not(.menu-lateral-rodape)");
+  if (!elMenu || window.innerWidth < 901) return;
+
+  const itens = Array.from(elMenu.children).filter((el) => el.offsetHeight > 0 && el.offsetWidth > 0);
+  if (!itens.length) return;
+  const ultimo = itens[itens.length - 1];
+
+  const rMenu = elMenu.getBoundingClientRect();
+  const rUltimo = ultimo.getBoundingClientRect();
+  const fimUltimoItem = rUltimo.bottom - rMenu.top + elMenu.scrollTop;
+  elMenu.style.setProperty("--menu-fade-inicio", `${Math.round(fimUltimoItem + 12)}px`);
+}
+ajustarDegradeMenu();
+window.addEventListener("resize", ajustarDegradeMenu);
 
 // Botões "Menu Atleta" / "Turmas" / "Admin" (mobile) — painéis fora do menu,
 // posicionados só via CSS (position:sticky, ver style.css), sem cálculo de
