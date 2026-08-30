@@ -24,6 +24,13 @@ function mostrarStatus(texto, ehErro = false) {
   elForm.parentNode.insertBefore(aviso, elForm);
 })();
 
+const elNomeUsuario = document.getElementById("nome_usuario");
+const elPreviewLinkPerfil = document.getElementById("preview-link-perfil");
+elNomeUsuario.addEventListener("input", () => {
+  const valor = elNomeUsuario.value.trim().toLowerCase();
+  elPreviewLinkPerfil.textContent = `/atleta/${valor || "joao_silva"}`;
+});
+
 function escapeHtml(texto) {
   const div = document.createElement("div");
   div.textContent = texto;
