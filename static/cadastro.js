@@ -68,6 +68,7 @@ elForm.addEventListener("submit", async (ev) => {
           oferece reenviar o link de confirmação.
         </span>
       `;
+      elStatus.scrollIntoView({ behavior: "smooth", block: "start" });
       return;
     }
     elStatus.className = "aviso-sucesso";
@@ -78,6 +79,7 @@ elForm.addEventListener("submit", async (ev) => {
         Enviamos um link de confirmação para <strong>${escapeHtml(dados.email)}</strong>. Clique nele pra ativar sua conta.
       </span>
     `;
+    elStatus.scrollIntoView({ behavior: "smooth", block: "start" });
   } catch (err) {
     mostrarStatus(err.message, true);
   }
