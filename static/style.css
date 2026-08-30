@@ -1154,6 +1154,92 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
 
 .destaques { margin-bottom: 28px; }
 
+/* Popup de 7 dias grátis pra visitante não logado na Home — some sozinho
+   depois do primeiro fechamento na mesma aba (sessionStorage, ver home.js). */
+.popup-trial-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(9, 20, 40, 0.55);
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: popup-trial-fade 0.25s ease;
+}
+
+@keyframes popup-trial-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.popup-trial-caixa {
+  position: relative;
+  background: white;
+  border-radius: 16px;
+  max-width: 380px;
+  width: 100%;
+  padding: 32px 28px 28px;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(9, 20, 40, 0.35);
+}
+
+.popup-trial-fechar {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  background: none;
+  border: none;
+  font-size: 1.6rem;
+  line-height: 1;
+  color: #8a94a3;
+  cursor: pointer;
+  padding: 4px;
+}
+.popup-trial-fechar:hover { color: var(--texto); }
+
+.popup-trial-selo {
+  display: inline-block;
+  background: #fdf3e3;
+  color: #7a5a10;
+  border: 1px solid #e8c27a;
+  border-radius: 20px;
+  padding: 4px 14px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+
+.popup-trial-caixa h2 {
+  font-family: var(--fonte-menu);
+  color: var(--azul);
+  margin: 0 0 10px;
+  font-size: 1.5rem;
+}
+
+.popup-trial-caixa p {
+  color: #55606b;
+  margin: 0 0 22px;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.popup-trial-botao {
+  width: 100%;
+  font-size: 1.02rem;
+  padding: 14px 20px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .popup-trial-caixa { background: #1a2230; }
+  .popup-trial-caixa p { color: #a8b3c2; }
+  .popup-trial-selo { background: #3a2c0b; border-color: #6b5116; color: #f0cf89; }
+  .popup-trial-fechar { color: #6a7686; }
+  .popup-trial-fechar:hover { color: #e8edf3; }
+}
+
 /* Hero da Home — mobile-first: empilhado (texto, depois a ilustração);
    vira duas colunas lado a lado só a partir de 901px (mesmo breakpoint
    usado no resto do site). */

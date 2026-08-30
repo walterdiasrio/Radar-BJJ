@@ -281,6 +281,27 @@ function renderizarMedalhasHome(medalhas) {
   `;
 }
 
+// Um popup por sessão de navegador é o bastante pra não incomodar quem
+// fica navegando o site sem logar (ex: olhando Competições, BJJ News).
+function mostrarPopupTrial() {
+  const elPopup = document.getElementById("home-popup-trial");
+  const elFechar = document.getElementById("popup-trial-fechar");
+  if (!elPopup || sessionStorage.getItem("radarbjj_popup_trial_fechado")) return;
+
+  setTimeout(() => {
+    elPopup.style.display = "flex";
+  }, 1200);
+
+  function fechar() {
+    elPopup.style.display = "none";
+    sessionStorage.setItem("radarbjj_popup_trial_fechado", "1");
+  }
+  elFechar.addEventListener("click", fechar);
+  elPopup.addEventListener("click", (ev) => {
+    if (ev.target === elPopup) fechar();
+  });
+}
+
 async function ajustarCartaoBoasVindas() {
   const elBotoesLogado = document.getElementById("home-botoes-logado");
   const elCtaCadastro = document.getElementById("home-cta-cadastro");
@@ -300,6 +321,7 @@ async function ajustarCartaoBoasVindas() {
   if (!dadosSessao.logado) {
     elBotoesLogado.style.display = "none";
     elCtaCadastro.style.display = "block";
+    mostrarPopupTrial();
     return;
   }
 
