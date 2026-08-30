@@ -581,6 +581,22 @@ nav.menu-lateral.menu-lateral-rodape {
   margin-top: 0;
 }
 
+.destaque-trial-gratis {
+  background: #fdf3e3;
+  border: 1px solid #e8c27a;
+  color: #7a5a10;
+  border-radius: 10px;
+  padding: 10px 16px;
+  margin: 0 0 16px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  text-align: center;
+}
+
+@media (prefers-color-scheme: dark) {
+  .destaque-trial-gratis { background: #3a2c0b; border-color: #6b5116; color: #f0cf89; }
+}
+
 .resumo-perfil-bloco:not(:last-child) { margin-bottom: 20px; }
 
 .resumo-perfil-bloco h4 {
