@@ -113,9 +113,10 @@ src="https://www.facebook.com/tr?id=28254694314126516&ev=PageView&noscript=1"
       <div class="campo">
         <label for="nome_usuario">Nome de usuário</label>
         <input type="text" id="nome_usuario" required minlength="3" maxlength="20"
-          pattern="[a-z0-9_]{3,20}" placeholder="ex: joao_silva" autocomplete="off">
+          pattern="[A-Za-z0-9_]{3,20}" placeholder="ex: joao_silva" autocomplete="off"
+          autocapitalize="off" autocorrect="off" spellcheck="false">
         <small style="color:#55606b; font-size:0.8rem;">
-          Letras minúsculas, números ou _ — vira o link do seu perfil público (/atleta/joao_silva).
+          Letras, números ou _ — vira minúsculo automaticamente no link do seu perfil público (/atleta/joao_silva).
         </small>
       </div>
       <div class="campo">
