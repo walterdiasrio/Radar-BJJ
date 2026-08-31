@@ -372,7 +372,19 @@ document.addEventListener("click", (ev) => {
       const p = document.getElementById(id);
       if (p) p.classList.remove("aberto");
     });
-    if (!jaAberto) elPainel.classList.add("aberto");
+    if (!jaAberto) {
+      // Tocado a partir do clone do rodapé: o painel é um elemento único
+      // (não clonado) — sem isso ele abriria grudado no topo da tela
+      // (sticky, pensado pro toggle do topo), longe de onde o dedo tocou.
+      // Ver .painel-menu-atleta.aberto-rodape em style.css.
+      const ehRodape = elToggle.closest(".menu-lateral-rodape") !== null;
+      elPainel.classList.toggle("aberto-rodape", ehRodape);
+      if (ehRodape) {
+        const r = elToggle.getBoundingClientRect();
+        elPainel.style.bottom = `${window.innerHeight - r.top}px`;
+      }
+      elPainel.classList.add("aberto");
+    }
     return;
   }
   MAPA_TOGGLE_PAINEL_MOBILE.forEach(([, idPainel]) => {

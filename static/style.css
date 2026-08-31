@@ -490,6 +490,20 @@ header {
     gap: 0;
   }
   .painel-menu-atleta.aberto { display: flex; }
+
+  /* Aberto a partir do menu REPLICADO no rodapé (ver auth-nav.js): o
+     painel é um elemento único, compartilhado com o toggle do topo — de
+     lá, sticky/top:52px funciona certinho (comentário acima). Mas
+     disparado do rodapé, ancorar no topo da tela faria o painel abrir
+     longe do dedo, parecendo desconectado do toque. Essa variante vira
+     fixed e abre PRA CIMA, ancorada logo acima do toggle que foi tocado
+     (bottom/left calculados em JS, mesmo padrão do .nav-admin-submenu
+     no rodapé — ver posicionarParaCima). */
+  .painel-menu-atleta.aberto-rodape {
+    position: fixed;
+    top: auto;
+    max-height: calc(100vh - 100px);
+  }
   .painel-menu-atleta a {
     display: flex;
     align-items: center;
