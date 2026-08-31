@@ -1599,14 +1599,18 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
 }
 
+/* Full-bleed até a borda da tela, mas só até a borda do menu lateral
+   (220px fixos a partir de 901px, ver nav.menu-lateral) — o truque
+   100vw/-50vw clássico centraliza em relação à tela inteira, então sem
+   o ajuste ele avançava 110px (metade do menu) por baixo do menu. */
 .grade-planos-full {
   max-width: none;
-  width: 100vw;
+  width: calc(100vw - 220px);
   position: relative;
   left: 50%;
   right: 50%;
-  margin-left: -50vw;
-  margin-right: -50vw;
+  margin-left: calc(-50vw + 110px);
+  margin-right: calc(-50vw + 110px);
   padding: 0 16px;
   grid-template-columns: repeat(3, 1fr);
 }
