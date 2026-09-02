@@ -258,6 +258,21 @@ async function gerarImagemAgendaStory() {
   const espacoLivre = Math.max(0, H - yTopo - alturaConteudoReal - margemInferior);
   const yListaTopo = yTopo + espacoLivre / 2;
 
+  // Os cartões crescem além da altura-base quando sobra espaço (poucos
+  // itens na agenda) — sem isso o texto ficava sempre no tamanho mínimo
+  // mesmo com o cartão bem maior, desperdiçando o espaço extra. Escala
+  // linear: 1x na altura-base, até ~1.24x na altura máxima.
+  const escalaTexto = alturaCartao / alturaCartaoBase;
+  const fonteDia = Math.round(60 * escalaTexto);
+  const fonteMes = Math.round(27 * escalaTexto);
+  const fonteAno = Math.round(23 * escalaTexto);
+  const fonteDataBruta = Math.round(24 * escalaTexto);
+  const fonteNome = Math.round(30 * escalaTexto);
+  const fonteLocal = Math.round(24 * escalaTexto);
+  const fonteBadge = Math.round(20 * escalaTexto);
+  const alturaLinhaNome = Math.round(40 * escalaTexto);
+  const alturaLinhaLocal = Math.round(32 * escalaTexto);
+
   visiveis.forEach((item, i) => {
     const y = yListaTopo + i * (alturaCartao + gap);
     const cy = y + alturaCartao / 2;
@@ -270,21 +285,21 @@ async function gerarImagemAgendaStory() {
     if (item.data_iso) {
       const [ano, mes, dia] = item.data_iso.split("-");
       ctx.textAlign = "left";
-      ctx.font = "bold 60px -apple-system, Arial, sans-serif";
+      ctx.font = `bold ${fonteDia}px -apple-system, Arial, sans-serif`;
       ctx.fillStyle = "#ffffff";
-      ctx.fillText(String(Number(dia)), xData, cy - 16);
-      ctx.font = "bold 26px -apple-system, Arial, sans-serif";
+      ctx.fillText(String(Number(dia)), xData, cy - 16 * escalaTexto);
+      ctx.font = `bold ${fonteMes}px -apple-system, Arial, sans-serif`;
       ctx.fillStyle = CIANO;
-      ctx.fillText(MESES_ABREV[Number(mes) - 1] || "", xData, cy + 18);
-      ctx.font = "22px -apple-system, Arial, sans-serif";
+      ctx.fillText(MESES_ABREV[Number(mes) - 1] || "", xData, cy + 19 * escalaTexto);
+      ctx.font = `${fonteAno}px -apple-system, Arial, sans-serif`;
       ctx.fillStyle = CINZA_AZULADO;
-      ctx.fillText(ano, xData, cy + 46);
+      ctx.fillText(ano, xData, cy + 48 * escalaTexto);
     } else {
       ctx.textAlign = "left";
-      ctx.font = "bold 24px -apple-system, Arial, sans-serif";
+      ctx.font = `bold ${fonteDataBruta}px -apple-system, Arial, sans-serif`;
       ctx.fillStyle = CIANO;
       truncarTexto(ctx, item.data || "", 130).split(" ").slice(0, 3).forEach((linha, li) => {
-        ctx.fillText(linha, xData, cy - 10 + li * 26);
+        ctx.fillText(linha, xData, cy - 10 + li * 26 * escalaTexto);
       });
     }
 
@@ -300,10 +315,10 @@ async function gerarImagemAgendaStory() {
     // Badge + sino, à direita, centralizados na altura do card.
     const textoBadge = item.status === "inscrito" ? "INSCRITO" : "INTERESSE";
     const corBadge = item.status === "inscrito" ? "#3fd17e" : "#7fd4ff";
-    ctx.font = "bold 20px -apple-system, Arial, sans-serif";
+    ctx.font = `bold ${fonteBadge}px -apple-system, Arial, sans-serif`;
     ctx.letterSpacing = "1px";
     const larguraBadge = ctx.measureText(textoBadge).width + 36;
-    const alturaBadge = 42;
+    const alturaBadge = Math.round(42 * escalaTexto);
     const xSino = margem + larguraCartao - 30 - 18;
     const xBadge = xSino - 30 - larguraBadge;
     const yBadge = cy - alturaBadge / 2;
@@ -313,9 +328,9 @@ async function gerarImagemAgendaStory() {
     ctx.stroke();
     ctx.fillStyle = corBadge;
     ctx.textAlign = "center";
-    ctx.fillText(textoBadge, xBadge + larguraBadge / 2, yBadge + 27);
+    ctx.fillText(textoBadge, xBadge + larguraBadge / 2, yBadge + alturaBadge * 0.64);
     ctx.letterSpacing = "0px";
-    desenharIcone(ctx, "sino", xSino, cy, 30, CIANO, 1.8);
+    desenharIcone(ctx, "sino", xSino, cy, Math.round(30 * escalaTexto), CIANO, 1.8);
 
     // Conteúdo: bolinha + federação — nome (até 2 linhas) + local (linha
     // extra, menor) — bloco inteiro centralizado verticalmente no card.
@@ -323,14 +338,12 @@ async function gerarImagemAgendaStory() {
     const larguraTexto = xBadge - 24 - xTexto;
     ctx.textAlign = "left";
 
-    ctx.font = "bold 27px -apple-system, Arial, sans-serif";
+    ctx.font = `bold ${fonteNome}px -apple-system, Arial, sans-serif`;
     const larguraFed = ctx.measureText(item.federacao + " —").width;
     const linhasNome = quebrarLinhas(ctx, item.nome, larguraTexto);
-    ctx.font = "27px -apple-system, Arial, sans-serif";
+    ctx.font = `${fonteNome}px -apple-system, Arial, sans-serif`;
     const primeiraLinha = truncarTexto(ctx, linhasNome[0] || "", larguraTexto - larguraFed - 10);
 
-    const alturaLinhaNome = 36;
-    const alturaLinhaLocal = 30;
     const totalLinhas = 1 + (linhasNome[1] ? 1 : 0);
     const alturaBlocoTexto = totalLinhas * alturaLinhaNome + (item.local ? alturaLinhaLocal : 0);
     let yCursor = cy - alturaBlocoTexto / 2 + alturaLinhaNome * 0.72;
@@ -340,10 +353,10 @@ async function gerarImagemAgendaStory() {
     ctx.arc(xDivisor + 12, yCursor - 10, 6, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.font = "bold 27px -apple-system, Arial, sans-serif";
+    ctx.font = `bold ${fonteNome}px -apple-system, Arial, sans-serif`;
     ctx.fillStyle = CIANO;
     ctx.fillText(item.federacao + " —", xTexto, yCursor);
-    ctx.font = "27px -apple-system, Arial, sans-serif";
+    ctx.font = `${fonteNome}px -apple-system, Arial, sans-serif`;
     ctx.fillStyle = "#ffffff";
     ctx.fillText(primeiraLinha, xTexto + larguraFed + 10, yCursor);
     yCursor += alturaLinhaNome;
@@ -354,7 +367,7 @@ async function gerarImagemAgendaStory() {
     }
 
     if (item.local) {
-      ctx.font = "22px -apple-system, Arial, sans-serif";
+      ctx.font = `${fonteLocal}px -apple-system, Arial, sans-serif`;
       ctx.fillStyle = CINZA_AZULADO;
       ctx.fillText(truncarTexto(ctx, item.local, larguraTexto), xTexto, yCursor);
     }
