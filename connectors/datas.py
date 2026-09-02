@@ -6,7 +6,7 @@ cada federação usa nos seus próprios formatos (ex: "8 ago até 9 ago",
 explícito no texto, assumimos o ano corrente, avançando para o ano seguinte
 se o mês já tiver passado (evento futuro)."""
 import re
-from datetime import date
+from datetime import date, timedelta
 
 _MESES = {
     "jan": 1, "fev": 2, "mar": 3, "abr": 4, "mai": 5, "jun": 6,
@@ -20,13 +20,18 @@ def _mes_de(token):
 
 
 def _ano_inferido(mes, dia, hoje=None):
+    """Só empurra pro ano seguinte se a data já ficou bem pra trás (30 dias
+    de folga) — não pode ser "início do mês corrente": perto da virada do
+    mês (ex: hoje dia 1º de setembro), um evento de "29 e 30 AGOSTO" — só
+    2 dias atrás, quase certamente ainda deste ano — já contava como "mês
+    passado" inteiro e pulava um ano inteiro pra frente por engano."""
     hoje = hoje or date.today()
     ano = hoje.year
     try:
         candidata = date(ano, mes, dia)
     except ValueError:
         candidata = date(ano, mes, 1)
-    if candidata < hoje.replace(day=1):
+    if candidata < hoje - timedelta(days=30):
         ano += 1
     return ano
 
