@@ -407,6 +407,21 @@ def _enviar_email_confirmacao(usuario_id, email):
     return alertas.enviar_email(email, "Radar BJJ — confirme seu e-mail", corpo)
 
 
+def _notificar_admin_novo_cadastro(email, tipo_perfil, via_google=False):
+    """Avisa o(s) admin(s) por e-mail a cada conta nova — best-effort: se o
+    envio falhar, não atrapalha o cadastro em si (mesma lógica de
+    _enviar_email_confirmacao)."""
+    origem = "Google" if via_google else "e-mail/senha"
+    corpo = (
+        f"<p>Nova conta cadastrada no Radar BJJ:</p>"
+        f"<p><strong>{html.escape(email)}</strong><br>"
+        f"Perfil: {html.escape(tipo_perfil or '')}<br>"
+        f"Via: {origem}</p>"
+    )
+    for destino in ADMIN_EMAILS:
+        alertas.enviar_email(destino, "Radar BJJ — novo cadastro", corpo)
+
+
 @app.get("/confirmar-email")
 def pagina_confirmar_email():
     return send_from_directory("static", "confirmar-email.html")
@@ -893,6 +908,7 @@ def api_cadastro():
 
     email = dados.get("email", "").strip().lower()
     email_enviado = _enviar_email_confirmacao(usuario_id, email)
+    _notificar_admin_novo_cadastro(email, dados.get("tipo_perfil"))
     # Sem login automático — o cadastro só é efetivado depois de confirmar
     # o e-mail (ver auth.autenticar, que bloqueia login não confirmado). A
     # conta já foi criada mesmo se o envio falhar (não descartamos o
@@ -948,8 +964,10 @@ def login_google_callback():
     if erro:
         return redirect("/login?erro=google")
 
-    if criado_agora and nome:
-        carreira.salvar_perfil(usuario_id, {"nome": nome})
+    if criado_agora:
+        if nome:
+            carreira.salvar_perfil(usuario_id, {"nome": nome})
+        _notificar_admin_novo_cadastro(email, tipo_perfil, via_google=True)
 
     session["usuario_id"] = usuario_id
     return redirect("/")
