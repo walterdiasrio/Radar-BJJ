@@ -98,7 +98,7 @@ def _mover_para_processados(drive, file_id, origem_folder_id, destino_folder_id)
 # + sufixo" se o usuário não renomear na mão. Em vez de exigir isso, tira
 # prefixo/sufixo de ruído comuns dos dois lados e casa pelo que sobra.
 _PREFIXO_ATLETAS = re.compile(r"^(participants|atletas|athletes)\s*-\s*", re.I)
-_SUFIXOS_RUIDO = re.compile(r"\s*-\s*(atletas|athletes|smoothcomp)\s*$", re.I)
+_SUFIXOS_RUIDO = re.compile(r"\s*-\s*(participants|atletas|athletes|smoothcomp)\s*$", re.I)
 _PALAVRAS_ATLETAS = re.compile(r"participants|atletas|athletes", re.I)
 
 
