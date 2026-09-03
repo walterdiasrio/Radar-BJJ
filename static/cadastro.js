@@ -12,8 +12,7 @@ function mostrarStatus(texto, ehErro = false) {
   const periodicidade = params.get("periodicidade");
   if (plano !== "atleta" && plano !== "mestre") return;
 
-  const radio = document.querySelector(`input[name="tipo_perfil"][value="${plano}"]`);
-  if (radio) radio.checked = true;
+  document.getElementById("tipo_perfil").value = plano;
 
   sessionStorage.setItem("radarbjj_checkout_pendente", JSON.stringify({ plano, periodicidade }));
 
@@ -44,7 +43,7 @@ elForm.addEventListener("submit", async (ev) => {
   const confirmarEmail = document.getElementById("confirmar_email").value;
   const senha = document.getElementById("senha").value;
   const nome_usuario = document.getElementById("nome_usuario").value.trim().toLowerCase();
-  const tipo_perfil = document.querySelector('input[name="tipo_perfil"]:checked').value;
+  const tipo_perfil = document.getElementById("tipo_perfil").value;
 
   if (email.trim().toLowerCase() !== confirmarEmail.trim().toLowerCase()) {
     mostrarStatus("Os e-mails digitados são diferentes — confere e tenta de novo.", true);
@@ -99,6 +98,6 @@ document.getElementById("btn-google").addEventListener("click", () => {
     elAceite.focus();
     return;
   }
-  const tipo_perfil = document.querySelector('input[name="tipo_perfil"]:checked').value;
+  const tipo_perfil = document.getElementById("tipo_perfil").value;
   window.location.href = `/login/google?tipo_perfil=${tipo_perfil}`;
 });

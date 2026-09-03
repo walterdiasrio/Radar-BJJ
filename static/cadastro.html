@@ -120,13 +120,13 @@ src="https://www.facebook.com/tr?id=28254694314126516&ev=PageView&noscript=1"
           Só letras, números ou _ (sem espaço). O link do seu perfil público será: <span id="preview-link-perfil">/atleta/joao_silva</span>
         </small>
       </div>
-      <div class="campo">
-        <label>Perfil</label>
-        <div class="opcoes-federacao">
-          <label><input type="radio" name="tipo_perfil" value="atleta" checked> Atleta</label>
-          <label><input type="radio" name="tipo_perfil" value="mestre"> Mestre</label>
-        </div>
-      </div>
+      <!-- Sem pergunta de Atleta/Mestre no cadastro — todo mundo entra como
+           Atleta (default do banco) e vira Mestre a qualquer momento, de
+           graça, em Minha Conta (ver /api/conta/tornar-mestre). Quando vem
+           de um link específico de plano (?plano=mestre, ver planos.html),
+           o valor certo ainda é enviado por baixo dos panos, só sem
+           perguntar (ver preSelecionarPlano em cadastro.js). -->
+      <input type="hidden" id="tipo_perfil" value="atleta">
       <div class="campo" style="flex-direction: row; align-items: flex-start; gap: 8px;">
         <input type="checkbox" id="aceite_termos" required style="width: auto; margin-top: 3px;">
         <label for="aceite_termos" style="font-weight: normal; text-transform: none; color: #55606b; font-size: 0.85rem;">
