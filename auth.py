@@ -114,7 +114,7 @@ def cadastrar(email, senha, tipo_perfil, nome_usuario):
         return None, "Selecione um tipo de perfil (Mestre ou Atleta)."
     nome_usuario = (nome_usuario or "").strip().lower()
     if not nome_usuario_valido(nome_usuario):
-        return None, "Nome de usuário deve ter 3 a 20 caracteres: letras minúsculas, números ou _"
+        return None, "Nome de usuário deve ter 3 a 20 caracteres: letras, números ou _ (sem espaço nem acento)"
 
     senha_hash = generate_password_hash(senha)
     try:
@@ -290,11 +290,12 @@ def definir_tipo_perfil(usuario_id, tipo_perfil):
 
 
 def definir_nome_usuario(usuario_id, nome_usuario):
-    """Retorna (ok, erro). Formato: letras minúsculas, números e
-    underscore, 3 a 20 caracteres — igual a um @ de rede social."""
+    """Retorna (ok, erro). Formato: letras, números e underscore, 3 a 20
+    caracteres — igual a um @ de rede social. Aceita maiúscula na entrada
+    (normalizada pra minúscula logo abaixo), só não aceita espaço/acento."""
     nome_usuario = (nome_usuario or "").strip().lower()
     if not nome_usuario_valido(nome_usuario):
-        return False, "nome de usuário deve ter 3 a 20 caracteres: letras minúsculas, números ou _"
+        return False, "nome de usuário deve ter 3 a 20 caracteres: letras, números ou _ (sem espaço nem acento)"
     try:
         with _conn() as conn:
             conn.execute("UPDATE usuarios SET nome_usuario = ? WHERE id = ?", (nome_usuario, usuario_id))
