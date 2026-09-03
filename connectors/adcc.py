@@ -251,6 +251,25 @@ def _partes_categoria(header_texto):
     return genero_raw, categoria_idade, nivel, peso
 
 
+_ANO_NASCIMENTO = re.compile(r"\d{4}")
+
+
+def _ano_nascimento_do_card(card):
+    """A Smoothcomp parou de marcar essa célula com uma classe própria —
+    agora só dá pra achar pelo rótulo "Chave" na tabela de detalhes do
+    card (que também tem Age/Rank/Weight, sem classe que distinga uma
+    linha da outra). Texto vem como "1996 (30 anos)"; ficamos só com o
+    ano."""
+    for th in card.select(".sc-card-footer th"):
+        if th.get_text(strip=True) == "Chave":
+            td = th.find_next_sibling("td")
+            if td:
+                m = _ANO_NASCIMENTO.search(td.get_text(strip=True))
+                if m:
+                    return m.group()
+    return ""
+
+
 def parse_atletas_html(html):
     soup = BeautifulSoup(html, "lxml")
     atletas = []
@@ -261,14 +280,16 @@ def parse_atletas_html(html):
         genero_raw, categoria_idade, nivel, peso = _partes_categoria(header.get_text(strip=True))
         genero = _genero_pt(genero_raw)
 
-        for card in grupo.select(".profile-card"):
+        # ".profile-card" virou ".sc-card" numa atualização da Smoothcomp
+        # (as classes internas, tipo ".profile-card-name", continuam as
+        # mesmas) — aceita as duas por segurança, caso algum evento ainda
+        # esteja na versão antiga.
+        for card in grupo.select(".sc-card, .profile-card"):
             nome_el = card.select_one(".profile-card-name a span")
             if not nome_el:
                 continue
-            equipe_el = card.select_one(".participant-td-club a")
+            equipe_el = card.select_one(".sc-card-body-club a, .participant-td-club a")
             pais_el = card.select_one(".country-name span")
-            nascimento_container = card.select_one(".participant-td-birth")
-            nascimento_div = nascimento_container.find("div") if nascimento_container else None
             aprovado = "unapproved" not in (card.get("class") or [])
 
             atletas.append({
@@ -280,7 +301,7 @@ def parse_atletas_html(html):
                 "peso": peso,
                 "faixa": nivel,
                 "pais": pais_el.get_text(strip=True) if pais_el else "",
-                "ano_nascimento": nascimento_div.get_text(strip=True) if nascimento_div else "",
+                "ano_nascimento": _ano_nascimento_do_card(card),
                 "pagamento": "Confirmado" if aprovado else "Não confirmado",
             })
     return atletas
