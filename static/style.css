@@ -1270,6 +1270,33 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
   .popup-trial-fechar:hover { color: #e8edf3; }
 }
 
+/* Versão com a arte pronta (imagem única com todo o texto/botão já
+   desenhados) — o container perde o padding/texto próprio, a imagem
+   preenche tudo e é ela mesma o link pro cadastro. O "X" de fechar já
+   vem desenhado na arte (canto superior direito da barra branca); em
+   vez de desenhar outro por cima, este botão fica INVISÍVEL bem naquela
+   posição (percentual, acompanha o tamanho da imagem em qualquer
+   largura de tela) — clicável, mas sem duplicar o visual. */
+.popup-trial-caixa-arte {
+  max-width: 420px;
+  padding: 0;
+  overflow: hidden;
+  line-height: 0;
+}
+.popup-trial-arte-link { display: block; }
+.popup-trial-arte-img { display: block; width: 100%; height: auto; border-radius: 16px; }
+.popup-trial-fechar-arte {
+  position: absolute;
+  top: 2%;
+  right: 2%;
+  width: 12%;
+  height: 8%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  z-index: 2;
+}
+
 /* Hero da Home — mobile-first: empilhado (texto, depois a ilustração);
    vira duas colunas lado a lado só a partir de 901px (mesmo breakpoint
    usado no resto do site). */
