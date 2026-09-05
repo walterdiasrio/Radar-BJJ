@@ -239,7 +239,7 @@ async function gerarImagemAgendaStory() {
   const alturaCartaoBase = 230;
   const alturaCartaoMax = 280;
   const gap = 24;
-  const alturaRodape = 40 + ALTURA_BLOCO_QR + 35 + 64; // gap + QR + gap + pill
+  const alturaRodape = 40 + 64; // gap + linha do site (sem QR — mais espaço pra competições)
   const margemInferior = 70;
   const alturaDisponivelParaLista = H - yTopo - alturaRodape - margemInferior;
   const maxCartoes = Math.min(
@@ -392,24 +392,11 @@ async function gerarImagemAgendaStory() {
     yFimLista += 60;
   }
 
-  // Bloco "escaneie" com QR code pro cadastro — a agenda é pessoal (não dá
-  // pra linkar num perfil público), então aqui o QR sempre convida quem
-  // está vendo o Story a criar a própria conta grátis. Preenche o espaço
-  // que sobra antes do rodapé.
-  const yQr = yFimLista + 40;
-  const alturaQr = desenharBlocoQrCode(ctx, {
-    x: margem,
-    y: yQr,
-    largura: larguraCartao,
-    url: "https://www.radarbjj.com/cadastro",
-    titulo: "Crie sua conta grátis",
-    subtitulo: "Escaneie ou acesse www.radarbjj.com",
-  });
-
   // Rodapé — link em destaque, mesmo padrão do template de referência
-  // (linha — globo — url — linha).
+  // (linha — globo — url — linha). Sem QR code aqui (removido pra sobrar
+  // espaço pra mais um cartão de competição na lista).
   const urlSite = "www.radarbjj.com";
-  const yUrl = Math.min(yQr + alturaQr + 45, H - 90);
+  const yUrl = Math.min(yFimLista + 60, H - 90);
   ctx.font = "bold 32px -apple-system, Arial, sans-serif";
   const larguraTextoUrl = ctx.measureText(urlSite).width;
   const larguraBlocoUrl = larguraTextoUrl + 50;
