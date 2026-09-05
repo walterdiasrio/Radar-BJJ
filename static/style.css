@@ -1680,6 +1680,38 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
   margin: 0 0 10px;
 }
 
+/* No mobile o card já é de uma coluna só (ver .grade-planos-full) — 50%
+   da largura do card deixava a arte (e o texto desenhado nela) minúscula.
+   Sem limite de largura própria: acompanha o card inteiro. */
+@media (max-width: 900px) {
+  .plano-logo { max-width: 100%; margin-bottom: 16px; }
+}
+
+.plano-vantagens {
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.plano-vantagens li {
+  font-size: 0.85rem;
+  color: var(--texto);
+  line-height: 1.4;
+  padding-left: 22px;
+  position: relative;
+}
+.plano-vantagens li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: var(--azul);
+  font-weight: 700;
+}
+.plano-vantagens li strong { color: var(--azul); }
+
 .plano-destaque {
   border-color: var(--azul-claro);
   box-shadow: 0 0 0 1px var(--azul-claro);
