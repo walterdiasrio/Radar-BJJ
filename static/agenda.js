@@ -231,14 +231,21 @@ async function gerarImagemAgendaStory() {
   // Lista de competições — um cartão por item, com bloco de data (dia
   // grande / mês / ano), evento e o badge de status (Inscrição Confirmada
   // / Tenho Interesse). Cabe um número limitado de cartões no Stories; o
-  // resto vira um resumo "+N outras".
-  const alturaCartaoBase = 210;
-  const alturaCartaoMax = 260;
+  // resto vira um resumo "+N outras". Teto fixo de 5 mesmo quando sobraria
+  // espaço pra mais — com muitas competições, cartão pequeno/lotado fica
+  // ilegível no Stories, então preferimos mostrar só as próximas 5 (bem
+  // destacadas) e resumir o restante no "+N outras".
+  const MAX_CARTOES = 5;
+  const alturaCartaoBase = 230;
+  const alturaCartaoMax = 280;
   const gap = 24;
   const alturaRodape = 40 + ALTURA_BLOCO_QR + 35 + 64; // gap + QR + gap + pill
   const margemInferior = 70;
   const alturaDisponivelParaLista = H - yTopo - alturaRodape - margemInferior;
-  const maxCartoes = Math.max(1, Math.floor((alturaDisponivelParaLista + gap) / (alturaCartaoBase + gap)));
+  const maxCartoes = Math.min(
+    MAX_CARTOES,
+    Math.max(1, Math.floor((alturaDisponivelParaLista + gap) / (alturaCartaoBase + gap))),
+  );
   const visiveis = itens.slice(0, maxCartoes);
   const restantes = itens.length - visiveis.length;
 
@@ -263,15 +270,15 @@ async function gerarImagemAgendaStory() {
   // mesmo com o cartão bem maior, desperdiçando o espaço extra. Escala
   // linear: 1x na altura-base, até ~1.24x na altura máxima.
   const escalaTexto = alturaCartao / alturaCartaoBase;
-  const fonteDia = Math.round(60 * escalaTexto);
-  const fonteMes = Math.round(27 * escalaTexto);
+  const fonteDia = Math.round(64 * escalaTexto);
+  const fonteMes = Math.round(28 * escalaTexto);
   const fonteAno = Math.round(23 * escalaTexto);
   const fonteDataBruta = Math.round(24 * escalaTexto);
-  const fonteNome = Math.round(30 * escalaTexto);
-  const fonteLocal = Math.round(24 * escalaTexto);
+  const fonteNome = Math.round(36 * escalaTexto);
+  const fonteLocal = Math.round(30 * escalaTexto);
   const fonteBadge = Math.round(20 * escalaTexto);
-  const alturaLinhaNome = Math.round(40 * escalaTexto);
-  const alturaLinhaLocal = Math.round(32 * escalaTexto);
+  const alturaLinhaNome = Math.round(46 * escalaTexto);
+  const alturaLinhaLocal = Math.round(40 * escalaTexto);
 
   visiveis.forEach((item, i) => {
     const y = yListaTopo + i * (alturaCartao + gap);
@@ -333,7 +340,8 @@ async function gerarImagemAgendaStory() {
     desenharIcone(ctx, "sino", xSino, cy, Math.round(30 * escalaTexto), CIANO, 1.8);
 
     // Conteúdo: bolinha + federação — nome (até 2 linhas) + local (linha
-    // extra, menor) — bloco inteiro centralizado verticalmente no card.
+    // extra, com pin e negrito pra dar destaque à cidade/estado) — bloco
+    // inteiro centralizado verticalmente no card.
     const xTexto = xDivisor + 30;
     const larguraTexto = xBadge - 24 - xTexto;
     ctx.textAlign = "left";
@@ -367,9 +375,11 @@ async function gerarImagemAgendaStory() {
     }
 
     if (item.local) {
-      ctx.font = `${fonteLocal}px -apple-system, Arial, sans-serif`;
-      ctx.fillStyle = CINZA_AZULADO;
-      ctx.fillText(truncarTexto(ctx, item.local, larguraTexto), xTexto, yCursor);
+      const ladoPin = Math.round(22 * escalaTexto);
+      desenharIcone(ctx, "pin", xTexto + ladoPin / 2, yCursor - Math.round(fonteLocal * 0.32), ladoPin, CIANO, 2);
+      ctx.font = `bold ${fonteLocal}px -apple-system, Arial, sans-serif`;
+      ctx.fillStyle = CINZA_CLARO;
+      ctx.fillText(truncarTexto(ctx, item.local, larguraTexto - ladoPin - 8), xTexto + ladoPin + 8, yCursor);
     }
   });
   ctx.textAlign = "center";
