@@ -37,9 +37,10 @@ async function bloquearSePlanoFree(seletorConteudo) {
 
 // Barrinha fixa por cima do banner, só no desktop (CSS esconde no mobile,
 // que já tem seu próprio tratamento de conta — ver .nav-usuario-mobile) —
-// os 2 atalhos mais usados + a conta, pra não depender de rolar até o
-// menu lateral pra essas ações do dia a dia. Criada em JS (não em cada
-// HTML) pra não precisar duplicar esse bloco em todas as páginas do site.
+// só a conta, pra não depender de rolar até o menu lateral pra isso.
+// Criada em JS (não em cada HTML) pra não precisar duplicar esse bloco em
+// todas as páginas do site. Os atalhos de Radar de Atletas/Competições que
+// ficavam aqui foram removidos — moram só no menu lateral agora.
 function montarBarraTopoDesktop() {
   let elTopo = document.getElementById("nav-usuario-topo");
   if (elTopo) return elTopo;
@@ -47,13 +48,7 @@ function montarBarraTopoDesktop() {
   const barra = document.createElement("div");
   barra.id = "barra-topo-desktop";
   barra.className = "barra-topo-desktop";
-  barra.innerHTML = `
-    <div class="atalhos-topo">
-      <a href="/buscador" class="atalho-topo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16" y2="16"/></svg><span>Radar de Atletas</span></a>
-      <a href="/competicoes" class="atalho-topo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 5H4v1a4 4 0 0 0 4 4"/><path d="M17 5h3v1a4 4 0 0 1-4 4"/></svg><span>Competições</span></a>
-    </div>
-    <div id="nav-usuario-topo" class="nav-usuario"></div>
-  `;
+  barra.innerHTML = `<div id="nav-usuario-topo" class="nav-usuario"></div>`;
   document.body.insertBefore(barra, document.body.firstChild);
   return document.getElementById("nav-usuario-topo");
 }
