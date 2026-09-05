@@ -1321,12 +1321,15 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
   margin: 0 0 12px;
 }
 
+/* Montserrat (--fonte-menu-topo) em vez do Oswald condensado do resto
+   do hero — pra quem já é usuário, o tom é mais "aplicativo sério" do
+   que a chamada de marketing de quem ainda não conhece o site. */
 .home-hero-saudacao {
   color: var(--azul);
-  font-family: var(--fonte-menu);
-  font-size: 2rem;
-  font-weight: 600;
-  letter-spacing: 0.01em;
+  font-family: var(--fonte-menu-topo);
+  font-size: 1.7rem;
+  font-weight: 700;
+  letter-spacing: 0;
   margin: 0 0 20px;
 }
 
@@ -1442,6 +1445,29 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
   .home-cta-secundario:hover:not(:disabled) { color: #e9edf2; border-bottom-color: #9aa5b1; }
   .home-cta-confianca { color: #35b384; }
 }
+
+/* Atalhos de quem já é usuário (Radar de Atletas + Ver Competições/
+   Minha Carreira/Minha Agenda) — empilhados (um embaixo do outro, largura
+   cheia) em vez de lado a lado quebrando linha sem padrão. O ícone é o
+   mesmo já usado pra cada um no menu lateral (ver nav-item-atleta em
+   home.html), pra não introduzir um segundo idioma visual. */
+#home-botoes-logado { display: flex; flex-direction: column; gap: 10px; max-width: 360px; }
+#home-botoes-logado p { margin: 0; }
+/* Sublinhado é o default do navegador pra <a> — sem reset aqui, o texto
+   do botão (que herda a cor do link) ficava sublinhado feito link
+   antigo, mesmo o <button> internamente já dizendo text-decoration:none
+   (a linha desenhada pelo ancestral <a> não é sempre cancelada pelo
+   filho em todo navegador). */
+#home-botoes-logado a { text-decoration: none; display: block; }
+.home-atalho-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  font-family: var(--fonte-menu-topo);
+  font-size: 0.95rem;
+}
+.home-atalho-btn svg { flex-shrink: 0; }
 
 .home-hero-visual {
   display: flex;

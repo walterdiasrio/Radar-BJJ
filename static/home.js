@@ -355,15 +355,18 @@ async function ajustarCartaoBoasVindas() {
   // bloco sempre aparece.
   elBotoesLogado.style.display = "block";
   const elBotaoBuscaRapida = document.getElementById("home-botao-busca-rapida");
+  // Mesmo ícone do "Radar de Atletas" no menu lateral (lupa) — reforça o
+  // assunto do botão em vez de ser só texto, igual aos atalhos abaixo.
+  const iconeRadar = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16" y2="16"/></svg>';
   if (!resumo.tem_assinatura) {
     // Sem "assinar pra usar" no texto — o botão leva pro /buscador normal,
     // que já redireciona sozinho pra /assinatura se precisar (ver
     // assinatura_necessaria em app.py).
-    elBotaoBuscaRapida.innerHTML = '<a href="/buscador"><button type="button">Radar de Atletas</button></a>';
+    elBotaoBuscaRapida.innerHTML = `<a href="/buscador"><button type="button" class="home-atalho-btn">${iconeRadar}Radar de Atletas</button></a>`;
   } else if (resumo.tem_filtro_salvo) {
-    elBotaoBuscaRapida.innerHTML = '<a href="/buscador?auto=1"><button type="button">Buscar Atleta com meu filtro salvo</button></a>';
+    elBotaoBuscaRapida.innerHTML = `<a href="/buscador?auto=1"><button type="button" class="home-atalho-btn">${iconeRadar}Buscar Atleta com meu filtro salvo</button></a>`;
   } else {
-    elBotaoBuscaRapida.innerHTML = '<a href="/buscador"><button type="button">Ir para o Radar de Atletas</button></a>';
+    elBotaoBuscaRapida.innerHTML = `<a href="/buscador"><button type="button" class="home-atalho-btn">${iconeRadar}Ir para o Radar de Atletas</button></a>`;
   }
 
   if (resumo.medalhas) {
