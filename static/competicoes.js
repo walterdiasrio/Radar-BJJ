@@ -100,9 +100,10 @@ function competicoesFiltradas() {
   });
 }
 
-// Monta a lista de estados só com as UFs que de fato apareceram nos
-// resultados carregados — evita mostrar opções vazias. Mantém a seleção
-// atual se ainda fizer sentido depois de recarregar.
+// Lista fixa com todos os 26 estados + DF, sempre disponível no filtro —
+// independe de quais UFs apareceram nos resultados carregados, pra dar pra
+// escolher (e descobrir que não há nada) mesmo num estado sem competição
+// nenhuma no momento.
 const NOMES_UF = {
   AC: "Acre", AL: "Alagoas", AP: "Amapá", AM: "Amazonas", BA: "Bahia",
   CE: "Ceará", DF: "Distrito Federal", ES: "Espírito Santo", GO: "Goiás",
@@ -114,17 +115,17 @@ const NOMES_UF = {
 };
 
 function popularEstados() {
-  const selecionadoAntes = elEstadoOpcoes.value;
-  const ufs = [...new Set(competicoesCarregadas.map(c => c.uf).filter(Boolean))].sort();
   elEstadoOpcoes.innerHTML =
     '<option value="">Todos os estados</option>' +
-    ufs.map(uf => `<option value="${uf}">${NOMES_UF[uf] || uf} (${uf})</option>`).join("");
-  if (ufs.includes(selecionadoAntes)) elEstadoOpcoes.value = selecionadoAntes;
+    Object.keys(NOMES_UF).map(uf => `<option value="${uf}">${NOMES_UF[uf]} (${uf})</option>`).join("");
 }
+popularEstados();
 
-function renderizarCompeticoes(competicoes) {
+function renderizarCompeticoes(competicoes, mensagemVazia) {
   if (!competicoes.length) {
-    elResultados.innerHTML = "";
+    elResultados.innerHTML = mensagemVazia
+      ? `<p style="color: #b3261e; font-weight: 600;">${mensagemVazia}</p>`
+      : "";
     return;
   }
 
@@ -241,12 +242,16 @@ async function carregar() {
     if (!resp.ok) throw new Error(dados.erro || "erro ao carregar competições");
 
     competicoesCarregadas = dados.competicoes;
-    popularEstados();
     const filtradas = competicoesFiltradas();
-    renderizarCompeticoes(filtradas);
-    let resumo = `${filtradas.length} de ${dados.total} competição(ões) encontrada(s).`;
+    const estadoSelecionado = elEstadoOpcoes.value;
+    const semResultadoNoEstado = estadoSelecionado && !filtradas.length;
+    const mensagemVazia = semResultadoNoEstado
+      ? `Nenhuma competição encontrada em ${NOMES_UF[estadoSelecionado] || estadoSelecionado} para os filtros selecionados.`
+      : "";
+    renderizarCompeticoes(filtradas, mensagemVazia);
+    let resumo = mensagemVazia || `${filtradas.length} de ${dados.total} competição(ões) encontrada(s).`;
     const avisos = (dados.avisos || []).join(" ");
-    mostrarStatus(avisos ? `${resumo} ${avisos}` : resumo);
+    mostrarStatus(avisos ? `${resumo} ${avisos}` : resumo, semResultadoNoEstado);
   } catch (err) {
     mostrarStatus(`Erro ao carregar: ${err.message}`, true);
   } finally {
