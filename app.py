@@ -982,7 +982,7 @@ def api_sair():
 @app.get("/api/federacoes")
 def api_federacoes():
     return jsonify([
-        {"id": fid, "label": info["label"]} for fid, info in FEDERACOES.items()
+        {"id": fid, "label": info["label"], "nome": info.get("nome", "")} for fid, info in FEDERACOES.items()
     ])
 
 

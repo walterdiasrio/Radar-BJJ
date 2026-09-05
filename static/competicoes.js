@@ -26,7 +26,7 @@ async function carregarFederacoes() {
 function construirOpcoesFederacao(container, federacoes) {
   container.innerHTML =
     `<label class="opcao-todas"><input type="checkbox" value="${TODAS}"> Todas as federações</label>` +
-    federacoes.map(f => `<label><input type="checkbox" value="${f.id}"> ${f.label}</label>`).join("");
+    federacoes.map(f => `<label title="${f.nome || ""}"><input type="checkbox" value="${f.id}"> ${f.label}</label>`).join("");
 
   const checkboxes = Array.from(container.querySelectorAll('input[type="checkbox"]'));
   const todasCheckbox = checkboxes[0];

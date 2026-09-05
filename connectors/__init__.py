@@ -20,17 +20,17 @@ from . import cbjj, fjjrio, cbjjd, cbjjo, cbjje, fpjj, cbjjc, fjjpe, fjjemg, adc
 MAX_WORKERS = int(os.environ.get("BUSCA_MAX_WORKERS", 8))
 
 FEDERACOES = {
-    "cbjj": {"label": "CBJJ", "module": cbjj},
-    "fjjrio": {"label": "FJJRio", "module": fjjrio},
-    "cbjjd": {"label": "CBJJD", "module": cbjjd},
-    "cbjjo": {"label": "CBJJO", "module": cbjjo},
-    "cbjje": {"label": "CBJJE", "module": cbjje},
-    "fpjj": {"label": "FPJJ", "module": fpjj},
-    "cbjjc": {"label": "CBJJC", "module": cbjjc},
-    "fjjpe": {"label": "FJJPE", "module": fjjpe},
-    "fjjemg": {"label": "FJJEMG", "module": fjjemg},
-    "adcc": {"label": "ADCC", "module": adcc},
-    "ajp": {"label": "AJP", "module": ajp},
+    "cbjj": {"label": "CBJJ", "nome": "Confederação Brasileira de Jiu-Jitsu", "module": cbjj},
+    "fjjrio": {"label": "FJJRio", "nome": "Federação de Jiu-Jitsu do Estado do Rio de Janeiro", "module": fjjrio},
+    "cbjjd": {"label": "CBJJD", "nome": "Confederação Brasileira de Jiu-Jitsu Desportivo", "module": cbjjd},
+    "cbjjo": {"label": "CBJJO", "nome": "Confederação Brasileira de Jiu-Jitsu Olímpico", "module": cbjjo},
+    "cbjje": {"label": "CBJJE", "nome": "Confederação Brasileira de Jiu-Jitsu Esportivo", "module": cbjje},
+    "fpjj": {"label": "FPJJ", "nome": "Federação Paulista de Jiu-Jitsu", "module": fpjj},
+    "cbjjc": {"label": "CBJJC", "nome": "Confederação Brasileira de Jiu-Jitsu Competitivo", "module": cbjjc},
+    "fjjpe": {"label": "FJJPE", "nome": "Federação de Jiu-Jitsu do Estado de Pernambuco", "module": fjjpe},
+    "fjjemg": {"label": "FJJEMG", "nome": "Federação de Jiu-Jitsu do Estado de Minas Gerais", "module": fjjemg},
+    "adcc": {"label": "ADCC", "nome": "Abu Dhabi Combat Club", "module": adcc},
+    "ajp": {"label": "AJP", "nome": "Abu Dhabi Jiu-Jitsu Pro", "module": ajp},
 }
 _ORDEM_FEDERACAO = {fid: i for i, fid in enumerate(FEDERACOES)}
 

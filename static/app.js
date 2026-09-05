@@ -44,7 +44,7 @@ async function carregarFederacoes() {
 // disparar isso sem querer). Quem quiser mesmo buscar em tudo ainda
 // consegue, marcando cada federação uma por uma.
 function construirOpcoesFederacao(container, federacoes, onChange) {
-  container.innerHTML = federacoes.map(f => `<label><input type="checkbox" value="${f.id}"> ${f.label}</label>`).join("");
+  container.innerHTML = federacoes.map(f => `<label title="${f.nome || ""}"><input type="checkbox" value="${f.id}"> ${f.label}</label>`).join("");
   container.addEventListener("change", onChange);
 }
 
