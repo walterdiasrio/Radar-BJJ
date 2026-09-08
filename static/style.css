@@ -348,11 +348,27 @@ header {
      indicador. */
   nav.menu-lateral:not(.menu-lateral-rodape) a.ativo { border-bottom-color: transparent; }
 
-  /* Conta já mora na barrinha do topo (ver .barra-topo-desktop) — esconde
-     a réplica original aqui pra não duplicar (o #nav-usuario original
-     continua no HTML/DOM, ainda é a fonte de Entrar/Cadastrar dentro do
-     menu rolante do mobile). */
-  nav.menu-lateral:not(.menu-lateral-rodape) .nav-usuario { display: none; }
+  /* Conta já mora na barrinha do topo (ver .barra-topo-desktop), mas
+     também fica aqui embaixo no menu lateral — pedido explícito pra não
+     precisar depender só do topo (nem rolar a página inteira até o
+     rodapé, ver .menu-lateral-rodape). "order" + "margin-top:auto" fixam
+     no fim do menu (depois de todos os links), sem precisar mover o nó
+     no HTML — some do topo do menu de propósito (a posição original,
+     logo abaixo dos toggles mobile, é só pro layout mobile). */
+  nav.menu-lateral:not(.menu-lateral-rodape) .nav-usuario {
+    display: flex;
+    order: 100;
+    margin-top: auto;
+    /* O degradê de fundo do menu (--menu-fade-inicio, ver
+       ajustarDegradeMenu em auth-nav.js) é calculado pelo ÚLTIMO filho na
+       ORDEM DO HTML, não na ordem visual — como esse bloco vira o último
+       visualmente só via CSS (order), ele cai na parte já esmaecida/
+       transparente do degradê. Fundo sólido próprio + borda de separação
+       resolvem sem precisar reescrever o cálculo em JS. */
+    background: rgba(9, 40, 130, 0.85);
+    border-top: 1px solid rgba(130, 180, 255, 0.35);
+    flex-shrink: 0;
+  }
 
   /* Barra fina fixa por cima do banner (mesmo tratamento visual do menu
      horizontal original: transparente, texto branco com sombra) — só
