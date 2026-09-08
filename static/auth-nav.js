@@ -92,7 +92,6 @@ async function carregarSessaoNoMenu() {
   const elTurmas = document.getElementById("nav-turmas");
   const elTurmasMobile = document.getElementById("nav-turmas-toggle-mobile");
   const elPlanos = document.getElementById("nav-planos");
-  const elMeuPerfilLateral = document.getElementById("nav-meu-perfil-lateral");
 
   // Pra quem ainda não tem login, "Planos" é o link mais importante do menu
   // (é o caminho pra virar assinante) — por isso fica antes de "Radar de
@@ -164,7 +163,6 @@ async function carregarSessaoNoMenu() {
       if (elTurmas) elTurmas.style.display = dados.mestre ? "" : "none";
       if (elTurmasMobile) elTurmasMobile.style.display = dados.mestre ? "" : "none";
       if (elPlanos) elPlanos.style.display = "none";
-      if (elMeuPerfilLateral) elMeuPerfilLateral.style.display = "";
       if (dados.mestre) await carregarSubmenuTurmas();
       aplicarSessao({ logado: true, mestre: !!dados.mestre, admin: !!dados.admin, email: dados.email });
     } else {
@@ -181,7 +179,6 @@ async function carregarSessaoNoMenu() {
       if (elTurmas) elTurmas.style.display = "none";
       if (elTurmasMobile) elTurmasMobile.style.display = "none";
       if (elPlanos) elPlanos.style.display = "";
-      if (elMeuPerfilLateral) elMeuPerfilLateral.style.display = "none";
       reordenarPlanosAntesDoRadar();
       aplicarSessao({ logado: false, mestre: false, admin: false });
     }
@@ -196,7 +193,6 @@ async function carregarSessaoNoMenu() {
     if (elTurmas) elTurmas.style.display = "none";
     if (elTurmasMobile) elTurmasMobile.style.display = "none";
     if (elPlanos) elPlanos.style.display = "";
-    if (elMeuPerfilLateral) elMeuPerfilLateral.style.display = "none";
     reordenarPlanosAntesDoRadar();
     aplicarSessao({ logado: false, mestre: false, admin: false });
   }
