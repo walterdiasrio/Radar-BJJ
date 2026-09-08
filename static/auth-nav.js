@@ -7,13 +7,15 @@
 // falhasse por algum motivo, não dava pra usar a ferramenta de fato —
 // isso aqui é só a experiência visual, não a proteção real dos dados.
 // `seletorConteudo` é o elemento (ou seletor) a esconder; o aviso entra
-// no lugar dele.
+// no lugar dele. `resumo` é uma frase curta e específica do que aquela
+// ferramenta faz (cada página passa a sua — texto genérico não convence
+// ninguém a assinar) — sem ele, cai num resumo neutro.
 // Retorna true se bloqueou (sem acesso) — quem chama usa isso pra pular
 // outras chamadas de API que também exigem assinatura (essas continuam
 // dando 402, e fetchAutenticado já redireciona sozinho nesse caso — sem
 // pular, a pessoa via o aviso por uma fração de segundo e já saía voando
 // pra /assinatura de novo, por causa de alguma OUTRA chamada da página).
-async function bloquearSePlanoFree(seletorConteudo) {
+async function bloquearSePlanoFree(seletorConteudo, resumo) {
   let dados;
   try {
     const resp = await fetch("/api/sessao");
@@ -29,7 +31,11 @@ async function bloquearSePlanoFree(seletorConteudo) {
 
   const aviso = document.createElement("div");
   aviso.className = "aviso-plano-pro";
-  aviso.innerHTML = `🔒 Ferramenta exclusiva para o Plano PRO. <a href="/assinatura">Teste Grátis clicando aqui</a>.`;
+  aviso.innerHTML = `
+    <div class="aviso-plano-pro-selo">🔒 Exclusivo do Plano PRO</div>
+    <p class="aviso-plano-pro-resumo">${resumo || "Essa ferramenta faz parte do Plano PRO."}</p>
+    <a href="/assinatura" class="aviso-plano-pro-botao">Testar grátis por 7 dias</a>
+  `;
   elConteudo.parentNode.insertBefore(aviso, elConteudo);
   elConteudo.style.display = "none";
   return true;

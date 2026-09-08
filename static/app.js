@@ -4,7 +4,10 @@ const TODAS = "todas";
 // abaixo espera ela resolver antes de decidir se chama carregarFiltroPadrao
 // (também exige assinatura): sem esperar, fetchAutenticado já redirecionava
 // sozinho pra /assinatura antes da pessoa nem ver o aviso.
-const promessaBloqueioPlanoFree = bloquearSePlanoFree("#conteudo-plano-pro");
+const promessaBloqueioPlanoFree = bloquearSePlanoFree(
+  "#conteudo-plano-pro",
+  "Encontre seus adversários antes de todo mundo: busque atletas inscritos em 9 federações, filtrando por categoria, peso e faixa, com apenas um clique."
+);
 
 const elFederacaoOpcoes = document.getElementById("federacao-opcoes");
 const elEvento = document.getElementById("evento");
