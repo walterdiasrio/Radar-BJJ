@@ -695,6 +695,19 @@ def api_admin_reenviar_confirmacao(usuario_id):
     return jsonify({"ok": True, "email_enviado": email_enviado})
 
 
+@app.post("/api/usuarios/<int:usuario_id>/confirmar-email-manualmente")
+@api_admin_necessario
+def api_admin_confirmar_email_manualmente(usuario_id):
+    usuario = auth.buscar_por_id(usuario_id)
+    if not usuario:
+        return jsonify({"erro": "usuário não encontrado"}), 404
+    linha = auth.buscar_por_email(usuario["email"])
+    if linha and linha["email_verificado"]:
+        return jsonify({"erro": "esse e-mail já está confirmado"}), 400
+    auth.confirmar_email_manualmente(usuario_id)
+    return jsonify({"ok": True})
+
+
 @app.post("/api/usuarios/enviar-email")
 @api_admin_necessario
 def api_enviar_email_avulso():

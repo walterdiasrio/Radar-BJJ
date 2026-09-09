@@ -289,6 +289,16 @@ def definir_tipo_perfil(usuario_id, tipo_perfil):
     return cursor.rowcount > 0
 
 
+def confirmar_email_manualmente(usuario_id):
+    """Retorna True se confirmou (usuário existe). Usado pelo admin quando a
+    pessoa nunca recebeu o link por e-mail (provedores como Hotmail/Outlook
+    filtram e-mail transacional com frequência) — evita depender só do
+    reenvio, que cairia na mesma armadilha de entrega."""
+    with _conn() as conn:
+        cursor = conn.execute("UPDATE usuarios SET email_verificado = 1 WHERE id = ?", (usuario_id,))
+    return cursor.rowcount > 0
+
+
 def definir_nome_usuario(usuario_id, nome_usuario):
     """Retorna (ok, erro). Formato: letras, números e underscore, 3 a 20
     caracteres — igual a um @ de rede social. Aceita maiúscula na entrada

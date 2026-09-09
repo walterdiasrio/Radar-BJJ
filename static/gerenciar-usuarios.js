@@ -109,6 +109,7 @@ function abrirMenuAcoes(usuario, botao) {
     <button type="button" class="item-acao" data-acao="perfil">Tornar ${novoPerfil === "mestre" ? "Mestre" : "Atleta"}</button>
     <button type="button" class="item-acao" data-acao="email">Editar e-mail</button>
     ${!usuario.email_verificado ? `<button type="button" class="item-acao" data-acao="reenviar">Reenviar confirmação</button>` : ""}
+    ${!usuario.email_verificado ? `<button type="button" class="item-acao" data-acao="confirmar-manual">Marcar como confirmado</button>` : ""}
     ${contaEhFree(usuario) ? `<button type="button" class="item-acao item-acao-perigo" data-acao="apagar">Apagar</button>` : ""}
   `;
   document.body.appendChild(menu);
@@ -126,6 +127,7 @@ function abrirMenuAcoes(usuario, botao) {
     if (item.dataset.acao === "perfil") alternarPerfil(usuario, novoPerfil, botao);
     else if (item.dataset.acao === "email") editarEmail(usuario, botao);
     else if (item.dataset.acao === "reenviar") reenviarConfirmacao(usuario, botao);
+    else if (item.dataset.acao === "confirmar-manual") confirmarEmailManualmente(usuario, botao);
     else if (item.dataset.acao === "apagar") apagarUsuario(usuario, botao);
   });
 
@@ -172,6 +174,22 @@ async function editarEmail(usuario, botao) {
     const dados = await resp.json();
     if (!resp.ok) throw new Error(dados.erro || "erro ao alterar e-mail");
     mostrarStatus(`E-mail corrigido para ${dados.email} — link de confirmação reenviado.`);
+    await carregarUsuarios();
+  } catch (err) {
+    mostrarStatus(`Erro: ${err.message}`, true);
+    botao.disabled = false;
+  }
+}
+
+async function confirmarEmailManualmente(usuario, botao) {
+  if (!confirm(`Confirmar o e-mail de ${usuario.email} manualmente, sem esperar o link? Use quando a pessoa não recebe o e-mail (comum com Hotmail/Outlook, que filtram bastante).`)) return;
+
+  botao.disabled = true;
+  try {
+    const resp = await fetchAutenticado(`/api/usuarios/${usuario.id}/confirmar-email-manualmente`, { method: "POST" });
+    const dados = await resp.json();
+    if (!resp.ok) throw new Error(dados.erro || "erro ao confirmar e-mail");
+    mostrarStatus(`E-mail de ${usuario.email} confirmado manualmente.`);
     await carregarUsuarios();
   } catch (err) {
     mostrarStatus(`Erro: ${err.message}`, true);
