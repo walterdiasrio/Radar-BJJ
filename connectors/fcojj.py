@@ -34,13 +34,14 @@ Adolescente, Juvenil, Adulto, Master 1-4) são um sistema próprio da
 federação, diferente da tabela CBJJ/IBJJF (Mirim/Infantil/Infanto-Juvenil)
 usada pela maioria das outras — a tabela de ano de nascimento -> categoria
 está registrada em connectors/idade.py::_FCOJJ, extraída do edital oficial
-do Campeonato Brasiliense de Jiu-Jitsu 2026 (Cláusula Terceira), então o
-filtro de "ano de nascimento" já funciona. O de peso (kg), não: o edital diz
-que os limites seguem "os parâmetros da AJP" mas remete a uma tabela em
-"formato visual anexo" que não veio no PDF do edital — sem os números,
-connectors/peso.py não tem entrada pra "fcojj" (mesmo comportamento de
-qualquer federação fora de lá: mostra aviso, não filtra por peso). Nome,
-equipe, gênero e faixa buscam normalmente.
+do Campeonato Brasiliense de Jiu-Jitsu 2026 (Cláusula Terceira). A tabela de
+peso (connectors/peso.py::_fcojj) veio da imagem oficial "CATEGORIAS DE
+PESO MASCULINO/FEMININO - AJP" enviada pelo usuário — diferente da CBJJ, a
+categoria de peso AQUI não tem nome próprio (Galo/Pluma/...): o rótulo É o
+limite em kg (ex: "-56KG"), formato que _traduzir_peso já produz a partir
+do texto bruto da API ("ATE 56KG" -> "-56KG"). Com as duas tabelas, os
+filtros de ano de nascimento E peso funcionam; nome, equipe, gênero e faixa
+sempre funcionaram.
 
 Limitação conhecida do filtro por ano de nascimento: quando o organizador
 junta dois brackets de Master adjacentes por falta de inscritos (ex:

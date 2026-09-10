@@ -462,6 +462,73 @@ def _fjjemg(idade, genero):
     return _CBJJ_FJJRIO_ADULTO_FEM if genero == "feminino" else _CBJJ_FJJRIO_ADULTO_MASC
 
 
+# ---------------------------------------------------------------------------
+# FCOJJ — tabela oficial "CATEGORIAS DE PESO MASCULINO/FEMININO - AJP"
+# (enviada pelo usuário em 09/09/2026, junto ao edital do Campeonato
+# Brasiliense de Jiu-Jitsu 2026). Diferente de toda outra federação daqui,
+# a FCOJJ/AJP não nomeia as categorias de peso (Galo/Pluma/...) — o rótulo
+# da categoria É o próprio limite em kg (ex: "-56kg", "+120kg"), então os
+# nomes abaixo usam esse formato direto (ver _pares_peso), pra bater com o
+# jeito que connectors/fcojj.py já formata o peso de cada atleta
+# (fcojj._traduzir_peso: "ATE 56KG" -> "-56KG"). "Adulto" e "Master"
+# (qualquer nível) usam a mesma linha da tabela ("ADULTO / MASTER"), então
+# uma única faixa cobre idade >= 18.
+# ---------------------------------------------------------------------------
+def _pares_peso(*limites):
+    """(nome, limite) no formato AJP: cada valor de `limites` é o teto (kg)
+    de uma categoria fechada "-XKG"; o último valor também abre a categoria
+    "+XKG", sem limite superior."""
+    pares = [(f"-{lim:g}KG", lim) for lim in limites]
+    pares.append((f"+{limites[-1]:g}KG", None))
+    return pares
+
+
+_FCOJJ_MASC = {
+    "kids1": _pares_peso(16, 18, 21, 24, 28, 32, 36, 44),
+    "kids2": _pares_peso(17, 20, 23, 26, 30, 34, 38, 46),
+    "kids3": _pares_peso(21, 24, 27, 30, 34, 38, 42, 50),
+    "infantil": _pares_peso(24, 27, 30, 34, 38, 42, 46, 50, 62),
+    "junior": _pares_peso(34, 37, 41, 45, 50, 55, 60, 66, 78),
+    "adolescente": _pares_peso(38, 42, 46, 50, 56, 62, 67, 72, 84),
+    "juvenil": _pares_peso(46, 50, 55, 60, 66, 73, 81, 94),
+    "adulto_master": _pares_peso(56, 62, 69, 77, 85, 94, 120),
+}
+
+_FCOJJ_FEM = {
+    "kids1": _pares_peso(16, 18, 21, 24, 28, 32, 36, 44),
+    "kids2": _pares_peso(17, 19, 22, 25, 29, 33, 37, 44),
+    "kids3": _pares_peso(20, 22, 25, 28, 32, 36, 40, 48),
+    "infantil": _pares_peso(22, 25, 28, 32, 36, 40, 44, 48, 60),
+    "junior": _pares_peso(32, 36, 40, 44, 48, 52, 57, 63, 75),
+    "adolescente": _pares_peso(36, 40, 44, 48, 52, 57, 63, 68, 80),
+    "juvenil": _pares_peso(40, 44, 48, 52, 57, 63, 70, 82),
+    "adulto_master": _pares_peso(49, 55, 62, 70, 95),
+}
+
+
+def _faixa_etaria_fcojj(idade):
+    if idade <= 5:
+        return "kids1"
+    if idade <= 7:
+        return "kids2"
+    if idade <= 9:
+        return "kids3"
+    if idade <= 11:
+        return "infantil"
+    if idade <= 13:
+        return "junior"
+    if idade <= 15:
+        return "adolescente"
+    if idade <= 17:
+        return "juvenil"
+    return "adulto_master"
+
+
+def _fcojj(idade, genero):
+    tabela = _FCOJJ_FEM if genero == "feminino" else _FCOJJ_MASC
+    return tabela[_faixa_etaria_fcojj(max(idade, 4))]
+
+
 _FUNCOES = {
     "cbjj": _cbjj_fjjrio,
     "fjjrio": _cbjj_fjjrio,
@@ -480,6 +547,7 @@ _FUNCOES = {
     # oficial própria de kg publicada, reaproveita os mesmos limites por
     # idade/gênero (mesma suposição já usada pra FJJPE).
     "fjjgo": _cbjj_fjjrio,
+    "fcojj": _fcojj,
 }
 
 # Federações onde já confirmamos que a competição Sem Kimono usa uma tabela
