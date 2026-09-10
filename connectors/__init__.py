@@ -5,7 +5,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date
 
-from . import cbjj, fjjrio, cbjjd, cbjjo, cbjje, fpjj, cbjjc, fjjpe, fjjemg, fjjgo, adcc, ajp, idade as idade_mod, peso as peso_mod, datas as datas_mod
+from . import cbjj, fjjrio, cbjjd, cbjjo, cbjje, fpjj, cbjjc, fjjpe, fjjemg, fjjgo, fcojj, adcc, ajp, idade as idade_mod, peso as peso_mod, datas as datas_mod
 
 # Quantas buscas em paralelo por vez. Já foi reduzido de 8 pra 4 quando o
 # Render Starter (512MB de RAM) derrubou o serviço por estouro de memória
@@ -35,6 +35,11 @@ FEDERACOES = {
     "fjjpe": {"label": "FJJPE", "nome": "Federação de Jiu-Jitsu do Estado de Pernambuco", "module": fjjpe, "grupo": "estadual", "uf": "PE"},
     "fjjemg": {"label": "FJJEMG", "nome": "Federação de Jiu-Jitsu do Estado de Minas Gerais", "module": fjjemg, "grupo": "estadual", "uf": "MG"},
     "fjjgo": {"label": "FJJGO", "nome": "Federação de Jiu-Jitsu de Goiás", "module": fjjgo, "grupo": "estadual", "uf": "GO"},
+    # FCOJJ é regional (Centro-Oeste, não um único estado), mas seu único
+    # evento com inscrição ativa roda em Brasília — "DF" aqui é a sede/onde
+    # a competição acontece, não uma afirmação de que a federação só cobre
+    # o Distrito Federal (ver docstring de connectors/fcojj.py).
+    "fcojj": {"label": "FCOJJ", "nome": "Federação Centro-Oeste de Jiu-Jitsu e Artes Marciais", "module": fcojj, "grupo": "estadual", "uf": "DF"},
     "adcc": {"label": "ADCC", "nome": "Abu Dhabi Combat Club", "module": adcc, "grupo": "internacional"},
     "ajp": {"label": "AJP", "nome": "Abu Dhabi Jiu-Jitsu Pro", "module": ajp, "grupo": "internacional"},
 }
@@ -588,8 +593,10 @@ _PALAVRAS_ADULTO = re.compile(r"\bmaster\b|\badulto\b|\bjuvenil\b", re.I)
 # FJJGO entra aqui pelo mesmo motivo: "CAMPEONATO CENTRO-OESTE BRASILEIRO DE
 # JIU-JITSU" não tem nenhuma palavra kids/adulto no nome, mas a checagem real
 # mostrou Mirim/Infantil/Infanto-Juvenil misturados com Adulto/Master no
-# mesmo evento (ver connectors/fjjgo.py).
-_FEDERACOES_SEM_SEPARACAO_POR_NOME = {"cbjjd", "cbjjo", "cbjje", "ajp", "adcc", "fjjemg", "fjjgo"}
+# mesmo evento (ver connectors/fjjgo.py). FCOJJ pelo mesmo motivo: "CAMPEONATO
+# BRASILIENSE DE JIU-JITSU" mistura Kids/Infantil/Júnior/Adolescente/Juvenil/
+# Adulto/Master (ver connectors/fcojj.py).
+_FEDERACOES_SEM_SEPARACAO_POR_NOME = {"cbjjd", "cbjjo", "cbjje", "ajp", "adcc", "fjjemg", "fjjgo", "fcojj"}
 
 
 def _classificar_publico(nome, fed):
