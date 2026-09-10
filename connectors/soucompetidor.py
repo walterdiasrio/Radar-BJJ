@@ -220,7 +220,7 @@ def _genero_pt(genero_raw):
     return g if g in ("masculino", "feminino") else g
 
 
-def _atletas_das_linhas(linhas):
+def _atletas_das_linhas(linhas, federacao="AJP"):
     atletas = []
     for linha in linhas:
         partes = [p.strip() for p in linha["categoria"].split("/")]
@@ -230,7 +230,7 @@ def _atletas_das_linhas(linhas):
         if "nogi" in idade_raw.lower():
             continue
         atletas.append({
-            "federacao": "AJP",
+            "federacao": federacao,
             "nome": linha["nome"],
             "equipe": linha["equipe"],
             "categoria_idade": _traduzir_idade(idade_raw),

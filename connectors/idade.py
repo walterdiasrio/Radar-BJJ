@@ -187,6 +187,41 @@ _FJJEMG = [
     (56, None, "Master 6"),
 ]
 
+# ---------------------------------------------------------------------------
+# FJJGO — rótulos exatamente como aparecem na checagem geral do
+# SouCompetidor (soucompetidor.com.br) pro Campeonato Centro-Oeste
+# Brasileiro de Jiu-Jitsu 2026: "MIRIM 2/3", "INFANTIL 1/2/3", "INF-JUV
+# 1/2/3" (traduzido pra Infanto-Juvenil, ver fjjgo._traduzir_idade),
+# "JUVENIL" sem separar 1/2 (diferente da CBJJ/FJJRio, que divide em Juvenil
+# 1 e 2), "ADULTO", "MASTER 1" a "MASTER 5" (conferido ao vivo em
+# 09/09/2026 — sem ninguém inscrito em Master 6 nesse evento pra confirmar,
+# mas mantido pelo padrão comum a toda federação brasileira). Faixas de
+# Pré-Mirim (4-6 anos) sem confirmação direta (poucos inscritos nessa idade
+# no evento lido) — mantidas iguais à CBJJ/FJJRio por ser o padrão mais comum.
+# ---------------------------------------------------------------------------
+_FJJGO = [
+    (4, 4, "Pré-Mirim 1"),
+    (5, 5, "Pré-Mirim 2"),
+    (6, 6, "Pré-Mirim 3"),
+    (7, 7, "Mirim 1"),
+    (8, 8, "Mirim 2"),
+    (9, 9, "Mirim 3"),
+    (10, 10, "Infantil 1"),
+    (11, 11, "Infantil 2"),
+    (12, 12, "Infantil 3"),
+    (13, 13, "Infanto-Juvenil 1"),
+    (14, 14, "Infanto-Juvenil 2"),
+    (15, 15, "Infanto-Juvenil 3"),
+    (16, 17, "Juvenil"),
+    (18, 29, "Adulto"),
+    (30, 35, "Master 1"),
+    (36, 40, "Master 2"),
+    (41, 45, "Master 3"),
+    (46, 50, "Master 4"),
+    (51, 55, "Master 5"),
+    (56, None, "Master 6"),
+]
+
 TABELAS = {
     "cbjj": _CBJJ_FJJRIO,
     "fjjrio": _CBJJ_FJJRIO,
@@ -204,6 +239,7 @@ TABELAS = {
     # ("PRE MIRIM 1") para esses rótulos (ver fjjpe._idade_normalizada).
     "fjjpe": _CBJJ_FJJRIO,
     "fjjemg": _FJJEMG,
+    "fjjgo": _FJJGO,
 }
 
 

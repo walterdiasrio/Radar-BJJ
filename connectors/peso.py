@@ -474,6 +474,12 @@ _FUNCOES = {
     # peso da federação) — reaproveita a mesma tabela da CBJJ/FJJRio.
     "fjjpe": _cbjj_fjjrio,
     "fjjemg": _fjjemg,
+    # FJJGO: os nomes de categoria de peso na checagem real (GALO, PLUMA,
+    # PENA, LEVE, MEDIO, MEIO-PESADO, PESADO, SUPER-PESADO, PESADISSIMO) são
+    # exatamente os mesmos rótulos da tabela CBJJ/FJJRio — sem uma tabela
+    # oficial própria de kg publicada, reaproveita os mesmos limites por
+    # idade/gênero (mesma suposição já usada pra FJJPE).
+    "fjjgo": _cbjj_fjjrio,
 }
 
 # Federações onde já confirmamos que a competição Sem Kimono usa uma tabela

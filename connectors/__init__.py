@@ -5,7 +5,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date
 
-from . import cbjj, fjjrio, cbjjd, cbjjo, cbjje, fpjj, cbjjc, fjjpe, fjjemg, adcc, ajp, idade as idade_mod, peso as peso_mod, datas as datas_mod
+from . import cbjj, fjjrio, cbjjd, cbjjo, cbjje, fpjj, cbjjc, fjjpe, fjjemg, fjjgo, adcc, ajp, idade as idade_mod, peso as peso_mod, datas as datas_mod
 
 # Quantas buscas em paralelo por vez. Já foi reduzido de 8 pra 4 quando o
 # Render Starter (512MB de RAM) derrubou o serviço por estouro de memória
@@ -29,6 +29,7 @@ FEDERACOES = {
     "cbjjc": {"label": "CBJJC", "nome": "Confederação Brasileira de Jiu-Jitsu Competitivo", "module": cbjjc},
     "fjjpe": {"label": "FJJPE", "nome": "Federação de Jiu-Jitsu do Estado de Pernambuco", "module": fjjpe},
     "fjjemg": {"label": "FJJEMG", "nome": "Federação de Jiu-Jitsu do Estado de Minas Gerais", "module": fjjemg},
+    "fjjgo": {"label": "FJJGO", "nome": "Federação de Jiu-Jitsu de Goiás", "module": fjjgo},
     "adcc": {"label": "ADCC", "nome": "Abu Dhabi Combat Club", "module": adcc},
     "ajp": {"label": "AJP", "nome": "Abu Dhabi Jiu-Jitsu Pro", "module": ajp},
 }
@@ -579,7 +580,11 @@ _PALAVRAS_ADULTO = re.compile(r"\bmaster\b|\badulto\b|\bjuvenil\b", re.I)
 # federações, na ausência de palavra-chave no nome, o padrão é "ambos" (a
 # competição pode ter categoria kids) em vez de "adulto", senão o filtro
 # Kids nunca mostra nada pra elas.
-_FEDERACOES_SEM_SEPARACAO_POR_NOME = {"cbjjd", "cbjjo", "cbjje", "ajp", "adcc", "fjjemg"}
+# FJJGO entra aqui pelo mesmo motivo: "CAMPEONATO CENTRO-OESTE BRASILEIRO DE
+# JIU-JITSU" não tem nenhuma palavra kids/adulto no nome, mas a checagem real
+# mostrou Mirim/Infantil/Infanto-Juvenil misturados com Adulto/Master no
+# mesmo evento (ver connectors/fjjgo.py).
+_FEDERACOES_SEM_SEPARACAO_POR_NOME = {"cbjjd", "cbjjo", "cbjje", "ajp", "adcc", "fjjemg", "fjjgo"}
 
 
 def _classificar_publico(nome, fed):
