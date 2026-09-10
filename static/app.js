@@ -40,6 +40,19 @@ async function carregarFederacoes() {
   construirOpcoesFederacao(elFederacaoOpcoes, federacoes, onFederacaoMudou);
 }
 
+// Agrupa por tipo (ver "grupo" em connectors/__init__.py::FEDERACOES) em vez
+// de uma fileira só com as 12 siglas — misturado, "CBJJD"/"CBJJO"/"CBJJE"/
+// "CBJJC" (confederações nacionais) ficavam ao lado de "FJJRio"/"FJJPE"
+// (federações estaduais), quase indistinguíveis de relance. Cada grupo vira
+// uma seção com título; federações estaduais também mostram a UF entre
+// parênteses, já que o nome sozinho ("FJJGO") não deixa óbvio que é um
+// estado (Goiás) pra quem não conhece a sigla.
+const GRUPOS_FEDERACAO = [
+  { id: "nacional", titulo: "Confederações nacionais" },
+  { id: "estadual", titulo: "Federações estaduais" },
+  { id: "internacional", titulo: "Circuito internacional" },
+];
+
 // Monta os checkboxes de federação: nenhuma marcada por padrão, sem atalho
 // "Todas as federações" de propósito (removido em 26/08/2026 — buscar em
 // todas as federações e todas as competições de uma vez é a combinação mais
@@ -47,7 +60,21 @@ async function carregarFederacoes() {
 // disparar isso sem querer). Quem quiser mesmo buscar em tudo ainda
 // consegue, marcando cada federação uma por uma.
 function construirOpcoesFederacao(container, federacoes, onChange) {
-  container.innerHTML = federacoes.map(f => `<label title="${f.nome || ""}"><input type="checkbox" value="${f.id}"> ${f.label}</label>`).join("");
+  container.innerHTML = GRUPOS_FEDERACAO.map(grupo => {
+    const dessegrupo = federacoes.filter(f => f.grupo === grupo.id);
+    if (!dessegrupo.length) return "";
+    const opcoes = dessegrupo.map(f => {
+      const sufixoUf = f.uf ? ` (${f.uf})` : "";
+      return `<label title="${f.nome || ""}">
+        <img src="/img/federacoes/${f.id}.png" class="logo-mini-federacao" alt="" loading="lazy" onerror="this.style.display='none'">
+        <input type="checkbox" value="${f.id}"> ${f.label}${sufixoUf}
+      </label>`;
+    }).join("");
+    return `<div class="grupo-federacao">
+      <div class="grupo-federacao-titulo">${grupo.titulo}</div>
+      <div class="opcoes-federacao-grupo">${opcoes}</div>
+    </div>`;
+  }).join("");
   container.addEventListener("change", onChange);
 }
 
@@ -219,7 +246,7 @@ function renderizarResultados(atletas) {
     const totalFederacao = [...blocoFed.eventos.values()].reduce((soma, ev) => soma + ev.itens.length, 0);
     return `
     <section class="bloco-federacao">
-      <h2><img src="/img/federacoes/${(blocoFed.federacao || "").toLowerCase()}.png" class="logo-federacao" alt="" loading="lazy">${blocoFed.federacao} <span class="contagem">(${totalFederacao})</span></h2>
+      <h2><img src="/img/federacoes/${(blocoFed.federacao || "").toLowerCase()}.png" class="logo-federacao" alt="" loading="lazy" onerror="this.style.display='none'">${blocoFed.federacao} <span class="contagem">(${totalFederacao})</span></h2>
       ${[...blocoFed.eventos.values()].map(bloco => {
         const temSituacao = bloco.itens.some(a => a.pagamento);
         const situacaoOk = new Set(["Pago", "Confirmado"]);

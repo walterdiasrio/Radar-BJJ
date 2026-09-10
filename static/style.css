@@ -809,6 +809,32 @@ select { cursor: pointer; }
 
 .opcoes-federacao {
   display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.grupo-federacao-titulo {
+  font-family: var(--fonte-menu-topo);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--texto-sutil);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.grupo-federacao-titulo::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--borda);
+}
+
+.opcoes-federacao-grupo {
+  display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
@@ -817,7 +843,7 @@ select { cursor: pointer; }
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 14px;
+  padding: 6px 14px 6px 8px;
   border: 1.5px solid var(--borda);
   border-radius: 999px;
   font-size: 0.85rem;
@@ -847,6 +873,15 @@ select { cursor: pointer; }
 .opcoes-federacao input[type="checkbox"] {
   margin: 0;
   accent-color: white;
+}
+
+.logo-mini-federacao {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: white;
 }
 
 #categoria-calculada, #peso-calculado {

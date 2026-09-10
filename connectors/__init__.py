@@ -19,19 +19,24 @@ from . import cbjj, fjjrio, cbjjd, cbjjo, cbjje, fpjj, cbjjc, fjjpe, fjjemg, fjj
 # toa. Dá pra reajustar por variável de ambiente sem precisar mexer no código.
 MAX_WORKERS = int(os.environ.get("BUSCA_MAX_WORKERS", 8))
 
+# "grupo" separa a lista de federações (ver /api/federacoes e o filtro do
+# Radar de Atletas) em 3 categorias, pra não misturar confederação nacional
+# com federação estadual só porque as duas têm sigla parecida (CBJJ vs
+# FJJRio) — "uf" só existe pras estaduais, pra exibir "(RJ)", "(SP)" etc ao
+# lado do nome no filtro.
 FEDERACOES = {
-    "cbjj": {"label": "CBJJ", "nome": "Confederação Brasileira de Jiu-Jitsu", "module": cbjj},
-    "fjjrio": {"label": "FJJRio", "nome": "Federação de Jiu-Jitsu do Estado do Rio de Janeiro", "module": fjjrio},
-    "cbjjd": {"label": "CBJJD", "nome": "Confederação Brasileira de Jiu-Jitsu Desportivo", "module": cbjjd},
-    "cbjjo": {"label": "CBJJO", "nome": "Confederação Brasileira de Jiu-Jitsu Olímpico", "module": cbjjo},
-    "cbjje": {"label": "CBJJE", "nome": "Confederação Brasileira de Jiu-Jitsu Esportivo", "module": cbjje},
-    "fpjj": {"label": "FPJJ", "nome": "Federação Paulista de Jiu-Jitsu", "module": fpjj},
-    "cbjjc": {"label": "CBJJC", "nome": "Confederação Brasileira de Jiu-Jitsu Competitivo", "module": cbjjc},
-    "fjjpe": {"label": "FJJPE", "nome": "Federação de Jiu-Jitsu do Estado de Pernambuco", "module": fjjpe},
-    "fjjemg": {"label": "FJJEMG", "nome": "Federação de Jiu-Jitsu do Estado de Minas Gerais", "module": fjjemg},
-    "fjjgo": {"label": "FJJGO", "nome": "Federação de Jiu-Jitsu de Goiás", "module": fjjgo},
-    "adcc": {"label": "ADCC", "nome": "Abu Dhabi Combat Club", "module": adcc},
-    "ajp": {"label": "AJP", "nome": "Abu Dhabi Jiu-Jitsu Pro", "module": ajp},
+    "cbjj": {"label": "CBJJ", "nome": "Confederação Brasileira de Jiu-Jitsu", "module": cbjj, "grupo": "nacional"},
+    "fjjrio": {"label": "FJJRio", "nome": "Federação de Jiu-Jitsu do Estado do Rio de Janeiro", "module": fjjrio, "grupo": "estadual", "uf": "RJ"},
+    "cbjjd": {"label": "CBJJD", "nome": "Confederação Brasileira de Jiu-Jitsu Desportivo", "module": cbjjd, "grupo": "nacional"},
+    "cbjjo": {"label": "CBJJO", "nome": "Confederação Brasileira de Jiu-Jitsu Olímpico", "module": cbjjo, "grupo": "nacional"},
+    "cbjje": {"label": "CBJJE", "nome": "Confederação Brasileira de Jiu-Jitsu Esportivo", "module": cbjje, "grupo": "nacional"},
+    "fpjj": {"label": "FPJJ", "nome": "Federação Paulista de Jiu-Jitsu", "module": fpjj, "grupo": "estadual", "uf": "SP"},
+    "cbjjc": {"label": "CBJJC", "nome": "Confederação Brasileira de Jiu-Jitsu Competitivo", "module": cbjjc, "grupo": "nacional"},
+    "fjjpe": {"label": "FJJPE", "nome": "Federação de Jiu-Jitsu do Estado de Pernambuco", "module": fjjpe, "grupo": "estadual", "uf": "PE"},
+    "fjjemg": {"label": "FJJEMG", "nome": "Federação de Jiu-Jitsu do Estado de Minas Gerais", "module": fjjemg, "grupo": "estadual", "uf": "MG"},
+    "fjjgo": {"label": "FJJGO", "nome": "Federação de Jiu-Jitsu de Goiás", "module": fjjgo, "grupo": "estadual", "uf": "GO"},
+    "adcc": {"label": "ADCC", "nome": "Abu Dhabi Combat Club", "module": adcc, "grupo": "internacional"},
+    "ajp": {"label": "AJP", "nome": "Abu Dhabi Jiu-Jitsu Pro", "module": ajp, "grupo": "internacional"},
 }
 _ORDEM_FEDERACAO = {fid: i for i, fid in enumerate(FEDERACOES)}
 
