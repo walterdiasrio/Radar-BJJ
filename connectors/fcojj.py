@@ -29,15 +29,25 @@ idade tem subdivisão numérica ("GENERO; IDADE; NIVEL; FAIXA; PESO", ex:
 "MASCULINO; MASTER; 1+2; BRANCA; ATE 56KG"), e 2 pra categoria PCD (sem
 faixa/peso, categoria aberta).
 
-Os nomes de categoria etária da FCOJJ (Kids 1/2, Infantil, Júnior,
-Adolescente, Juvenil, Adulto, Master N) são um sistema próprio da
+Os nomes de categoria etária da FCOJJ (Kids 1/2/3, Infantil, Júnior,
+Adolescente, Juvenil, Adulto, Master 1-4) são um sistema próprio da
 federação, diferente da tabela CBJJ/IBJJF (Mirim/Infantil/Infanto-Juvenil)
-usada pela maioria das outras — sem uma tabela oficial de idade/peso por ano
-de nascimento publicada, os filtros de "ano de nascimento" e "peso" do
-buscador não têm como calcular a categoria exata pra essa federação (mesmo
-comportamento de qualquer federação fora de connectors/idade.py e peso.py:
-mostra aviso, não filtra por esses dois campos). Nome, equipe, gênero e
-faixa buscam normalmente.
+usada pela maioria das outras — a tabela de ano de nascimento -> categoria
+está registrada em connectors/idade.py::_FCOJJ, extraída do edital oficial
+do Campeonato Brasiliense de Jiu-Jitsu 2026 (Cláusula Terceira), então o
+filtro de "ano de nascimento" já funciona. O de peso (kg), não: o edital diz
+que os limites seguem "os parâmetros da AJP" mas remete a uma tabela em
+"formato visual anexo" que não veio no PDF do edital — sem os números,
+connectors/peso.py não tem entrada pra "fcojj" (mesmo comportamento de
+qualquer federação fora de lá: mostra aviso, não filtra por peso). Nome,
+equipe, gênero e faixa buscam normalmente.
+
+Limitação conhecida do filtro por ano de nascimento: quando o organizador
+junta dois brackets de Master adjacentes por falta de inscritos (ex:
+"Master 1+2" em vez de "Master 1" e "Master 2" separados — visto ao vivo
+nesse mesmo evento), o rótulo calculado a partir do ano de nascimento
+("Master 1") não bate com o rótulo composto da inscrição real — ver
+_idade_e_peso_e_faixa mais abaixo.
 """
 import re
 
@@ -118,7 +128,19 @@ def _traduzir_peso(peso_bruto):
 def _idade_e_peso_e_faixa(categoria_bruta):
     """Retorna (categoria_idade, faixa, peso) a partir do texto bruto da
     categoria MartialMatch (ver formatos no docstring do módulo). O gênero
-    já vem separado antes de chamar esta função (é sempre o 1º campo)."""
+    já vem separado antes de chamar esta função (é sempre o 1º campo).
+
+    Quando o nível vem composto (ex: "MASTER; 1+2", o organizador juntou
+    dois brackets adjacentes por falta de inscritos pra abrir os dois
+    separados — conferido ao vivo em 09/09/2026 nesse mesmo evento), o
+    rótulo final também fica composto ("Master 1+2"). Isso é reportado como
+    está: os conectores devolvem sempre a MESMA lista de atletas
+    independente do filtro (ver comentário sobre cache em
+    connectors/__init__.py::buscar_atletas) — não dá pra decidir "Master 1"
+    vs "Master 2" aqui sem arriscar cache incorreto pra buscas futuras.
+    Na prática, filtrar por ano de nascimento não encontra atletas nesses
+    brackets combinados (o rótulo calculado não bate com o composto); busca
+    por nome/equipe/gênero/faixa funciona normalmente."""
     partes = [p.strip() for p in categoria_bruta.split(";")]
     if len(partes) == 2:
         _genero, idade = partes

@@ -222,6 +222,34 @@ _FJJGO = [
     (56, None, "Master 6"),
 ]
 
+# ---------------------------------------------------------------------------
+# FCOJJ — tabela oficial do edital do Campeonato Brasiliense de Jiu-Jitsu
+# 2026 (fcojj.com.br), Cláusula Terceira: ano de nascimento -> categoria por
+# idade, calculado sobre 2026 (mesma fórmula usada aqui: idade = ano
+# referência - ano nascimento). Segue o padrão AJP (o próprio edital diz
+# seguir "os parâmetros estabelecidos pela AJP") — mas com faixas etárias
+# nomeadas diferente: Kids 1/2/3 (não "Kids N" corrido), Infantil/Júnior/
+# Adolescente/Juvenil (uma faixa cada, sem subdivisão numérica) e só até
+# Master 4 (46 anos+, sem limite superior definido no edital — diferente do
+# Master 6 comum nas federações CBJJ). "Júnior" com acento porque
+# fcojj._IDADE_LABEL (que traduz o rótulo bruto da API MartialMatch)
+# usa a mesma grafia.
+# ---------------------------------------------------------------------------
+_FCOJJ = [
+    (4, 5, "Kids 1"),
+    (6, 7, "Kids 2"),
+    (8, 9, "Kids 3"),
+    (10, 11, "Infantil"),
+    (12, 13, "Júnior"),
+    (14, 15, "Adolescente"),
+    (16, 17, "Juvenil"),
+    (18, 29, "Adulto"),
+    (30, 35, "Master 1"),
+    (36, 40, "Master 2"),
+    (41, 45, "Master 3"),
+    (46, None, "Master 4"),
+]
+
 TABELAS = {
     "cbjj": _CBJJ_FJJRIO,
     "fjjrio": _CBJJ_FJJRIO,
@@ -240,6 +268,7 @@ TABELAS = {
     "fjjpe": _CBJJ_FJJRIO,
     "fjjemg": _FJJEMG,
     "fjjgo": _FJJGO,
+    "fcojj": _FCOJJ,
 }
 
 
