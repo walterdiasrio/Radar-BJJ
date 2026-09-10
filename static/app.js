@@ -6,7 +6,7 @@ const TODAS = "todas";
 // sozinho pra /assinatura antes da pessoa nem ver o aviso.
 const promessaBloqueioPlanoFree = bloquearSePlanoFree(
   "#conteudo-plano-pro",
-  "Encontre seus adversários antes de todo mundo: busque atletas inscritos em 9 federações, filtrando por categoria, peso e faixa, com apenas um clique."
+  "Encontre seus adversários antes de todo mundo: busque atletas inscritos nas maiores federações do país simultaneamente, filtrando por categoria, peso e faixa, com apenas um clique."
 );
 
 const elFederacaoOpcoes = document.getElementById("federacao-opcoes");
