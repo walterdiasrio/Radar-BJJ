@@ -839,7 +839,13 @@ select { cursor: pointer; }
   gap: 8px;
 }
 
-.opcoes-federacao label {
+/* .opcoes-federacao-grupo (não .opcoes-federacao) de propósito: essa classe
+   é a fileira de pílulas em si, usada tanto dentro de .opcoes-federacao
+   (Federação, agrupada em seções — Radar de Atletas/Competições) quanto
+   sozinha, sem agrupar (Público em Competições, Dias da semana/Posições em
+   Minhas Turmas) — usar .opcoes-federacao aqui deixaria essas pílulas sem
+   estilo nenhum fora do contexto agrupado. */
+.opcoes-federacao-grupo label {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -855,22 +861,22 @@ select { cursor: pointer; }
   transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease, transform 0.1s ease;
 }
 
-.opcoes-federacao label:hover {
+.opcoes-federacao-grupo label:hover {
   border-color: var(--azul-claro);
   transform: translateY(-1px);
 }
 
-.opcoes-federacao label:has(input:checked) {
+.opcoes-federacao-grupo label:has(input:checked) {
   background: var(--azul-claro);
   border-color: var(--azul-claro);
   color: white;
 }
 
-.opcoes-federacao label.opcao-todas {
+.opcoes-federacao-grupo label.opcao-todas {
   font-weight: 700;
 }
 
-.opcoes-federacao input[type="checkbox"] {
+.opcoes-federacao-grupo input[type="checkbox"] {
   margin: 0;
   accent-color: white;
 }

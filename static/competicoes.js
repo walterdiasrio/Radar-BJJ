@@ -17,6 +17,16 @@ async function carregarFederacoes() {
   construirOpcoesFederacao(elFederacaoOpcoes, federacoes);
 }
 
+// Mesmo agrupamento por tipo do Radar de Atletas (ver GRUPOS_FEDERACAO em
+// app.js) — duplicado aqui de propósito: cada página tem seu próprio script
+// solto (sem bundler/import), então replicar essas ~15 linhas é mais simples
+// que criar um arquivo JS compartilhado só pra isso.
+const GRUPOS_FEDERACAO = [
+  { id: "nacional", titulo: "Confederações nacionais" },
+  { id: "estadual", titulo: "Federações estaduais" },
+  { id: "internacional", titulo: "Circuito internacional" },
+];
+
 // Monta os checkboxes de federação: nenhuma marcada por padrão; marcar uma
 // individual desmarca "Todas"; desmarcar a última individual volta para "Todas"
 // (mas a busca sem nada marcado já considera todas as federações, ver
@@ -24,9 +34,25 @@ async function carregarFederacoes() {
 // (Todas vs. individuais) — não dispara busca nenhuma; isso só acontece
 // quando a pessoa clica em "Buscar" (ver elForm submit, mais abaixo).
 function construirOpcoesFederacao(container, federacoes) {
+  const grupos = GRUPOS_FEDERACAO.map(grupo => {
+    const dessegrupo = federacoes.filter(f => f.grupo === grupo.id);
+    if (!dessegrupo.length) return "";
+    const opcoes = dessegrupo.map(f => {
+      const sufixoUf = f.uf ? ` (${f.uf})` : "";
+      return `<label title="${f.nome || ""}">
+        <img src="/img/federacoes/${f.id}.png" class="logo-mini-federacao" alt="" loading="lazy" onerror="this.style.display='none'">
+        <input type="checkbox" value="${f.id}"> ${f.label}${sufixoUf}
+      </label>`;
+    }).join("");
+    return `<div class="grupo-federacao">
+      <div class="grupo-federacao-titulo">${grupo.titulo}</div>
+      <div class="opcoes-federacao-grupo">${opcoes}</div>
+    </div>`;
+  }).join("");
+
   container.innerHTML =
-    `<label class="opcao-todas"><input type="checkbox" value="${TODAS}"> Todas as federações</label>` +
-    federacoes.map(f => `<label title="${f.nome || ""}"><input type="checkbox" value="${f.id}"> ${f.label}</label>`).join("");
+    `<div class="opcoes-federacao-grupo"><label class="opcao-todas"><input type="checkbox" value="${TODAS}"> Todas as federações</label></div>` +
+    grupos;
 
   const checkboxes = Array.from(container.querySelectorAll('input[type="checkbox"]'));
   const todasCheckbox = checkboxes[0];

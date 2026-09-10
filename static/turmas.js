@@ -139,7 +139,7 @@ function renderizarAulasFuturas(turma) {
         ${Object.entries(posicoesPorGrupo).map(([grupo, posicoes]) => `
           <div class="campo">
             <label>${grupo}</label>
-            <div class="opcoes-federacao">
+            <div class="opcoes-federacao-grupo">
               ${posicoes.map(p => `<label><input type="checkbox" value="${p}" ${edicao && edicao.posicoes.includes(p) ? "checked" : ""}> ${p}</label>`).join("")}
             </div>
           </div>
@@ -194,7 +194,7 @@ function renderizarAulasPassadas(turma) {
         ${Object.entries(posicoesPorGrupo).map(([grupo, posicoes]) => `
           <div class="campo">
             <label>${grupo}</label>
-            <div class="opcoes-federacao">
+            <div class="opcoes-federacao-grupo">
               ${posicoes.map(p => `<label><input type="checkbox" value="${p}"> ${p}</label>`).join("")}
             </div>
           </div>
