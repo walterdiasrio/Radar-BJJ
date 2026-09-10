@@ -166,6 +166,7 @@ def listar_eventos():
         eventos.append({
             "id": f"fjjpe-{caminho}",
             "nome": nome,
+            "url": url,
             "data": _data_do_evento(nome, entradas_calendario),
             "local": _LOCAL_PADRAO,
             "inscricoes_abertas": _inscricoes_abertas(caminho),

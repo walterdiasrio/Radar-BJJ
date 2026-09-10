@@ -63,7 +63,13 @@ def _info_evento(evento_id_bruto):
         data = partes[0] if partes else ""
         local = partes[1] if len(partes) > 1 else ""
 
-    return {"id": f"cbjjc-{evento_id_bruto}", "nome": nome, "data": data, "local": local}
+    return {
+        "id": f"cbjjc-{evento_id_bruto}",
+        "nome": nome,
+        "url": f"{ILUTAS}/Evento/Index.php?event={evento_id_bruto}",
+        "data": data,
+        "local": local,
+    }
 
 
 def listar_eventos():

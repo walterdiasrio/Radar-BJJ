@@ -1050,6 +1050,15 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
   font-weight: 700;
 }
 
+.destaque-competicao a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.destaque-competicao a:hover {
+  text-decoration: underline;
+}
+
 .destaque-competicao .contagem {
   font-weight: 400;
   color: #d7e2f2;

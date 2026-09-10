@@ -41,6 +41,7 @@ def listar_eventos():
             eventos.append({
                 "id": str(item["id"]),
                 "nome": nome,
+                "url": f"https://www.meucombate.com.br/cbjje/evento/{item['id']}/informacoes/",
                 "data": data_texto,
                 "local": local,
                 "inscricoes_abertas": bool(item.get("events_inscriptions_opened")),

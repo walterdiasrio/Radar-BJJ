@@ -58,12 +58,13 @@ def _detalhes_evento(codigo):
 
         return {
             "nome": nome,
+            "url": f"{SITE}/campeonato/?codigo={codigo}",
             "data": data_texto,
             "local": local_texto,
             "inscricoes_abertas": inscricoes_abertas,
         }
     except Exception:
-        return {"data": "", "local": "", "inscricoes_abertas": None}
+        return {"url": f"{SITE}/campeonato/?codigo={codigo}", "data": "", "local": "", "inscricoes_abertas": None}
 
 
 def buscar_atletas(evento_id, filtros):

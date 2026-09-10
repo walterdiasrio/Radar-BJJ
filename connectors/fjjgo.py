@@ -82,6 +82,7 @@ def _eventos_da_pagina(html):
         eventos.append({
             "id": m.group(1),
             "nome": _nome_completo(card),
+            "url": f"{BASE}/pt-br/eventos/todos-os-eventos/{m.group(1)}/",
             "data": re.sub(r"\s+", " ", data_bruta),
             "local": local,
         })

@@ -99,6 +99,7 @@ def listar_eventos():
         eventos.append({
             "id": f"martialmatch-{m.group(1)}",
             "nome": link.get_text(strip=True),
+            "url": link.get("href"),
             "data": _data_do_card(linha.select_one(".kv-ee-date")),
             "local": local_el.get_text(" ", strip=True) if local_el else "",
         })

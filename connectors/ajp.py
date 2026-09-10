@@ -328,6 +328,9 @@ def parse_evento_html(html):
     return {
         "id": f"ajp-{evento_id}",
         "nome": nome_evento,
+        # Mesmo caso do ADCC (ver connectors/adcc.py) — o admin cola o HTML,
+        # não a URL, então "pt" é só um prefixo de idioma razoável.
+        "url": f"https://www.smoothcomp.com/pt/event/{evento_id}",
         "data": _extrair_data(soup, data_inicio),
         "local": _extrair_local(soup, nome_evento, _local_json_ld(dados_json_ld)),
         "tabela_idade": _extrair_tabela_idade(soup),

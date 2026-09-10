@@ -184,7 +184,7 @@ function renderizarCompeticoes(competicoes, mensagemVazia) {
         ${bloco.itens.map(c => `
           <tr>
             <td>${c.federacao || ""}</td>
-            <td>${c.nome || ""}</td>
+            <td>${c.url ? `<a href="${c.url}" target="_blank" rel="noopener noreferrer">${c.nome || ""}</a>` : (c.nome || "")}</td>
             <td>${c.data || ""}</td>
             <td>${c.local || ""}</td>
             <td>${badgeInscricao(c.inscricoes_abertas)}</td>

@@ -210,6 +210,10 @@ def parse_evento_html(html):
     return {
         "id": f"adcc-{evento_id}",
         "nome": nome_evento,
+        # O admin cola o HTML da página (não a URL) pra importar, então não
+        # dá pra saber o prefixo de idioma exato que ele usou — "pt"
+        # funciona igual pra qualquer link smoothcomp.com/<idioma>/event/N.
+        "url": f"https://www.smoothcomp.com/pt/event/{evento_id}",
         "data": _extrair_data(soup, data_inicio),
         "local": _extrair_local(soup, nome_evento),
         "prazo_inscricao": prazo_inscricao.isoformat() if prazo_inscricao else None,

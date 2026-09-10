@@ -237,7 +237,7 @@ function renderizarResultados(atletas) {
     }
     const chaveEvento = a.evento || "—";
     if (!blocoFedAtual.eventos.has(chaveEvento)) {
-      blocoFedAtual.eventos.set(chaveEvento, { evento: chaveEvento, data: a.data || "", itens: [] });
+      blocoFedAtual.eventos.set(chaveEvento, { evento: chaveEvento, url: a.evento_url || "", data: a.data || "", itens: [] });
     }
     blocoFedAtual.eventos.get(chaveEvento).itens.push(a);
   }
@@ -253,7 +253,7 @@ function renderizarResultados(atletas) {
         return `
         <div class="bloco-competicao">
           <h3 class="destaque-competicao">
-            ${bloco.evento} <span class="contagem">(${bloco.itens.length})</span>
+            ${bloco.url ? `<a href="${bloco.url}" target="_blank" rel="noopener noreferrer">${bloco.evento}</a>` : bloco.evento} <span class="contagem">(${bloco.itens.length})</span>
             ${bloco.data ? `<span class="destaque-competicao-data">${bloco.data}</span>` : ""}
           </h3>
           <table>

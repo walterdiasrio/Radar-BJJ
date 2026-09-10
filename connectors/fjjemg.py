@@ -83,6 +83,7 @@ def listar_eventos():
         eventos.append({
             "id": f"fjjemg-{ano}-{etapa}",
             "nome": nome,
+            "url": link.get("href"),
             "data": data_el.get_text(strip=True) if data_el else "",
             "local": local_texto,
             "inscricoes_abertas": True,  # só chega aqui quem tem o card com link/tag "Inscrições Abertas"

@@ -461,6 +461,7 @@ def buscar_atletas_agregado(federacao, evento_id, filtros, contexto="busca"):
                 if not _atleta_combina(atleta, filtros_fed):
                     continue
                 atleta["evento"] = evento["nome"]
+                atleta["evento_url"] = evento.get("url", "")
                 atleta["data"] = datas_mod.formatar(evento.get("data", ""))
                 resultados.append((_ORDEM_FEDERACAO.get(fed, 99), data_ordenacao or date.max, atleta))
 
@@ -648,6 +649,7 @@ def listar_competicoes(federacao):
                 {
                     "federacao": FEDERACOES[fed]["label"],
                     "nome": nome,
+                    "url": evento.get("url", ""),
                     "data": datas_mod.formatar(evento.get("data", "")),
                     "mes": datas_mod.rotulo_mes(data_ordenacao),
                     "local": _simplifica_local(evento.get("local", ""), fed),
