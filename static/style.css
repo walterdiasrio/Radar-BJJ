@@ -1088,6 +1088,16 @@ th, td {
   font-size: 0.9rem;
 }
 
+/* Resultados do Radar de Atletas: no mobile, Gênero/Faixa/Peso somem da
+   tabela pra caber sem precisar de scroll lateral — Atleta/Equipe/
+   Categoria (e Situação, quando presente) já bastam pra identificar o
+   atleta; quem precisar do resto pode ver na busca desktop. */
+@media (max-width: 900px) {
+  .col-oculta-mobile {
+    display: none;
+  }
+}
+
 td.pago { color: #1a7d3a; font-weight: 600; }
 td.nao-pago { color: #b3261e; font-weight: 600; }
 

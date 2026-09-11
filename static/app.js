@@ -262,9 +262,9 @@ function renderizarResultados(atletas) {
                 <th>Atleta</th>
                 <th>Equipe</th>
                 <th>Categoria</th>
-                <th>Gênero</th>
-                <th>Faixa</th>
-                <th>Peso</th>
+                <th class="col-oculta-mobile">Gênero</th>
+                <th class="col-oculta-mobile">Faixa</th>
+                <th class="col-oculta-mobile">Peso</th>
                 ${temSituacao ? "<th>Situação</th>" : ""}
               </tr>
             </thead>
@@ -274,9 +274,9 @@ function renderizarResultados(atletas) {
                   <td>${a.nome || ""}</td>
                   <td>${a.equipe || ""}</td>
                   <td>${a.categoria_idade || ""}</td>
-                  <td>${a.genero || ""}</td>
-                  <td>${a.faixa || ""}</td>
-                  <td>${a.peso || ""}</td>
+                  <td class="col-oculta-mobile">${a.genero || ""}</td>
+                  <td class="col-oculta-mobile">${a.faixa || ""}</td>
+                  <td class="col-oculta-mobile">${a.peso || ""}</td>
                   ${temSituacao ? `<td class="${situacaoOk.has(a.pagamento) ? 'pago' : 'nao-pago'}">${a.pagamento || ""}</td>` : ""}
                 </tr>
               `).join("")}
