@@ -8,6 +8,6 @@ stripe==11.4.0
 anthropic==0.121.0
 reportlab==5.0.0
 pdfplumber==0.11.10
-Pillow==11.0.0
+Pillow==12.2.0
 google-api-python-client==2.163.0
 google-auth==2.38.0
