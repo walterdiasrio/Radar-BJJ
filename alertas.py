@@ -23,8 +23,11 @@ from pathlib import Path
 
 import requests
 
+import agenda
 import auth
+import pagamentos
 from connectors import FEDERACOES, TODAS, buscar_atletas_agregado
+from connectors import datas as datas_mod
 
 DATA_DIR = Path(os.environ.get("DATA_DIR", Path(__file__).parent))
 DB_PATH = DATA_DIR / "alertas.db"
@@ -97,6 +100,20 @@ def init_db():
                 chave TEXT NOT NULL,
                 vista_em TEXT NOT NULL DEFAULT (datetime('now')),
                 PRIMARY KEY (alerta_id, chave)
+            )
+        """)
+        # Alerta de prazo de inscrição (Plano PRO, ver verificar_prazos_
+        # agenda mais abaixo): marca que já mandamos o e-mail de "faltam N
+        # dias" pra essa marcação "Tenho Interesse" específica, pra nunca
+        # mandar duas vezes o mesmo aviso (o verificador roda a cada
+        # INTERVALO_ALERTAS_SEGUNDOS, bem mais frequente que uma vez por dia).
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS agenda_alertas_prazo_enviados (
+                usuario_id INTEGER NOT NULL,
+                chave TEXT NOT NULL,
+                tipo TEXT NOT NULL,
+                enviado_em TEXT NOT NULL DEFAULT (datetime('now')),
+                PRIMARY KEY (usuario_id, chave, tipo)
             )
         """)
 
@@ -410,6 +427,102 @@ def verificar_todas_competicoes():
             _verificar_alerta_competicao(alerta)
         except Exception:
             traceback.print_exc()
+
+
+# Dias antes do prazo de inscrição em que mandamos o aviso — 7 dias (dá
+# tempo de se organizar) e 1 dia (último aviso antes de fechar).
+DIAS_ALERTA_PRAZO_INSCRICAO = (7, 1)
+
+
+def _ja_avisou_prazo(usuario_id, chave, tipo):
+    with _conn() as conn:
+        linha = conn.execute(
+            "SELECT 1 FROM agenda_alertas_prazo_enviados WHERE usuario_id = ? AND chave = ? AND tipo = ?",
+            (usuario_id, chave, tipo),
+        ).fetchone()
+    return linha is not None
+
+
+def _marcar_prazo_avisado(usuario_id, chave, tipo):
+    with _conn() as conn:
+        conn.execute(
+            "INSERT OR IGNORE INTO agenda_alertas_prazo_enviados (usuario_id, chave, tipo) VALUES (?, ?, ?)",
+            (usuario_id, chave, tipo),
+        )
+
+
+def _enviar_email_prazo_inscricao(destinatario, item, dias_restantes, prazo):
+    prazo_texto = datas_mod.formatar_data_iso(prazo.isoformat())
+    urgencia = "amanhã" if dias_restantes == 1 else f"em {dias_restantes} dias"
+    corpo = (
+        f'<p>As inscrições de <b>{item["nome"]}</b> ({item["federacao"]}) — competição que você marcou '
+        f'"Tenho Interesse" na sua Agenda — encerram <b>{urgencia}</b>, no dia {prazo_texto}.</p>'
+        f'<p>{item.get("local", "")}</p>'
+        f'<p><a href="{URL_SITE}/competicoes">Ver em Competições</a></p>'
+    )
+    assunto = (
+        f'Radar BJJ — inscrições de "{item["nome"]}" encerram amanhã'
+        if dias_restantes == 1
+        else f'Radar BJJ — faltam {dias_restantes} dias pro prazo de inscrição de "{item["nome"]}"'
+    )
+    enviar_email(destinatario, assunto, corpo)
+
+
+def verificar_prazos_agenda():
+    """Exclusivo do Plano PRO: pra cada competição marcada "Tenho
+    Interesse" na Agenda (de qualquer usuário) cujo prazo de inscrição
+    esteja a exatamente 7 ou 1 dia(s), manda um e-mail avisando — uma vez
+    só por marcação/prazo (ver agenda_alertas_prazo_enviados).
+
+    Faz UMA busca ao vivo "todas as federações" (bem mais barato que uma
+    por usuário/marcação) e casa cada marcação pela mesma chave (hash de
+    federação+nome+data) que agenda.py já usa — a mesma técnica de
+    _chave_competicao logo acima, pro mesmo problema (conectores não têm
+    ID de evento estável entre buscas)."""
+    interesses = agenda.listar_interesses_ativos()
+    if not interesses:
+        return
+
+    from connectors import listar_competicoes  # import tardio: evita ciclo de import
+    competicoes, _erros = listar_competicoes(TODAS)
+    prazo_por_chave = {}
+    for c in competicoes:
+        prazo_iso = c.get("prazo_inscricao_iso")
+        if not prazo_iso:
+            continue
+        chave = agenda.chave_de(c.get("federacao", ""), c.get("nome", ""), c.get("data", ""))
+        prazo_por_chave[chave] = prazo_iso
+
+    hoje = date.today()
+    for item in interesses:
+        prazo_iso = prazo_por_chave.get(item["chave"])
+        if not prazo_iso:
+            continue
+        try:
+            prazo = date.fromisoformat(prazo_iso)
+        except ValueError:
+            continue
+
+        dias_restantes = (prazo - hoje).days
+        if dias_restantes not in DIAS_ALERTA_PRAZO_INSCRICAO:
+            continue
+
+        tipo = f"{dias_restantes}d"
+        if _ja_avisou_prazo(item["usuario_id"], item["chave"], tipo):
+            continue
+        if not pagamentos.usuario_tem_acesso(item["usuario_id"]):
+            continue
+
+        usuario = auth.buscar_por_id(item["usuario_id"])
+        if not usuario:
+            continue
+
+        try:
+            _enviar_email_prazo_inscricao(usuario["email"], item, dias_restantes, prazo)
+        except Exception:
+            traceback.print_exc()
+            continue
+        _marcar_prazo_avisado(item["usuario_id"], item["chave"], tipo)
 
 
 def enviar_email(destinatario, assunto, corpo_html, anexos=None):

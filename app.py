@@ -119,6 +119,10 @@ def _iniciar_verificacao_periodica_de_alertas():
             except Exception:
                 traceback.print_exc()
             try:
+                alertas.verificar_prazos_agenda()
+            except Exception:
+                traceback.print_exc()
+            try:
                 noticias.remover_noticias_expiradas()
             except Exception:
                 traceback.print_exc()

@@ -111,6 +111,29 @@ def listar(usuario_id):
     return [linha for _, linha in com_data]
 
 
+def listar_interesses_ativos():
+    """Todas as marcações "Tenho Interesse" de TODOS os usuários, pra
+    competições que ainda não aconteceram — usado pelo alerta de prazo de
+    inscrição (ver alertas.py::verificar_prazos_agenda), que roda pra todo
+    mundo de uma vez numa única busca ao vivo em vez de usuário por
+    usuário. Só "interesse" mesmo (não "inscrito") — quem já garantiu a
+    inscrição não precisa de aviso de prazo pra ela."""
+    with _conn() as conn:
+        linhas = [
+            dict(linha) for linha in
+            conn.execute("SELECT * FROM agenda_competicoes WHERE status = 'interesse'")
+        ]
+
+    hoje = date.today()
+    resultado = []
+    for linha in linhas:
+        data_obj = datas_mod.extrair_data(linha["data"])
+        if data_obj and data_obj < hoje:
+            continue
+        resultado.append(linha)
+    return resultado
+
+
 def mapa_status(usuario_id):
     """{chave: status} de TODAS as marcações do usuário (sem filtrar
     passado/futuro) — usado na aba Competições pra já mostrar o que ele

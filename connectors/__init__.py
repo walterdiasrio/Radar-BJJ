@@ -663,6 +663,12 @@ def listar_competicoes(federacao):
                     "uf": _extrair_uf(evento.get("local", ""), fed),
                     "inscricoes_abertas": inscricoes_abertas,
                     "prazo_inscricao": datas_mod.formatar_data_iso(prazo_inscricao),
+                    # Cópia "crua" (YYYY-MM-DD) do prazo pra quem precisa
+                    # COMPARAR datas (ex: alerta de prazo de inscrição em
+                    # agenda.py/alertas.py) sem ter que reparsear o texto
+                    # por extenso de volta pra date — "prazo_inscricao" (o
+                    # de cima) é só pra exibição.
+                    "prazo_inscricao_iso": prazo_inscricao,
                     "publico": _classificar_publico(nome, fed),
                 },
             ))
