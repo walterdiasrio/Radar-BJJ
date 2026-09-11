@@ -211,9 +211,12 @@ def parse_evento_html(html):
         "id": f"adcc-{evento_id}",
         "nome": nome_evento,
         # O admin cola o HTML da página (não a URL) pra importar, então não
-        # dá pra saber o prefixo de idioma exato que ele usou — "pt"
-        # funciona igual pra qualquer link smoothcomp.com/<idioma>/event/N.
-        "url": f"https://www.smoothcomp.com/pt/event/{evento_id}",
+        # dá pra saber o prefixo de idioma exato que ele usou — "en" é o
+        # único confirmado funcionando ao vivo (testado em 10/09/2026:
+        # smoothcomp.com/pt/... e /pt-br/... dão 404, /en/... carrega o
+        # evento normalmente, atrás da verificação anti-bot da Cloudflare
+        # que o próprio smoothcomp.com usa pra qualquer visitante).
+        "url": f"https://smoothcomp.com/en/event/{evento_id}",
         "data": _extrair_data(soup, data_inicio),
         "local": _extrair_local(soup, nome_evento),
         "prazo_inscricao": prazo_inscricao.isoformat() if prazo_inscricao else None,
