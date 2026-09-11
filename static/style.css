@@ -1091,10 +1091,23 @@ th, td {
 /* Resultados do Radar de Atletas: no mobile, Gênero/Faixa/Peso somem da
    tabela pra caber sem precisar de scroll lateral — Atleta/Equipe/
    Categoria (e Situação, quando presente) já bastam pra identificar o
-   atleta; quem precisar do resto pode ver na busca desktop. */
+   atleta; quem precisar do resto pode ver na busca desktop. O Peso ainda
+   aparece, só que embutido dentro da própria célula de Categoria (ex:
+   "Mirim 3" numa linha, "Pesado" logo abaixo, menor e mais claro) — dado
+   demais pra descartar de vez, sem gastar uma coluna própria. */
+.peso-categoria-mobile {
+  display: none;
+}
+
 @media (max-width: 900px) {
   .col-oculta-mobile {
     display: none;
+  }
+
+  .peso-categoria-mobile {
+    display: block;
+    font-size: 0.78rem;
+    color: var(--texto-sutil, #666);
   }
 }
 

@@ -273,7 +273,7 @@ function renderizarResultados(atletas) {
                 <tr>
                   <td>${a.nome || ""}</td>
                   <td>${a.equipe || ""}</td>
-                  <td>${a.categoria_idade || ""}</td>
+                  <td>${a.categoria_idade || ""}${a.peso ? `<span class="peso-categoria-mobile">${a.peso}</span>` : ""}</td>
                   <td class="col-oculta-mobile">${a.genero || ""}</td>
                   <td class="col-oculta-mobile">${a.faixa || ""}</td>
                   <td class="col-oculta-mobile">${a.peso || ""}</td>
