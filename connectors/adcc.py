@@ -20,6 +20,8 @@ DIR_DADOS = DATA_DIR / "dados_adcc"
 ARQUIVO_EVENTOS = DIR_DADOS / "eventos.json"
 DIR_ATLETAS = DIR_DADOS / "atletas"
 
+ADCC_HOME_URL = "https://www.adcc-official.com/"
+
 _MESES_EN = {
     "jan": 1, "feb": 2, "mar": 3, "apr": 4, "may": 5, "jun": 6,
     "jul": 7, "aug": 8, "sep": 9, "oct": 10, "nov": 11, "dec": 12,
@@ -232,14 +234,12 @@ def parse_evento_html(html):
     return {
         "id": f"adcc-{evento_id}",
         "nome": nome_evento,
-        # ADCC usa o domínio direto do smoothcomp, mas no subdomínio
-        # próprio da organização (adcc.smoothcomp.com) — todo evento ADCC
-        # encontrado via busca (web search, 10/09/2026) usa esse subdomínio,
-        # nunca o genérico smoothcomp.com sozinho. "en" confirmado
-        # funcionando ao vivo (chega até a verificação anti-bot da
-        # Cloudflare, sinal de rota válida); "pt"/"pt-br" dão 404 de
-        # verdade, sem chegar nem na Cloudflare.
-        "url": f"https://adcc.smoothcomp.com/en/event/{evento_id}",
+        # A pedido do usuário (11/09/2026): link vai pra página inicial da
+        # federação (adcc-official.com — site oficial confirmado via busca,
+        # com inscrição via Smoothcomp integrada), não mais pra página do
+        # evento específico na plataforma — mais simples e nunca quebra por
+        # causa de detalhe de URL da plataforma de inscrição.
+        "url": ADCC_HOME_URL,
         "data": _extrair_data(soup, data_inicio),
         "local": _extrair_local(soup, nome_evento),
         "prazo_inscricao": prazo_inscricao.isoformat() if prazo_inscricao else None,

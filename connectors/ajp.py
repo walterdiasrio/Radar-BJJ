@@ -24,6 +24,8 @@ DIR_DADOS = DATA_DIR / "dados_ajp"
 ARQUIVO_EVENTOS = DIR_DADOS / "eventos.json"
 DIR_ATLETAS = DIR_DADOS / "atletas"
 
+AJP_HOME_URL = "https://ajptour.com"
+
 _MESES_EN = {
     "jan": 1, "feb": 2, "mar": 3, "apr": 4, "may": 5, "jun": 6,
     "jul": 7, "aug": 8, "sep": 9, "oct": 10, "nov": 11, "dec": 12,
@@ -351,10 +353,11 @@ def parse_evento_html(html):
     return {
         "id": f"ajp-{evento_id}",
         "nome": nome_evento,
-        # AJP é white-label em domínio próprio (ver _extrair_id_evento) —
-        # todo evento AJP encontrado via busca (web search, 10/09/2026) usa
-        # ajptour.com, nunca smoothcomp.com — o link tem que ser esse.
-        "url": f"https://ajptour.com/en/event/{evento_id}",
+        # A pedido do usuário (11/09/2026): link vai pra página inicial da
+        # federação (ajptour.com), não mais pra página do evento
+        # específico — mais simples e nunca quebra por causa de detalhe de
+        # URL da plataforma de inscrição.
+        "url": AJP_HOME_URL,
         "data": _extrair_data(soup, data_inicio),
         "local": _extrair_local(soup, nome_evento, _local_json_ld(dados_json_ld)),
         "tabela_idade": _extrair_tabela_idade(soup),
