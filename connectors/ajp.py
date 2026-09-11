@@ -88,12 +88,35 @@ def buscar_atletas(evento_id, filtros):
     return atletas
 
 
-def _extrair_id_evento(html):
+_EVENTO_ID_RE = re.compile(r"(?:smoothcomp\.com|ajptour\.com)/[a-z_]*/event/(\d+)")
+
+
+def _extrair_id_evento(html, soup=None):
     # A AJP usa domínio próprio (ajptour.com), não smoothcomp.com direto —
     # mesma plataforma por trás, mas white-label, então o link do evento
     # tem cara de "ajptour.com/en/event/1560" em vez de
     # "smoothcomp.com/.../event/1560" (só a ADCC usa o domínio direto).
-    m = re.search(r"(?:smoothcomp\.com|ajptour\.com)/[a-z_]*/event/(\d+)", html)
+    #
+    # Prioriza <link rel="canonical"> / <meta property="og:url"> — são a
+    # própria página se afirmando "esta é a URL de MIM MESMA". Um
+    # re.search solto na página inteira (fallback abaixo) já pegou o ID
+    # errado antes: a página de um evento normalmente lista OUTROS eventos
+    # da mesma organização em algum carrossel/sidebar, e se esse link
+    # aparecer antes do link canônico no HTML, o regex pegava o evento
+    # errado sem dar nenhum erro (o link "não encontrei o ID" nunca
+    # disparava, só o link ficava sutilmente errado).
+    if soup is not None:
+        for tag, atributo in (("link", "href"), ("meta", "content")):
+            for el in soup.find_all(tag):
+                if tag == "meta" and (el.get("property") != "og:url" and el.get("name") != "og:url"):
+                    continue
+                if tag == "link" and "canonical" not in (el.get("rel") or []):
+                    continue
+                m = _EVENTO_ID_RE.search(el.get(atributo) or "")
+                if m:
+                    return m.group(1)
+
+    m = _EVENTO_ID_RE.search(html)
     return m.group(1) if m else None
 
 
@@ -315,7 +338,7 @@ def _extrair_tabela_idade(soup):
 
 def parse_evento_html(html):
     soup = BeautifulSoup(html, "lxml")
-    evento_id = _extrair_id_evento(html)
+    evento_id = _extrair_id_evento(html, soup)
     if not evento_id:
         raise ValueError(
             "não encontrei o ID do evento nessa página (procurei um link tipo "
@@ -328,9 +351,10 @@ def parse_evento_html(html):
     return {
         "id": f"ajp-{evento_id}",
         "nome": nome_evento,
-        # Mesmo caso do ADCC (ver connectors/adcc.py) — "en" confirmado
-        # funcionando ao vivo, "pt"/"pt-br" dão 404.
-        "url": f"https://smoothcomp.com/en/event/{evento_id}",
+        # AJP é white-label em domínio próprio (ver _extrair_id_evento) —
+        # todo evento AJP encontrado via busca (web search, 10/09/2026) usa
+        # ajptour.com, nunca smoothcomp.com — o link tem que ser esse.
+        "url": f"https://ajptour.com/en/event/{evento_id}",
         "data": _extrair_data(soup, data_inicio),
         "local": _extrair_local(soup, nome_evento, _local_json_ld(dados_json_ld)),
         "tabela_idade": _extrair_tabela_idade(soup),

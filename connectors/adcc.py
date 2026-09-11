@@ -61,8 +61,30 @@ def buscar_atletas(evento_id, filtros):
     return json.loads(arquivo.read_text(encoding="utf-8"))
 
 
-def _extrair_id_evento(html):
-    m = re.search(r"smoothcomp\.com/[a-z_]*/event/(\d+)", html)
+_EVENTO_ID_RE = re.compile(r"smoothcomp\.com/[a-z_]*/event/(\d+)")
+
+
+def _extrair_id_evento(html, soup=None):
+    # Prioriza <link rel="canonical"> / <meta property="og:url"> — são a
+    # própria página se afirmando "esta é a URL de MIM MESMA". Um
+    # re.search solto na página inteira (fallback abaixo) pode pegar o ID
+    # de OUTRO evento: a página de um evento normalmente lista outros
+    # eventos da mesma organização em algum carrossel/sidebar, e se esse
+    # link aparecer antes do link canônico no HTML, o link final fica
+    # sutilmente errado sem nenhum erro aparecer (ver connectors/ajp.py,
+    # mesma correção lá).
+    if soup is not None:
+        for tag, atributo in (("link", "href"), ("meta", "content")):
+            for el in soup.find_all(tag):
+                if tag == "meta" and (el.get("property") != "og:url" and el.get("name") != "og:url"):
+                    continue
+                if tag == "link" and "canonical" not in (el.get("rel") or []):
+                    continue
+                m = _EVENTO_ID_RE.search(el.get(atributo) or "")
+                if m:
+                    return m.group(1)
+
+    m = _EVENTO_ID_RE.search(html)
     return m.group(1) if m else None
 
 
@@ -198,7 +220,7 @@ def _extrair_prazo_inscricao(soup, ano_evento):
 
 def parse_evento_html(html):
     soup = BeautifulSoup(html, "lxml")
-    evento_id = _extrair_id_evento(html)
+    evento_id = _extrair_id_evento(html, soup)
     if not evento_id:
         raise ValueError(
             "não encontrei o ID do evento nessa página (procurei um link tipo "
@@ -210,13 +232,14 @@ def parse_evento_html(html):
     return {
         "id": f"adcc-{evento_id}",
         "nome": nome_evento,
-        # O admin cola o HTML da página (não a URL) pra importar, então não
-        # dá pra saber o prefixo de idioma exato que ele usou — "en" é o
-        # único confirmado funcionando ao vivo (testado em 10/09/2026:
-        # smoothcomp.com/pt/... e /pt-br/... dão 404, /en/... carrega o
-        # evento normalmente, atrás da verificação anti-bot da Cloudflare
-        # que o próprio smoothcomp.com usa pra qualquer visitante).
-        "url": f"https://smoothcomp.com/en/event/{evento_id}",
+        # ADCC usa o domínio direto do smoothcomp, mas no subdomínio
+        # próprio da organização (adcc.smoothcomp.com) — todo evento ADCC
+        # encontrado via busca (web search, 10/09/2026) usa esse subdomínio,
+        # nunca o genérico smoothcomp.com sozinho. "en" confirmado
+        # funcionando ao vivo (chega até a verificação anti-bot da
+        # Cloudflare, sinal de rota válida); "pt"/"pt-br" dão 404 de
+        # verdade, sem chegar nem na Cloudflare.
+        "url": f"https://adcc.smoothcomp.com/en/event/{evento_id}",
         "data": _extrair_data(soup, data_inicio),
         "local": _extrair_local(soup, nome_evento),
         "prazo_inscricao": prazo_inscricao.isoformat() if prazo_inscricao else None,
