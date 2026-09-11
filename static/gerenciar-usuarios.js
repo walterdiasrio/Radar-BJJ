@@ -110,6 +110,7 @@ function abrirMenuAcoes(usuario, botao) {
     <button type="button" class="item-acao" data-acao="email">Editar e-mail</button>
     ${!usuario.email_verificado ? `<button type="button" class="item-acao" data-acao="reenviar">Reenviar confirmação</button>` : ""}
     ${!usuario.email_verificado ? `<button type="button" class="item-acao" data-acao="confirmar-manual">Marcar como confirmado</button>` : ""}
+    ${contaEhFree(usuario) ? `<button type="button" class="item-acao" data-acao="liberar-pro">Liberar Plano PRO</button>` : ""}
     ${contaEhFree(usuario) ? `<button type="button" class="item-acao item-acao-perigo" data-acao="apagar">Apagar</button>` : ""}
   `;
   document.body.appendChild(menu);
@@ -128,6 +129,7 @@ function abrirMenuAcoes(usuario, botao) {
     else if (item.dataset.acao === "email") editarEmail(usuario, botao);
     else if (item.dataset.acao === "reenviar") reenviarConfirmacao(usuario, botao);
     else if (item.dataset.acao === "confirmar-manual") confirmarEmailManualmente(usuario, botao);
+    else if (item.dataset.acao === "liberar-pro") liberarPlanoPro(usuario, botao);
     else if (item.dataset.acao === "apagar") apagarUsuario(usuario, botao);
   });
 
@@ -190,6 +192,47 @@ async function confirmarEmailManualmente(usuario, botao) {
     const dados = await resp.json();
     if (!resp.ok) throw new Error(dados.erro || "erro ao confirmar e-mail");
     mostrarStatus(`E-mail de ${usuario.email} confirmado manualmente.`);
+    await carregarUsuarios();
+  } catch (err) {
+    mostrarStatus(`Erro: ${err.message}`, true);
+    botao.disabled = false;
+  }
+}
+
+async function liberarPlanoPro(usuario, botao) {
+  const plano = prompt(`Liberar qual plano pra ${usuario.email}? Digite "atleta" ou "mestre".`, "atleta");
+  if (!plano) return;
+  const planoNormalizado = plano.trim().toLowerCase();
+  if (!["atleta", "mestre"].includes(planoNormalizado)) {
+    mostrarStatus('Plano inválido — digite "atleta" ou "mestre".', true);
+    return;
+  }
+
+  const diasTexto = prompt('Por quantos dias? Deixe em branco para sem validade (fica até você mesmo revogar).', "30");
+  if (diasTexto === null) return;
+  let dias = null;
+  if (diasTexto.trim() !== "") {
+    dias = parseInt(diasTexto.trim(), 10);
+    if (!Number.isInteger(dias) || dias <= 0) {
+      mostrarStatus("Número de dias inválido.", true);
+      return;
+    }
+  }
+
+  const rotuloPlano = planoNormalizado === "atleta" ? "Atleta PRO" : "Mestre PRO";
+  const rotuloValidade = dias ? `por ${dias} dia(s)` : "sem validade definida";
+  if (!confirm(`Liberar o Plano ${rotuloPlano} pra ${usuario.email}, ${rotuloValidade}?`)) return;
+
+  botao.disabled = true;
+  try {
+    const resp = await fetchAutenticado(`/api/usuarios/${usuario.id}/liberar-plano-pro`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ plano: planoNormalizado, dias }),
+    });
+    const dados = await resp.json();
+    if (!resp.ok) throw new Error(dados.erro || "erro ao liberar o plano");
+    mostrarStatus(`Plano ${rotuloPlano} liberado pra ${usuario.email}.`);
     await carregarUsuarios();
   } catch (err) {
     mostrarStatus(`Erro: ${err.message}`, true);

@@ -258,6 +258,28 @@ def _refletir_subscription(subscription, usuario_id=None):
     )
 
 
+def conceder_cortesia(usuario_id, plano, dias=None):
+    """Libera o Plano PRO manualmente pra alguém, sem passar pelo Stripe —
+    usado pelo admin em Gerenciar Usuários (ex: parceria, cortesia,
+    compensar um problema). `dias=None` é sem validade (só sai revogando
+    na mão); com `dias`, expira sozinho depois (ver listar_assinaturas_sem_
+    renovacao_vencidas, que trata "cortesia" igual a "pix" pra isso — os dois
+    são formas de pagamento que não avisam a gente quando renovam)."""
+    periodo_atual_fim = int(time.time()) + dias * 86400 if dias else None
+    _upsert(
+        usuario_id,
+        stripe_customer_id=None,
+        stripe_subscription_id=None,
+        plano=plano,
+        periodicidade=None,
+        status="active",
+        trial_fim=None,
+        periodo_atual_fim=str(periodo_atual_fim) if periodo_atual_fim else None,
+        forma_pagamento="cortesia",
+        pix_lembrete_enviado_em=None,
+    )
+
+
 def _refletir_pagamento_pix(sessao_checkout):
     """Grava localmente um pagamento avulso via PIX (checkout.session.
     completed com mode=payment) — sem subscription do Stripe pra
@@ -343,14 +365,16 @@ def listar_pix_a_lembrar():
     return [dict(linha) for linha in linhas]
 
 
-def listar_pix_vencidos():
-    """Assinaturas pagas por PIX, ainda marcadas "active", cujo período já
-    passou — perdem o acesso (status vira "vencida", fora de
-    STATUS_COM_ACESSO) até pagar de novo."""
+def listar_assinaturas_sem_renovacao_vencidas():
+    """Assinaturas que NINGUÉM renova sozinho — PIX (sem cartão salvo) e
+    cortesia (concedida na mão, ver conceder_cortesia) — ainda marcadas
+    "active", cujo período já passou. Perdem o acesso (status vira
+    "vencida", fora de STATUS_COM_ACESSO) até pagar/receber de novo.
+    Diferente do Stripe, que já se corrige sozinho via webhook."""
     with _conn() as conn:
         linhas = conn.execute(
             """SELECT * FROM assinaturas
-               WHERE forma_pagamento = 'pix' AND status = 'active'
+               WHERE forma_pagamento IN ('pix', 'cortesia') AND status = 'active'
                  AND CAST(periodo_atual_fim AS INTEGER) <= ?""",
             (int(time.time()),),
         ).fetchall()
@@ -361,5 +385,5 @@ def marcar_pix_lembrete_enviado(usuario_id):
     _upsert(usuario_id, pix_lembrete_enviado_em=str(int(time.time())))
 
 
-def marcar_pix_vencida(usuario_id):
+def marcar_assinatura_vencida(usuario_id):
     _upsert(usuario_id, status="vencida")

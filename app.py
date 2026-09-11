@@ -78,9 +78,11 @@ _NOMES_PLANO_PIX = {"atleta": "Atleta PRO", "mestre": "Mestre PRO"}
 
 
 def _verificar_assinaturas_pix():
-    """PIX não renova sozinho (ver pagamentos.py) — aqui a gente: (1) manda
-    um lembrete de renovação pra quem está a poucos dias de vencer, e (2)
-    tira o acesso de quem já venceu sem renovar."""
+    """PIX e cortesia não renovam sozinhos (ver pagamentos.py) — aqui a
+    gente: (1) manda um lembrete de renovação por PIX pra quem está a
+    poucos dias de vencer (cortesia não recebe esse lembrete — não tem o
+    que "renovar" pagando), e (2) tira o acesso de quem já venceu (PIX ou
+    cortesia) sem renovar."""
     for item in pagamentos.listar_pix_a_lembrar():
         usuario = auth.buscar_por_id(item["usuario_id"])
         if not usuario:
@@ -96,8 +98,8 @@ def _verificar_assinaturas_pix():
         if alertas.enviar_email(usuario["email"], f"Seu plano {nome_plano} está quase vencendo", corpo):
             pagamentos.marcar_pix_lembrete_enviado(item["usuario_id"])
 
-    for item in pagamentos.listar_pix_vencidos():
-        pagamentos.marcar_pix_vencida(item["usuario_id"])
+    for item in pagamentos.listar_assinaturas_sem_renovacao_vencidas():
+        pagamentos.marcar_assinatura_vencida(item["usuario_id"])
 
 
 def _iniciar_verificacao_periodica_de_alertas():
@@ -705,6 +707,31 @@ def api_admin_confirmar_email_manualmente(usuario_id):
     if linha and linha["email_verificado"]:
         return jsonify({"erro": "esse e-mail já está confirmado"}), 400
     auth.confirmar_email_manualmente(usuario_id)
+    return jsonify({"ok": True})
+
+
+@app.post("/api/usuarios/<int:usuario_id>/liberar-plano-pro")
+@api_admin_necessario
+def api_admin_liberar_plano_pro(usuario_id):
+    usuario = auth.buscar_por_id(usuario_id)
+    if not usuario:
+        return jsonify({"erro": "usuário não encontrado"}), 404
+
+    dados = request.get_json(silent=True) or {}
+    plano = dados.get("plano")
+    if plano not in ("atleta", "mestre"):
+        return jsonify({"erro": "plano precisa ser 'atleta' ou 'mestre'"}), 400
+
+    dias = dados.get("dias")
+    if dias is not None:
+        try:
+            dias = int(dias)
+        except (TypeError, ValueError):
+            return jsonify({"erro": "dias precisa ser um número (ou vazio, pra sem validade)"}), 400
+        if dias <= 0:
+            return jsonify({"erro": "dias precisa ser maior que zero"}), 400
+
+    pagamentos.conceder_cortesia(usuario_id, plano, dias)
     return jsonify({"ok": True})
 
 
