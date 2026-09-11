@@ -130,6 +130,20 @@ def extrair_intervalo(texto):
     return (inicio, fim)
 
 
+def formatar_data_iso(data_iso):
+    """"02 de janeiro de 2026" a partir de uma data em ISO 8601
+    (YYYY-MM-DD, formato salvo internamente pra prazo_inscricao — não dá
+    pra reaproveitar formatar()/extrair_data() aqui porque o regex delas
+    espera DD/MM/YYYY, ordem oposta à do ISO). "" se vier vazio/inválido."""
+    if not data_iso:
+        return ""
+    try:
+        d = date.fromisoformat(data_iso)
+    except ValueError:
+        return ""
+    return f"{d.day:02d} de {_MESES_LABEL[d.month - 1].lower()} de {d.year}"
+
+
 def formatar(texto):
     """"02 de janeiro de 2026" (um dia) ou "07 a 08 de janeiro de 2026"
     (intervalo) a partir do texto de data solto de qualquer federação.

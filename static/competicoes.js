@@ -177,6 +177,7 @@ function renderizarCompeticoes(competicoes, mensagemVazia) {
           <th>Data</th>
           <th>Local</th>
           <th>Inscrições</th>
+          <th>Prazo de Inscrição</th>
           <th>Minha Agenda</th>
         </tr>
       </thead>
@@ -188,6 +189,7 @@ function renderizarCompeticoes(competicoes, mensagemVazia) {
             <td>${c.data || ""}</td>
             <td>${c.local || ""}</td>
             <td>${badgeInscricao(c.inscricoes_abertas)}</td>
+            <td>${c.prazo_inscricao || "Não informado"}</td>
             <td>${botoesAgenda(c)}</td>
           </tr>
         `).join("")}

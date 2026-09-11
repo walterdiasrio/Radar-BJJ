@@ -655,6 +655,7 @@ def listar_competicoes(federacao):
                     "local": _simplifica_local(evento.get("local", ""), fed),
                     "uf": _extrair_uf(evento.get("local", ""), fed),
                     "inscricoes_abertas": inscricoes_abertas,
+                    "prazo_inscricao": datas_mod.formatar_data_iso(evento.get("prazo_inscricao")),
                     "publico": _classificar_publico(nome, fed),
                 },
             ))

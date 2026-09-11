@@ -115,16 +115,18 @@ def _caminho_do_evento(url):
     return urlparse(url).path.strip("/")
 
 
-def _inscricoes_abertas(caminho):
+def _status_inscricao(caminho):
     """A página do evento (login/checagem) tem um card "Valores das
     inscrições" com um ou mais lotes, cada um com uma data limite
     (".lot-date", ex: "até 09/09/2026") — inscrições contam como abertas
-    enquanto a data de hoje não passar do último lote. None se a página não
-    tiver nenhum lote (não dá pra saber)."""
+    enquanto a data de hoje não passar do último lote (o mais tardio = o
+    prazo final de verdade, já que lotes anteriores só encareceram, não
+    fecharam a inscrição). Retorna (inscricoes_abertas, prazo_inscricao) —
+    os dois None se a página não tiver nenhum lote (não dá pra saber)."""
     try:
         resp = get(f"{DOMINIO_EVENTOS}/{caminho}")
     except Exception:
-        return None
+        return None, None
     soup = BeautifulSoup(resp.text, "lxml")
 
     limites = []
@@ -138,8 +140,9 @@ def _inscricoes_abertas(caminho):
         except ValueError:
             continue
     if not limites:
-        return None
-    return date.today() <= max(limites)
+        return None, None
+    prazo = max(limites)
+    return date.today() <= prazo, prazo.isoformat()
 
 
 def listar_eventos():
@@ -163,13 +166,15 @@ def listar_eventos():
         caminho = _caminho_do_evento(url)
         if not url or not nome or not caminho:
             continue
+        inscricoes_abertas, prazo_inscricao = _status_inscricao(caminho)
         eventos.append({
             "id": f"fjjpe-{caminho}",
             "nome": nome,
             "url": url,
             "data": _data_do_evento(nome, entradas_calendario),
             "local": _LOCAL_PADRAO,
-            "inscricoes_abertas": _inscricoes_abertas(caminho),
+            "inscricoes_abertas": inscricoes_abertas,
+            "prazo_inscricao": prazo_inscricao,
         })
     return eventos
 

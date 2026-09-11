@@ -89,9 +89,10 @@ def _detalhes_evento(evento_id):
             "data": data_texto,
             "local": local_texto,
             "inscricoes_abertas": inscricoes_abertas,
+            "prazo_inscricao": prazo.isoformat() if prazo else None,
         }
     except Exception:
-        return {"nome": f"Evento {evento_id}", "data": "", "local": "", "inscricoes_abertas": None}
+        return {"nome": f"Evento {evento_id}", "data": "", "local": "", "inscricoes_abertas": None, "prazo_inscricao": None}
 
 
 def buscar_atletas(evento_id, filtros):
