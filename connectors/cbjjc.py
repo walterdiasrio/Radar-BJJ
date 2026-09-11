@@ -23,6 +23,7 @@ peso (ver evento_sem_kimono em connectors/__init__.py) — misturar as duas
 classificaria peso errado pros filtros de busca.
 """
 import re
+from datetime import date, timedelta
 
 from bs4 import BeautifulSoup
 
@@ -32,6 +33,61 @@ SITE = "https://cbjjc.com.br"
 ILUTAS = "https://www.ilutas.com.br"
 
 _EVENTO_ID_RE = re.compile(r"ilutas\.com\.br/Evento/Index\.php\?event=([a-f0-9]+)", re.I)
+_LOTE_DATA_RE = re.compile(r"^(\d{1,2})/(\d{1,2})$")
+
+
+def _inferir_ano(mes, dia):
+    """As datas de lote da iLutas vêm sem ano ("26/08") — mesma regra do
+    fallback de connectors/datas.py::extrair_data: assume o ano corrente,
+    só avança pro seguinte se a data já ficou bem pra trás (30 dias de
+    folga, pra não pular um ano por causa de virada de mês)."""
+    hoje = date.today()
+    ano = hoje.year
+    try:
+        candidata = date(ano, mes, dia)
+    except ValueError:
+        candidata = date(ano, mes, 1)
+    if candidata < hoje - timedelta(days=30):
+        ano += 1
+    return ano
+
+
+def _prazo_inscricao(soup):
+    """A página do evento pode ter mais de uma tabela de preço (ex: uma só
+    GI, outra GI+NOGI) — cada uma com seus próprios "1°/2°/3° Lote até
+    <strong>DD/MM ou "final"</strong>" (ver .evento-item .lote, cada
+    <span> desses). "até final" (sem data — o lote fica aberto até o fim
+    das inscrições, sem um corte fixo à parte) é comum quando a organização
+    não quer travar um preço final; ignoramos esses e ficamos com o maior
+    prazo REAL encontrado em qualquer uma das tabelas da página — na
+    prática, o prazo mais tardio já visto costuma ser o prazo final de
+    verdade, mesmo quando outra tabela da mesma página não fecha uma data."""
+    # Infere o ano UMA VEZ só, pro par (mês, dia) mais tardio — não pra
+    # cada data separadamente. Um lote isolado que já passou há pouco mais
+    # de 30 dias (ex: 1º Lote "20/07" com hoje em 10/09) rolaria sozinho
+    # pro ANO QUE VEM, enquanto um lote mais tardio da mesma tabela (ex: 2º
+    # Lote "08/09", só 2 dias atrás) ficaria no ano corrente — os dois são
+    # do mesmo evento/temporada, então comparar as datas resultantes com
+    # anos diferentes já dava um "prazo final" mais cedo que o penúltimo
+    # lote. Comparando (mês, dia) primeiro e só inferindo o ano no final,
+    # pro maior par, evita essa inversão.
+    pares = []
+    for texto_no in soup.find_all(string=lambda s: s and "Lote até" in s):
+        span = texto_no.parent
+        forte = span.find("strong") if span else None
+        if not forte:
+            continue
+        m = _LOTE_DATA_RE.match(forte.get_text(strip=True))
+        if not m:
+            continue  # "final" ou outro texto sem data
+        pares.append((int(m.group(2)), int(m.group(1))))  # (mês, dia)
+    if not pares:
+        return None
+    mes, dia = max(pares)
+    try:
+        return date(_inferir_ano(mes, dia), mes, dia)
+    except ValueError:
+        return None
 
 
 def _ids_dos_eventos():
@@ -63,12 +119,14 @@ def _info_evento(evento_id_bruto):
         data = partes[0] if partes else ""
         local = partes[1] if len(partes) > 1 else ""
 
+    prazo = _prazo_inscricao(soup)
     return {
         "id": f"cbjjc-{evento_id_bruto}",
         "nome": nome,
         "url": f"{ILUTAS}/Evento/Index.php?event={evento_id_bruto}",
         "data": data,
         "local": local,
+        "prazo_inscricao": prazo.isoformat() if prazo else None,
     }
 
 

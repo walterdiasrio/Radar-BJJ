@@ -33,8 +33,11 @@ GI e NOGI juntos (não dá pra usar o nome do evento pra saber qual é qual).
 NOGI, Absoluto e "Desafio Kids" (formato à parte, com faixas de idade
 próprias) ficam de fora por enquanto.
 """
+import io
 import re
+from datetime import date
 
+import pdfplumber
 from bs4 import BeautifulSoup
 
 from . import peso as peso_mod
@@ -54,6 +57,33 @@ def _nome_evento(ano, etapa):
     soup = BeautifulSoup(resp.text, "lxml")
     titulo = soup.select_one(".titulo")
     return titulo.get_text(strip=True) if titulo else ""
+
+
+_LOTE_PDF_RE = re.compile(r"Lote\s*\(até\s*(\d{1,2})/(\d{1,2})/(\d{4})\)", re.I)
+
+
+def _prazo_inscricao(ano, etapa):
+    """O prazo só existe dentro do PDF do Edital (nenhuma página HTML do
+    evento traz essa data) — "Art. 8º" lista lotes de preço "I – 1º Lote
+    (até DD/MM/YYYY)", "II – 2º Lote (...)" etc.; usamos o maior desses
+    prazos (o do último lote), que é o prazo final de inscrição de
+    verdade. Nome do arquivo é previsível: EDITAL_FJJEMG_<ano>_<etapa>.PDF."""
+    url = f"{DOMINIO_EVENTOS}/campeonatos/{ano}/{etapa}/EDITAL_FJJEMG_{ano}_{etapa}.PDF"
+    try:
+        resp = get(url)
+        with pdfplumber.open(io.BytesIO(resp.content)) as pdf:
+            texto = "\n".join(page.extract_text() or "" for page in pdf.pages)
+    except Exception:
+        return None
+
+    prazos = []
+    for m in _LOTE_PDF_RE.finditer(texto):
+        dia, mes, ano_lote = (int(x) for x in m.groups())
+        try:
+            prazos.append(date(ano_lote, mes, dia))
+        except ValueError:
+            continue
+    return max(prazos) if prazos else None
 
 
 def listar_eventos():
@@ -80,13 +110,19 @@ def listar_eventos():
         # no texto, não uma imagem — o WordPress só troca por <img> no
         # navegador via JS, o HTML puro que a gente lê tem o emoji mesmo).
         local_texto = local_el.get_text(strip=True).lstrip("📍 ") if local_el else ""
+        prazo = _prazo_inscricao(ano, etapa)
         eventos.append({
             "id": f"fjjemg-{ano}-{etapa}",
             "nome": nome,
             "url": link.get("href"),
             "data": data_el.get_text(strip=True) if data_el else "",
             "local": local_texto,
-            "inscricoes_abertas": True,  # só chega aqui quem tem o card com link/tag "Inscrições Abertas"
+            # Sem prazo achado no Edital, mantém True — só chega aqui quem
+            # tem o card com link/tag "Inscrições Abertas" na home; com
+            # prazo, calcula de verdade (mais preciso que confiar só no
+            # card, que pode estar desatualizado).
+            "inscricoes_abertas": (date.today() <= prazo) if prazo else True,
+            "prazo_inscricao": prazo.isoformat() if prazo else None,
         })
     return eventos
 

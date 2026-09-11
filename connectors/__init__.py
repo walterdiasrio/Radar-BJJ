@@ -473,13 +473,17 @@ def _status_inscricao(fed, modulo, evento):
     """(inscricoes_abertas, prazo_inscricao) — inscricoes_abertas é
     True/False/None (não informado); prazo_inscricao é uma data ISO
     (string) ou None quando a federação não publica um prazo explícito.
-    Algumas federações (CBJJE, FJJEMG) já trazem o booleano pronto na
-    própria listagem de eventos (sem prazo explícito ainda); as demais têm
-    um status_inscricao(evento) próprio que busca (e às vezes calcula a
-    partir de um prazo) na página do evento; sem nenhum dos dois, fica
-    "não informado" nos dois campos."""
-    if "inscricoes_abertas" in evento:
-        return evento["inscricoes_abertas"], evento.get("prazo_inscricao")
+    Algumas federações já trazem um ou os dois prontos na própria listagem
+    de eventos (CBJJE/FJJEMG só o booleano; CBJJO/FJJPE/CBJJC/ADCC/AJP só o
+    prazo, ou os dois — daí checar os dois nomes de campo em vez de exigir
+    "inscricoes_abertas" especificamente, senão uma federação que só
+    preenche "prazo_inscricao" no evento (ex: CBJJC) cai no hook do módulo
+    por engano e perde o prazo que já tinha em mãos); as demais têm um
+    status_inscricao(evento) próprio que busca (e às vezes calcula a partir
+    de um prazo) na página do evento; sem nenhum dos dois, fica "não
+    informado" nos dois campos."""
+    if "inscricoes_abertas" in evento or "prazo_inscricao" in evento:
+        return evento.get("inscricoes_abertas"), evento.get("prazo_inscricao")
     if hasattr(modulo, "status_inscricao"):
         try:
             resultado = modulo.status_inscricao(evento)
@@ -512,6 +516,28 @@ _NOME_ESTADO_PARA_UF = {
 }
 _NOMES_ESTADO_POR_TAMANHO = sorted(_NOME_ESTADO_PARA_UF, key=len, reverse=True)
 
+# Cidade -> UF pros casos em que o texto de "local" não tem estado NENHUM,
+# nem sigla nem por extenso (comum no ADCC/AJP: a plataforma Smoothcomp é
+# internacional e às vezes só registra "Cidade, Brazil", sem UF). Cobre as
+# capitais + cidades onde já vimos evento de ADCC/AJP/outra federação
+# nacional rodar (conferido nesta sessão) — não é uma lista exaustiva de
+# municípios brasileiros, só o suficiente pra não deixar essas federações
+# "sem estado" com uma cidade conhecida.
+_CIDADE_PARA_UF = {
+    "rio branco": "AC", "maceió": "AL", "macapá": "AP", "manaus": "AM",
+    "salvador": "BA", "fortaleza": "CE", "brasília": "DF", "vitória": "ES",
+    "goiânia": "GO", "anápolis": "GO", "são luís": "MA", "cuiabá": "MT",
+    "campo grande": "MS", "belo horizonte": "MG", "juiz de fora": "MG",
+    "muriaé": "MG", "nova lima": "MG", "uberlândia": "MG", "belém": "PA",
+    "joão pessoa": "PB", "curitiba": "PR", "recife": "PE", "teresina": "PI",
+    "petrópolis": "RJ", "cabo frio": "RJ", "niterói": "RJ",
+    "natal": "RN", "porto alegre": "RS", "porto velho": "RO",
+    "boa vista": "RR", "florianópolis": "SC", "balneário camboriú": "SC",
+    "são paulo": "SP", "guarujá": "SP", "indaiatuba": "SP", "aracaju": "SE",
+    "palmas": "TO", "araguaína": "TO",
+}
+_CIDADES_POR_TAMANHO = sorted(_CIDADE_PARA_UF, key=len, reverse=True)
+
 # Federações regionais por definição — o "local" delas costuma trazer só o
 # nome do ginásio, sem cidade/estado (ex: "CLUBE MUNICIPAL", "Ginásio de
 # Esportes José Correa"), mas todo evento delas é sempre no mesmo estado, então
@@ -528,7 +554,10 @@ _UF_FIXA_POR_FEDERACAO = {
 def _extrair_uf(local, federacao=None):
     """Tenta achar o estado a partir do texto livre de "local" — primeiro
     procura uma sigla de 2 letras isolada (ex: "Fortaleza, CE"), senão tenta
-    o nome do estado por extenso (ex: "..., Minas Gerais"). Sem nada disso,
+    o nome do estado por extenso (ex: "..., Minas Gerais"), senão tenta
+    reconhecer o nome de uma cidade conhecida (ex: "Petrópolis", sem UF nem
+    nome de estado nenhum no texto — comum no ADCC/AJP, cuja plataforma
+    international às vezes só registra "Cidade, Brazil"). Sem nada disso,
     cai pro estado fixo da federação quando ela é regional (ver
     _UF_FIXA_POR_FEDERACAO) — None só quando não há mesmo como saber."""
     if local:
@@ -539,6 +568,9 @@ def _extrair_uf(local, federacao=None):
         for nome in _NOMES_ESTADO_POR_TAMANHO:
             if nome in texto:
                 return _NOME_ESTADO_PARA_UF[nome]
+        for cidade in _CIDADES_POR_TAMANHO:
+            if cidade in texto:
+                return _CIDADE_PARA_UF[cidade]
     return _UF_FIXA_POR_FEDERACAO.get(federacao)
 
 
@@ -553,15 +585,20 @@ def _titulo_pt(texto):
 def _simplifica_local(local, federacao=None):
     """Reduz o texto livre de "local" (que cada federação escreve do seu
     jeito — endereço completo, nome do ginásio, "Cidade/UF", "Cidade -
-    Estado por extenso"...) pra só "Município, UF", que é o que interessa
-    pra quem está vendo a lista de competições. Primeiro tenta achar
-    "<algo>, <UF>"/"<algo> - <UF>"/"<algo>/<UF>" (o <algo> vira o
-    município, descartando endereço/nome de ginásio antes dele); sem UF de
-    2 letras, tenta o nome do estado por extenso e usa esse mesmo trecho
-    como candidato a município (funciona quando cidade e estado têm o
-    mesmo nome, ex: "Rio de Janeiro"). Sem nenhum dos dois, cai pro estado
-    fixo da federação (ver _UF_FIXA_POR_FEDERACAO) só com a UF; sem isso
-    também, mantém o texto original (não tem como saber cidade nem estado)."""
+    Estado por extenso", só "Cidade" sem estado nenhum...) pra só
+    "Município, UF", que é o que interessa pra quem está vendo a lista de
+    competições. Tenta, em ordem: (1) "<algo>, <UF>"/"<algo> - <UF>"/
+    "<algo>/<UF>" (o <algo> vira o município, descartando endereço/nome de
+    ginásio antes dele); (2) nome do estado por extenso em algum ponto do
+    texto — o trecho ANTES dele vira o município (ex: "Petrópolis - Rio de
+    Janeiro" → município "Petrópolis", não "Rio de Janeiro"; só usa o
+    próprio nome do estado como município quando não sobra nada antes,
+    ex: texto era só "Rio de Janeiro"); (3) nome de uma cidade conhecida
+    sem UF nem estado nenhum no texto (comum no ADCC/AJP — plataforma
+    internacional que às vezes só registra "Cidade, Brazil", sem UF, ver
+    _CIDADE_PARA_UF). Sem nenhum dos três, cai pro estado fixo da
+    federação (ver _UF_FIXA_POR_FEDERACAO) só com a UF; sem isso também,
+    mantém o texto original (não tem como saber cidade nem estado)."""
     if not local:
         return local
 
@@ -575,8 +612,19 @@ def _simplifica_local(local, federacao=None):
 
     texto = local.lower()
     for nome in _NOMES_ESTADO_POR_TAMANHO:
-        if nome in texto:
-            return f"{_titulo_pt(nome)}, {_NOME_ESTADO_PARA_UF[nome]}"
+        indice = texto.find(nome)
+        if indice == -1:
+            continue
+        antes = re.sub(r"[,\-/\s]+$", "", local[:indice])
+        # Se sobrar mais de um pedaço antes do estado (ex: "Ginásio X,
+        # Uberlândia" antes de ", Minas Gerais"), o último costuma ser a
+        # cidade — os anteriores são nome de rua/ginásio/bairro.
+        cidade = antes.rsplit(",", 1)[-1].strip() if antes.strip() else nome
+        return f"{_titulo_pt(cidade)}, {_NOME_ESTADO_PARA_UF[nome]}"
+
+    for cidade in _CIDADES_POR_TAMANHO:
+        if cidade in texto:
+            return f"{_titulo_pt(cidade)}, {_CIDADE_PARA_UF[cidade]}"
 
     # Sem UF nenhuma no texto: federação regional (estado sempre o mesmo) —
     # gruda a UF fixa no texto que já tem (às vezes já é só o nome do
