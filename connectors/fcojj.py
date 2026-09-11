@@ -51,6 +51,7 @@ nesse mesmo evento), o rótulo calculado a partir do ano de nascimento
 _idade_e_peso_e_faixa mais abaixo.
 """
 import re
+from datetime import date
 
 from bs4 import BeautifulSoup
 
@@ -104,6 +105,42 @@ def listar_eventos():
             "local": local_el.get_text(" ", strip=True) if local_el else "",
         })
     return eventos
+
+
+_PRAZO_INSCRICAO_RE = re.compile(r"Inscri[cç][õo]es\s+at[ée]:</strong>\s*(\d{1,2})/(\d{1,2})/(\d{4})", re.I)
+_ENCERRADAS_RE = re.compile(r"Inscri[cç][õo]es\s+encerradas", re.I)
+
+
+def status_inscricao(evento):
+    """(inscricoes_abertas, prazo_inscricao). A página do evento na
+    MartialMatch traz um bloco "📅 DATAS OFICIAIS" com "Inscrições até:
+    DD/MM/YYYY" em texto livre da descrição (não é um campo estruturado da
+    API — ver connectors/fcojj.py::buscar_atletas pra essa), e também um
+    selo "Inscrições encerradas"/"Inscrições abertas" separado, mais
+    confiável pro status em si (o prazo, sozinho, não conta pra quem
+    fechou por atingir o limite de atletas antes da data)."""
+    url = evento.get("url")
+    if not url:
+        return None, None
+    try:
+        resp = get(url)
+    except Exception:
+        return None, None
+
+    prazo = None
+    m = _PRAZO_INSCRICAO_RE.search(resp.text)
+    if m:
+        dia, mes, ano = (int(x) for x in m.groups())
+        try:
+            prazo = date(ano, mes, dia).isoformat()
+        except ValueError:
+            prazo = None
+
+    if _ENCERRADAS_RE.search(resp.text):
+        return False, prazo
+    if prazo:
+        return date.today() <= date.fromisoformat(prazo), prazo
+    return None, prazo
 
 
 _IDADE_LABEL = {

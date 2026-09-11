@@ -33,6 +33,7 @@ português usado pela tabela idade.py/peso.py "fjjgo" (que segue o padrão
 CBJJ/FJJRio, com a única diferença de não separar Juvenil 1/2 — ver
 connectors/idade.py)."""
 import re
+from datetime import date
 
 from bs4 import BeautifulSoup
 
@@ -114,6 +115,45 @@ def listar_eventos():
             break
         pagina += 1
     return eventos_go
+
+
+_PERIODO_INSCRICAO_RE = re.compile(
+    r"Per[íi]odo de inscri[cç][ãa]o:.*?(?=Per[íi]odo\s+de\s+CHECAGEM|$)", re.I | re.S
+)
+_DATA_RE = re.compile(r"(\d{1,2})/(\d{1,2})/(\d{4})")
+
+
+def status_inscricao(evento):
+    """(inscricoes_abertas, prazo_inscricao). A página do evento tem uma
+    seção "AGENDA / SCHEDULE" > "Período de inscrição" com uma ou mais
+    datas "Até: DD/MM/YYYY" (uma por forma de pagamento — boleto fecha
+    antes de cartão/PIX, por exemplo) antes da seção seguinte, "Período de
+    CHECAGEM". Usamos a maior dessas datas — é sempre a última forma de
+    pagamento ainda aceita, ou seja, o prazo final de verdade."""
+    url = evento.get("url")
+    if not url:
+        return None, None
+    try:
+        resp = get(url)
+    except Exception:
+        return None, None
+    soup = BeautifulSoup(resp.text, "lxml")
+    texto = soup.get_text(" ", strip=True)
+
+    secao = _PERIODO_INSCRICAO_RE.search(texto)
+    if not secao:
+        return None, None
+    prazos = []
+    for m in _DATA_RE.finditer(secao.group()):
+        dia, mes, ano = (int(x) for x in m.groups())
+        try:
+            prazos.append(date(ano, mes, dia))
+        except ValueError:
+            continue
+    if not prazos:
+        return None, None
+    prazo = max(prazos)
+    return date.today() <= prazo, prazo.isoformat()
 
 
 # Rótulos exatamente como aparecem na checagem geral real (conferido ao vivo

@@ -9,6 +9,8 @@ Duas frentes do mesmo grupo:
 """
 import html as html_mod
 import re
+from datetime import date
+
 from bs4 import BeautifulSoup
 
 from .http import get, post
@@ -56,15 +58,32 @@ def _detalhes_evento(codigo):
         elif "INSCRIÇÕES ENCERRADAS" in texto_upper or "CAPACIDADE MÁXIMA" in texto_upper:
             inscricoes_abertas = False
 
+        # "Datas Importantes": Filiação / Inscrições com desconto / Inscrições
+        # SEM desconto (o prazo final de verdade, depois só quem já editou
+        # a categoria segue) / Alterações de peso / Checagem final. Usa a
+        # de "sem desconto" — a "com desconto" só marca quando o preço sobe.
+        m_prazo = re.search(r"Inscrições sem desconto até:</strong>\s*(\d{1,2})-(\d{1,2})-(\d{4})", html)
+        prazo_inscricao = None
+        if m_prazo:
+            dia, mes, ano = (int(x) for x in m_prazo.groups())
+            try:
+                prazo_inscricao = date(ano, mes, dia).isoformat()
+            except ValueError:
+                pass
+
         return {
             "nome": nome,
             "url": f"{SITE}/campeonato/?codigo={codigo}",
             "data": data_texto,
             "local": local_texto,
             "inscricoes_abertas": inscricoes_abertas,
+            "prazo_inscricao": prazo_inscricao,
         }
     except Exception:
-        return {"url": f"{SITE}/campeonato/?codigo={codigo}", "data": "", "local": "", "inscricoes_abertas": None}
+        return {
+            "url": f"{SITE}/campeonato/?codigo={codigo}",
+            "data": "", "local": "", "inscricoes_abertas": None, "prazo_inscricao": None,
+        }
 
 
 def buscar_atletas(evento_id, filtros):

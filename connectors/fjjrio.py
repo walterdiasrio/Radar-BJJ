@@ -6,6 +6,7 @@ DataTable de "Checagem Pública" de cada evento. Não exige login.
 import re
 from bs4 import BeautifulSoup
 
+from . import datas as datas_mod
 from .http import get, post
 
 BASE = "https://fjjrio.com.br"
@@ -42,17 +43,32 @@ def listar_eventos():
 
 
 def status_inscricao(evento):
-    """True = inscrições abertas, False = encerradas, None = não deu pra saber."""
+    """(inscricoes_abertas, prazo_inscricao) — a página do evento traz uma
+    lista "Início/Término da Inscrição/Data limite para pagamento/edição"
+    (ver <li><b>Término da Inscrição</b></li>) — usamos o "Término", que é
+    o prazo final de verdade (a edição segue aberta um pouco depois, mas
+    sem poder mais competir se não tiver se inscrito antes)."""
     url = evento.get("url")
     if not url:
-        return None
+        return None, None
     resp = get(url)
     texto = resp.text.lower()
+
+    aberta = None
     if "inscrições para esse evento estão abertas" in texto:
-        return True
-    if "inscrições para esse evento estão" in texto and "encerrada" in texto:
-        return False
-    return None
+        aberta = True
+    elif "inscrições para esse evento estão" in texto and "encerrada" in texto:
+        aberta = False
+
+    prazo = None
+    soup = BeautifulSoup(resp.text, "lxml")
+    rotulo = soup.find("b", string=lambda s: s and "Término da Inscrição" in s)
+    if rotulo and rotulo.parent and rotulo.parent.parent:
+        texto_data = rotulo.parent.parent.get_text(" ", strip=True).replace("Término da Inscrição", "")
+        data_obj = datas_mod.extrair_data(texto_data)
+        prazo = data_obj.isoformat() if data_obj else None
+
+    return aberta, prazo
 
 
 def _resolver_id_evento(base64_id):

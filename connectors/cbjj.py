@@ -9,8 +9,11 @@ com uma seção <section class='category-set'> por categoria (idade/gênero/faix
 e uma tabela de atletas dentro de cada uma.
 """
 import re
+from datetime import date
+
 from bs4 import BeautifulSoup
 
+from . import datas as datas_mod
 from .http import get
 
 BASE = "https://cbjj.com.br"
@@ -54,34 +57,50 @@ def listar_eventos():
 
 
 def status_inscricao(evento):
-    """True = inscrições abertas, False = fechadas, None = não deu pra saber.
-    A página do evento tem um botão em '.registration-button a': quando as
-    inscrições estão abertas ele é um link de verdade pra plataforma de
-    inscrição ("Inscreva-se agora"); quando fecham (por prazo ou por atingir
-    o limite de vagas) ele vira um botão desabilitado com texto avisando
-    disso. (Versão antiga do site tinha um texto fixo "AS INSCRIÇÕES ESTÃO
-    ABERTAS/FECHADAS" que não é mais usado — mantido como fallback abaixo
-    caso a página volte a mudar.)"""
+    """(inscricoes_abertas, prazo_inscricao). A página do evento tem um
+    botão em '.registration-button a': quando as inscrições estão abertas
+    ele é um link de verdade pra plataforma de inscrição ("Inscreva-se
+    agora"); quando fecham (por prazo ou por atingir o limite de vagas) ele
+    vira um botão desabilitado com texto avisando disso. (Versão antiga do
+    site tinha um texto fixo "AS INSCRIÇÕES ESTÃO ABERTAS/FECHADAS" que não
+    é mais usado — mantido como fallback abaixo caso a página volte a
+    mudar.) O prazo em si vem do card "Datas Importantes" > "Prazo de
+    Inscrição" > div.date (ver connectors/cbjj.py — a data fica como texto
+    solto antes de um <div> aninhado com o texto legal, por isso não dá pra
+    pegar com .get_text() direto sem incluir aquele texto todo junto)."""
     url = evento.get("url")
     if not url:
-        return None
+        return None, None
     resp = get(url)
     soup = BeautifulSoup(resp.text, "lxml")
 
+    prazo = None
+    div_data = soup.select_one("div.registration-deadline div.date")
+    if div_data:
+        texto_solto = next(
+            (c for c in div_data.contents if isinstance(c, str) and c.strip()), ""
+        )
+        data_obj = datas_mod.extrair_data(texto_solto)
+        prazo = data_obj.isoformat() if data_obj else None
+
+    aberta = None
     botao = soup.select_one(".registration-button a")
     if botao:
         texto_botao = botao.get_text(strip=True).lower()
         if "fechad" in texto_botao or "limite" in texto_botao or "encerr" in texto_botao:
-            return False
-        if "inscreva" in texto_botao or "inscrição" in texto_botao or "inscricao" in texto_botao:
-            return True
+            aberta = False
+        elif "inscreva" in texto_botao or "inscrição" in texto_botao or "inscricao" in texto_botao:
+            aberta = True
+
+    if aberta is not None:
+        return aberta, prazo
 
     texto = resp.text.upper()
     if "INSCRIÇÕES PARA ESSE EVENTO ESTÃO ABERTAS" in texto:
-        return True
+        return True, prazo
     if "INSCRIÇÕES PARA ESSE EVENTO ESTÃO FECHADAS" in texto:
-        return False
-    return None
+        return False, prazo
+    return None, prazo
 
 
 def buscar_atletas(evento_id, filtros):

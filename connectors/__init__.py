@@ -470,18 +470,25 @@ def buscar_atletas_agregado(federacao, evento_id, filtros, contexto="busca"):
 
 
 def _status_inscricao(fed, modulo, evento):
-    """True = abertas, False = fechadas, None = não informado. Algumas
-    federações (CBJJO, CBJJE) já trazem isso pronto na própria listagem de
-    eventos; para CBJJ e FJJRio buscamos na página do evento; CBJJD não tem
-    sinal confiável, fica sempre "não informado"."""
+    """(inscricoes_abertas, prazo_inscricao) — inscricoes_abertas é
+    True/False/None (não informado); prazo_inscricao é uma data ISO
+    (string) ou None quando a federação não publica um prazo explícito.
+    Algumas federações (CBJJE, FJJEMG) já trazem o booleano pronto na
+    própria listagem de eventos (sem prazo explícito ainda); as demais têm
+    um status_inscricao(evento) próprio que busca (e às vezes calcula a
+    partir de um prazo) na página do evento; sem nenhum dos dois, fica
+    "não informado" nos dois campos."""
     if "inscricoes_abertas" in evento:
-        return evento["inscricoes_abertas"]
+        return evento["inscricoes_abertas"], evento.get("prazo_inscricao")
     if hasattr(modulo, "status_inscricao"):
         try:
-            return modulo.status_inscricao(evento)
+            resultado = modulo.status_inscricao(evento)
         except Exception:
-            return None
-    return None
+            return None, None
+        if isinstance(resultado, tuple):
+            return resultado
+        return resultado, None
+    return None, None
 
 
 _UF_VALIDAS = {
@@ -638,9 +645,9 @@ def listar_competicoes(federacao):
         for futuro in as_completed(futuros):
             fed, evento = futuros[futuro]
             try:
-                inscricoes_abertas = futuro.result()
+                inscricoes_abertas, prazo_inscricao = futuro.result()
             except Exception:
-                inscricoes_abertas = None
+                inscricoes_abertas, prazo_inscricao = None, None
             data_ordenacao = datas_mod.extrair_data(evento.get("data", ""))
             nome = evento.get("nome", "")
             resultado.append((
@@ -655,7 +662,7 @@ def listar_competicoes(federacao):
                     "local": _simplifica_local(evento.get("local", ""), fed),
                     "uf": _extrair_uf(evento.get("local", ""), fed),
                     "inscricoes_abertas": inscricoes_abertas,
-                    "prazo_inscricao": datas_mod.formatar_data_iso(evento.get("prazo_inscricao")),
+                    "prazo_inscricao": datas_mod.formatar_data_iso(prazo_inscricao),
                     "publico": _classificar_publico(nome, fed),
                 },
             ))

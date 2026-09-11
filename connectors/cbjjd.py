@@ -57,6 +57,40 @@ def _checagem_aberta(html):
     return "checagem_abrir_invalida" not in html and "INVÁLIDA" not in html.upper()
 
 
+_LOTE_DATA_RE = re.compile(r"(\d{1,2})/(\d{1,2})/(\d{4})")
+
+
+def status_inscricao(evento):
+    """(inscricoes_abertas, prazo_inscricao) a partir do Edital do evento
+    (isbjj.com/.../edital_campeonato.asp), que traz um cartão por lote de
+    preço com "Prazo final: até DD/M/YYYY" (ver .lote-prazo) — usamos o
+    maior desses prazos, que é sempre o do último lote = prazo final de
+    inscrição de verdade."""
+    evento_id = evento.get("id")
+    if not evento_id:
+        return None, None
+    try:
+        resp = get(f"{ISBJJ}/{evento_id}/edital_campeonato.asp")
+    except Exception:
+        return None, None
+    soup = BeautifulSoup(resp.text, "lxml")
+
+    prazos = []
+    for el in soup.select(".lote-prazo"):
+        m = _LOTE_DATA_RE.search(el.get_text())
+        if not m:
+            continue
+        dia, mes, ano = (int(x) for x in m.groups())
+        try:
+            prazos.append(date(ano, mes, dia))
+        except ValueError:
+            continue
+    if not prazos:
+        return None, None
+    prazo = max(prazos)
+    return date.today() <= prazo, prazo.isoformat()
+
+
 def buscar_atletas(evento_id, filtros):
     menu_url = f"{ISBJJ}/{evento_id}/menucampeonato.asp"
     resp_menu = get(menu_url)
