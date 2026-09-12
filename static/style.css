@@ -214,18 +214,17 @@ header {
 }
 
 /* Réplica compacta de "Minha Assinatura"/"Sair", só ícones, sobreposta no
-   canto inferior esquerdo do banner — some no desktop, onde o bloco de
-   conta já mora no menu (ver .nav-usuario acima). Só existe pra quem está
-   logado; Entrar/Cadastrar continuam dentro do menu rolante (ver abaixo). */
+   canto inferior esquerdo do banner — some no desktop. Só existe pra quem
+   está logado; Entrar/Cadastrar continuam dentro do menu rolante (ver
+   abaixo). Pedido do usuário (11/09/2026): "Minha Conta" também como
+   último item do menu rolante, então #nav-usuario não é mais escondido
+   aqui pra quem está logado — os ícones flutuantes ficam como atalho
+   extra, sem substituir a linha completa no menu. */
 .nav-usuario-mobile { display: none; }
 
 @media (max-width: 900px) {
-  /* Entrar/Cadastrar (deslogado) ficam no menu normal, só que no fim da
-     fila — não competem mais por espaço com os links importantes logo no
-     início. Logado (.nav-usuario-compacto-mobile) some daqui: vira os
-     ícones compactos em cima do banner (.nav-usuario-mobile acima). */
-  #nav-usuario { order: 99; }
-  #nav-usuario.nav-usuario-compacto-mobile { display: none; }
+  /* Já fica por último no HTML (nav-usuario foi movido pro fim do menu),
+     então nenhum order extra é necessário aqui. */
 
   .nav-usuario-mobile {
     display: flex;
@@ -335,11 +334,12 @@ header {
      indicador. */
   nav.menu-lateral:not(.menu-lateral-rodape) a.ativo { border-bottom-color: transparent; }
 
-  /* Conta já mora na barrinha do topo (ver .barra-topo-desktop) — esconde
-     a réplica original aqui pra não duplicar (o #nav-usuario original
-     continua no HTML/DOM, ainda é a fonte de Entrar/Cadastrar dentro do
-     menu rolante do mobile). */
-  nav.menu-lateral:not(.menu-lateral-rodape) .nav-usuario { display: none; }
+  /* Pedido do usuário (11/09/2026): "Minha Conta" também como último botão
+     do menu principal, não só na barrinha do topo (.barra-topo-desktop) —
+     por isso NÃO esconde mais o #nav-usuario aqui (antes escondia, pra
+     evitar duplicar; a duplicação passou a ser o comportamento desejado).
+     Já fica por último no HTML (move-lá pro fim do menu), então nenhum
+     order/flex extra é necessário aqui no desktop. */
 
   /* Barra fina fixa por cima do banner (mesmo tratamento visual do menu
      horizontal original: transparente, texto branco com sombra) — só
