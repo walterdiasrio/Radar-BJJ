@@ -12,6 +12,14 @@ verdade, via o rótulo "Campeonato de Jiu-Jitsu") vêm de volta da própria
 página do evento no iLutas — essa sim estruturada e igual pra qualquer
 organizador na plataforma.
 
+inscricoes_abertas: a página do evento no iLutas nunca expõe um indicador
+explícito de aberta/encerrada (nem texto tipo "inscrições encerradas" nem
+classe CSS — conferido ao vivo em 11/09/2026 varrendo o texto inteiro da
+página) — só a lista de lotes com data. Por isso é inferida a partir do
+prazo (mesma regra do fallback usado em fjjemg.py): aberta se ainda não
+passou do prazo do último lote, ou True (assume aberta) se não deu pra
+achar prazo nenhum.
+
 buscar_atletas() lê a checagem pública (.../checagem/list-all/?event=...),
 tudo numa página só, sem paginação nem bloqueio. Um mesmo atleta pode ter
 mais de uma inscrição na mesma checagem (peso Gi, absoluto Gi, peso No-Gi,
@@ -126,6 +134,7 @@ def _info_evento(evento_id_bruto):
         "url": f"{ILUTAS}/Evento/Index.php?event={evento_id_bruto}",
         "data": data,
         "local": local,
+        "inscricoes_abertas": (date.today() <= prazo) if prazo else True,
         "prazo_inscricao": prazo.isoformat() if prazo else None,
     }
 

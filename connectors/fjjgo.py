@@ -118,7 +118,13 @@ def listar_eventos():
 
 
 _PERIODO_INSCRICAO_RE = re.compile(
-    r"Per[íi]odo de inscri[cç][ãa]o:.*?(?=Per[íi]odo\s+de\s+CHECAGEM|$)", re.I | re.S
+    # Sem ":" logo após "inscrição" — achado ao vivo em 11/09/2026 (Circuito
+    # de Lutas Casadas Team Jackin) que o texto entre o rótulo e o ":" varia
+    # por evento: "inscrição: (podendo ser antecipado...)" num evento,
+    # "inscrição (podendo ser antecipado...): Até:..." noutro (mesma
+    # federação, digitado à mão por evento). Exigir ":" logo em seguida
+    # perdia esse segundo formato inteiro (nenhuma data extraída).
+    r"Per[íi]odo de inscri[cç][ãa]o\b.*?(?=Per[íi]odo\s+de\s+CHECAGEM|$)", re.I | re.S
 )
 _DATA_RE = re.compile(r"(\d{1,2})/(\d{1,2})/(\d{4})")
 

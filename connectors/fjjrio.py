@@ -47,7 +47,14 @@ def status_inscricao(evento):
     lista "Início/Término da Inscrição/Data limite para pagamento/edição"
     (ver <li><b>Término da Inscrição</b></li>) — usamos o "Término", que é
     o prazo final de verdade (a edição segue aberta um pouco depois, mas
-    sem poder mais competir se não tiver se inscrito antes)."""
+    sem poder mais competir se não tiver se inscrito antes).
+
+    Achado ao vivo em 11/09/2026 (REI DO RIO 2026 e ROLLS GRACIE 2026,
+    ambos com "Início da Inscrição" ainda no futuro): existe uma TERCEIRA
+    frase de status além de aberta/encerrada — "Em breve as inscrições
+    serão abertas." — pro período em que o evento já está no site mas a
+    inscrição ainda nem começou. Sem esse caso, `aberta` ficava None
+    (nem aberta nem encerrada) só porque nenhuma das duas frases batia."""
     url = evento.get("url")
     if not url:
         return None, None
@@ -58,6 +65,8 @@ def status_inscricao(evento):
     if "inscrições para esse evento estão abertas" in texto:
         aberta = True
     elif "inscrições para esse evento estão" in texto and "encerrada" in texto:
+        aberta = False
+    elif "as inscrições serão abertas" in texto:
         aberta = False
 
     prazo = None
