@@ -127,15 +127,18 @@ async function carregarSessaoNoMenu() {
     const resp = await fetch("/api/sessao");
     const dados = await resp.json();
     if (dados.logado) {
-      // Desktop: "Minha Assinatura"/"Sair" viram um submenu no nome do
-      // usuário, igual ao dropdown de Admin/Turmas (mesmas classes, reusa o
-      // configurarDropdowns já existente). Mobile continua só com os ícones.
+      // Desktop: "Minha Conta" vira um submenu (Minha Assinatura/Meu
+      // Perfil/Sair), igual ao dropdown de Admin/Turmas (mesmas classes,
+      // reusa o configurarDropdowns já existente) — o e-mail deixou de
+      // aparecer no rótulo do botão (pedido do usuário 11/09/2026: rótulo
+      // fixo "Minha Conta" no lugar do e-mail, que ficava comprido/estranho
+      // no menu). Mobile continua só com os ícones.
       el.innerHTML = `
         <div class="nav-admin-dropdown">
-          <a href="#" class="nav-admin-toggle"><span class="nav-email">${dados.email}</span><span class="nav-admin-seta">▾</span></a>
+          <a href="#" class="nav-admin-toggle">${ICONE_PERFIL}<span>Minha Conta</span><span class="nav-admin-seta">▾</span></a>
           <div class="nav-admin-submenu">
-            <a href="/perfil">${ICONE_PERFIL}<span>Meu Perfil</span></a>
             <a href="/assinatura">${ICONE_ASSINATURA}<span>Minha Assinatura</span></a>
+            <a href="/perfil">${ICONE_PERFIL}<span>Meu Perfil</span></a>
             <a href="#" class="nav-sair">${ICONE_LOGOUT}<span>Sair</span></a>
           </div>
         </div>
@@ -148,7 +151,7 @@ async function carregarSessaoNoMenu() {
       }
       if (elMobile) {
         elMobile.style.display = "";
-        elMobile.innerHTML = `<a href="/perfil" title="Meu Perfil">${ICONE_PERFIL}</a><a href="/assinatura" title="Minha Assinatura">${ICONE_ASSINATURA}</a><a href="#" class="nav-sair" title="Sair">${ICONE_LOGOUT}</a>`;
+        elMobile.innerHTML = `<a href="/assinatura" title="Minha Assinatura">${ICONE_ASSINATURA}</a><a href="/perfil" title="Meu Perfil">${ICONE_PERFIL}</a><a href="#" class="nav-sair" title="Sair">${ICONE_LOGOUT}</a>`;
       }
       document.querySelectorAll(".nav-sair").forEach((btn) => {
         btn.addEventListener("click", async (ev) => {

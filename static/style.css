@@ -196,18 +196,7 @@ header {
 
 .nav-usuario a:hover { background: rgba(255, 255, 255, 0.12); }
 
-.nav-usuario .nav-email {
-  display: flex;
-  align-items: center;
-  color: #cfe0f5;
-  font-size: 0.78rem;
-  font-weight: 600;
-  padding: 4px 10px;
-  white-space: nowrap;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85), 0 0 6px rgba(0, 0, 0, 0.5);
-}
-
-/* "Minha Assinatura"/"Sair" ficam num submenu (mesmo padrão do Admin/Turmas)
+/* "Minha Assinatura"/"Meu Perfil"/"Sair" ficam num submenu (mesmo padrão do Admin/Turmas)
    — especificidade maior que ".nav-usuario a" pra não herdar o estilo branco
    do menu escuro, e sim o fundo claro normal do dropdown. */
 .nav-usuario .nav-admin-submenu a {
@@ -222,7 +211,6 @@ header {
 @media (prefers-color-scheme: dark) {
   .nav-usuario a { color: #eaf2f9; }
   .nav-usuario a:hover { background: rgba(255, 255, 255, 0.06); }
-  .nav-usuario .nav-email { color: #7fd4ff; }
 }
 
 /* Réplica compacta de "Minha Assinatura"/"Sair", só ícones, sobreposta no
@@ -1573,7 +1561,7 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
   .home-hero { background: #1b2127; }
   /* --azul é escuro demais em cima do card escuro (baixo contraste) —
      mesmo acento claro já usado em outros textos de destaque no modo
-     escuro (ver .bloco-mes/.nav-email). */
+     escuro (ver .bloco-mes). */
   .home-hero h1,
   .home-hero-saudacao,
   .home-hero-features li strong,
