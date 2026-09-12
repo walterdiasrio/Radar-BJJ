@@ -1240,10 +1240,8 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
   margin-top: 6px;
 }
 
-.btn-remover {
+.btn-remover, .btn-editar {
   background: transparent;
-  color: #b3261e;
-  border: 1px solid #b3261e;
   padding: 5px 12px;
   border-radius: 6px;
   font-size: 0.8rem;
@@ -1252,7 +1250,11 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
   flex-shrink: 0;
 }
 
+.btn-remover { color: #b3261e; border: 1px solid #b3261e; }
 .btn-remover:hover { background: #fdeceb; }
+
+.btn-editar { color: var(--azul-claro); border: 1px solid var(--azul-claro); }
+.btn-editar:hover { background: #eef6fb; }
 
 .destaques { margin-bottom: 28px; }
 

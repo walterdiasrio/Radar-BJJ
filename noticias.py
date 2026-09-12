@@ -48,30 +48,40 @@ def _extensao(nome_arquivo):
     return (nome_arquivo or "").rsplit(".", 1)[-1].lower() if "." in (nome_arquivo or "") else ""
 
 
-def criar_noticia(manchete, texto, data_limite, arquivo_imagem, nome_original):
-    """arquivo_imagem é o FileStorage do Flask (request.files[...]).
-    data_limite (opcional) é uma data ISO "AAAA-MM-DD" — a notícia é
-    apagada automaticamente assim que essa data passa.
-    Retorna (noticia_id, erro)."""
+def _validar_manchete_e_prazo(manchete, data_limite):
+    """Compartilhado por criar_noticia/atualizar_noticia. Retorna
+    (manchete_limpa, data_limite_limpa, erro)."""
     manchete = (manchete or "").strip()
     if not manchete:
-        return None, "informe a manchete"
+        return None, None, "informe a manchete"
 
     data_limite = (data_limite or "").strip() or None
     if data_limite:
         try:
             data_limite_obj = date.fromisoformat(data_limite)
         except ValueError:
-            return None, "data limite inválida"
+            return None, None, "data limite inválida"
         # Achado ao vivo em 11/09/2026: uma notícia postada com data limite
         # sem querer no passado (ex: dia/mês trocado — "7 de novembro" virou
         # "07/11" lido como mês 07/dia 11) some da lista assim que criada,
         # já que listar_noticias() só mostra data_limite >= hoje — e é
         # apagada de vez no próximo remover_noticias_expiradas(). Rejeitar
-        # aqui na criação, com erro claro, evita esse "postei e não foi pro
-        # ar" silencioso.
+        # aqui, com erro claro, evita esse "postei e não foi pro ar"
+        # silencioso — vale tanto pra criar quanto pra editar.
         if data_limite_obj < date.today():
-            return None, "data limite não pode ser uma data no passado"
+            return None, None, "data limite não pode ser uma data no passado"
+
+    return manchete, data_limite, None
+
+
+def criar_noticia(manchete, texto, data_limite, arquivo_imagem, nome_original):
+    """arquivo_imagem é o FileStorage do Flask (request.files[...]).
+    data_limite (opcional) é uma data ISO "AAAA-MM-DD" — a notícia é
+    apagada automaticamente assim que essa data passa.
+    Retorna (noticia_id, erro)."""
+    manchete, data_limite, erro = _validar_manchete_e_prazo(manchete, data_limite)
+    if erro:
+        return None, erro
 
     ext = _extensao(nome_original)
     if ext not in EXTENSOES_PERMITIDAS:
@@ -89,6 +99,39 @@ def criar_noticia(manchete, texto, data_limite, arquivo_imagem, nome_original):
         return cursor.lastrowid, None
 
 
+def atualizar_noticia(noticia_id, manchete, texto, data_limite, arquivo_imagem=None, nome_original=None):
+    """Edita manchete/texto/data_limite de uma notícia existente. A foto só
+    é trocada se arquivo_imagem for enviado (senão mantém a atual) — assim
+    dá pra corrigir só o texto ou só a data sem precisar reenviar a imagem.
+    Retorna (ok, erro)."""
+    manchete, data_limite, erro = _validar_manchete_e_prazo(manchete, data_limite)
+    if erro:
+        return False, erro
+
+    with _conn() as conn:
+        atual = conn.execute("SELECT imagem_arquivo FROM noticias WHERE id = ?", (noticia_id,)).fetchone()
+        if not atual:
+            return False, "notícia não encontrada"
+
+        nome_arquivo = atual["imagem_arquivo"]
+        if arquivo_imagem:
+            ext = _extensao(nome_original)
+            if ext not in EXTENSOES_PERMITIDAS:
+                return False, "imagem inválida (use jpg, png, webp ou gif)"
+            novo_nome = f"{uuid.uuid4().hex}.{ext}"
+            arquivo_imagem.save(DIR_IMAGENS / novo_nome)
+            antigo = DIR_IMAGENS / nome_arquivo
+            if antigo.exists():
+                antigo.unlink()
+            nome_arquivo = novo_nome
+
+        conn.execute(
+            "UPDATE noticias SET manchete = ?, texto = ?, imagem_arquivo = ?, data_limite = ? WHERE id = ?",
+            (manchete, (texto or "").strip(), nome_arquivo, data_limite, noticia_id),
+        )
+    return True, None
+
+
 def listar_noticias(limite=20):
     with _conn() as conn:
         linhas = conn.execute(
@@ -96,6 +139,18 @@ def listar_noticias(limite=20):
                WHERE data_limite IS NULL OR data_limite >= date('now')
                ORDER BY criado_em DESC LIMIT ?""",
             (limite,),
+        ).fetchall()
+    return [dict(linha) for linha in linhas]
+
+
+def listar_todas_noticias(limite=50):
+    """Pro painel de administração — sem o filtro de data_limite de
+    listar_noticias(), pra quem gerencia conseguir achar (e corrigir, via
+    atualizar_noticia) uma notícia que ficou com uma data limite errada e
+    por isso já não aparece mais no site público."""
+    with _conn() as conn:
+        linhas = conn.execute(
+            "SELECT * FROM noticias ORDER BY criado_em DESC LIMIT ?", (limite,)
         ).fetchall()
     return [dict(linha) for linha in linhas]
 

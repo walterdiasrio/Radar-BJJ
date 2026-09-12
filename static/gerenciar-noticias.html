@@ -32,7 +32,7 @@ src="https://www.facebook.com/tr?id=28254694314126516&ev=PageView&noscript=1"
 <link rel="icon" type="image/png" href="/img/favicon.png?v=3">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Radar BJJ — Gerenciar Notícias</title>
-<link rel="stylesheet" href="style.css?v=37">
+<link rel="stylesheet" href="style.css?v=38">
 </head>
 <body>
 <header>
@@ -90,7 +90,7 @@ src="https://www.facebook.com/tr?id=28254694314126516&ev=PageView&noscript=1"
 
 <main>
   <div class="form-auth" style="max-width: 480px;">
-    <h2>Nova notícia</h2>
+    <h2 id="titulo-form">Nova notícia</h2>
     <form id="form-noticia">
       <div class="campo">
         <label for="manchete">Manchete</label>
@@ -101,7 +101,7 @@ src="https://www.facebook.com/tr?id=28254694314126516&ev=PageView&noscript=1"
         <textarea id="texto" rows="6" placeholder="Texto da notícia (aparece quando alguém clica para ampliar)"></textarea>
       </div>
       <div class="campo">
-        <label for="imagem">Foto</label>
+        <label for="imagem" id="label-imagem">Foto</label>
         <input type="file" id="imagem" accept="image/*" required>
       </div>
       <div class="campo">
@@ -109,7 +109,8 @@ src="https://www.facebook.com/tr?id=28254694314126516&ev=PageView&noscript=1"
         <input type="date" id="data_limite">
         <small>Se preencher, a notícia é apagada automaticamente assim que essa data passar.</small>
       </div>
-      <button type="submit">Publicar</button>
+      <button type="submit" id="btn-publicar">Publicar</button>
+      <button type="button" id="btn-cancelar-edicao" class="btn-secundario" style="display:none;">Cancelar edição</button>
     </form>
     <div id="status" class="status-importacao"></div>
   </div>
@@ -119,7 +120,7 @@ src="https://www.facebook.com/tr?id=28254694314126516&ev=PageView&noscript=1"
 </div>
 
 <script src="auth-nav.js?v=13"></script>
-<script src="gerenciar-noticias.js?v=2"></script>
+<script src="gerenciar-noticias.js?v=3"></script>
 <nav class="menu-lateral menu-lateral-rodape" id="menu-rodape"></nav>
 </body>
 </html>

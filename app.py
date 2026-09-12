@@ -460,19 +460,30 @@ def api_reenviar_confirmacao():
     return jsonify({"ok": True})
 
 
+def _serializar_noticia(n):
+    return {
+        "id": n["id"],
+        "manchete": n["manchete"],
+        "texto": n["texto"],
+        "data_limite": n["data_limite"],
+        "imagem_url": f"/noticias-imagens/{n['imagem_arquivo']}",
+        "criado_em": n["criado_em"],
+    }
+
+
 @app.get("/api/noticias")
 def api_listar_noticias():
-    return jsonify([
-        {
-            "id": n["id"],
-            "manchete": n["manchete"],
-            "texto": n["texto"],
-            "data_limite": n["data_limite"],
-            "imagem_url": f"/noticias-imagens/{n['imagem_arquivo']}",
-            "criado_em": n["criado_em"],
-        }
-        for n in noticias.listar_noticias()
-    ])
+    return jsonify([_serializar_noticia(n) for n in noticias.listar_noticias()])
+
+
+@app.get("/api/noticias/admin")
+@api_admin_necessario
+def api_listar_todas_noticias():
+    # Sem o filtro de data_limite do endpoint público (ver
+    # listar_todas_noticias) — é o que alimenta /gerenciar-noticias, pra dar
+    # pra achar e corrigir uma notícia que sumiu do ar por causa de uma
+    # data limite errada.
+    return jsonify([_serializar_noticia(n) for n in noticias.listar_todas_noticias()])
 
 
 @app.get("/api/noticias/<int:noticia_id>")
@@ -480,14 +491,7 @@ def api_obter_noticia(noticia_id):
     n = noticias.obter_noticia(noticia_id)
     if not n:
         return jsonify({"erro": "notícia não encontrada"}), 404
-    return jsonify({
-        "id": n["id"],
-        "manchete": n["manchete"],
-        "texto": n["texto"],
-        "data_limite": n["data_limite"],
-        "imagem_url": f"/noticias-imagens/{n['imagem_arquivo']}",
-        "criado_em": n["criado_em"],
-    })
+    return jsonify(_serializar_noticia(n))
 
 
 @app.get("/noticias-imagens/<path:nome_arquivo>")
@@ -508,6 +512,23 @@ def api_criar_noticia():
     if erro:
         return jsonify({"erro": erro}), 400
     return jsonify({"ok": True, "id": noticia_id})
+
+
+@app.put("/api/noticias/<int:noticia_id>")
+@api_admin_necessario
+def api_atualizar_noticia(noticia_id):
+    manchete = request.form.get("manchete", "")
+    texto = request.form.get("texto", "")
+    data_limite = request.form.get("data_limite", "")
+    arquivo = request.files.get("imagem")
+    ok, erro = noticias.atualizar_noticia(
+        noticia_id, manchete, texto, data_limite,
+        arquivo if arquivo and arquivo.filename else None,
+        arquivo.filename if arquivo else None,
+    )
+    if erro:
+        return jsonify({"erro": erro}), 400
+    return jsonify({"ok": True})
 
 
 @app.delete("/api/noticias/<int:noticia_id>")
