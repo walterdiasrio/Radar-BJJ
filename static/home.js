@@ -364,7 +364,7 @@ async function ajustarCartaoBoasVindas() {
     // assinatura_necessaria em app.py).
     elBotaoBuscaRapida.innerHTML = `<a href="/buscador"><button type="button" class="home-atalho-btn">${iconeRadar}Radar de Atletas</button></a>`;
   } else if (resumo.tem_filtro_salvo) {
-    elBotaoBuscaRapida.innerHTML = `<a href="/buscador?auto=1"><button type="button" class="home-atalho-btn">${iconeRadar}Buscar Atleta com meu filtro salvo</button></a>`;
+    elBotaoBuscaRapida.innerHTML = `<a href="/buscador?auto=1"><button type="button" class="home-atalho-btn">${iconeRadar}Radar de Atletas</button></a>`;
   } else {
     elBotaoBuscaRapida.innerHTML = `<a href="/buscador"><button type="button" class="home-atalho-btn">${iconeRadar}Ir para o Radar de Atletas</button></a>`;
   }
