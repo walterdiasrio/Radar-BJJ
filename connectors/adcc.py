@@ -26,6 +26,16 @@ _MESES_EN = {
     "jan": 1, "feb": 2, "mar": 3, "apr": 4, "may": 5, "jun": 6,
     "jul": 7, "aug": 8, "sep": 9, "oct": 10, "nov": 11, "dec": 12,
 }
+# O Smoothcomp mostra a página no idioma do navegador de quem salva o HTML
+# (confirmado ao vivo em 11/09/2026: cronograma do evento aparece em
+# português) — títulos e meses abreviados do cronograma de inscrição saem
+# em PT, não em EN. _MESES_EN sozinho não reconhece "Ago"/"Set"/etc, então
+# _extrair_prazo_inscricao ficava sem nenhuma data (mês não reconhecido).
+_MESES_PT = {
+    "jan": 1, "fev": 2, "mar": 3, "abr": 4, "mai": 5, "jun": 6,
+    "jul": 7, "ago": 8, "set": 9, "out": 10, "nov": 11, "dez": 12,
+}
+_MESES_EN_PT = {**_MESES_EN, **_MESES_PT}
 
 
 def _garantir_diretorios():
@@ -189,13 +199,15 @@ _SCHEDULE_ITEM_INTERVALO = re.compile(r"(\d{1,2})\s+([A-Za-z]{3,9})\s*-\s*(\d{1,
 
 
 def _extrair_prazo_inscricao(soup, ano_evento):
-    """As fases de inscrição ("Normal registration", "Late registration")
-    aparecem como .schedule-item na página do evento, com intervalo de
-    datas sem ano (ex: "25 Aug - 08 Sep 18:00") — usa o ano do evento
-    (já resolvido via JSON-LD) pra montar a data completa. Quando há mais
-    de uma fase, o prazo final de inscrição é o fim da fase mais tardia
-    (normalmente "Late registration"). Sem ano do evento, não dá pra
-    montar a data com segurança (o intervalo pode virar o ano)."""
+    """As fases de inscrição ("Normal registration"/"Inscrição normal",
+    "Late registration"/"Inscrição tardia") aparecem como .schedule-item na
+    página do evento, com intervalo de datas sem ano (ex: "25 Aug - 08 Sep
+    18:00" ou "25 Ago - 08 Set 18:00", dependendo do idioma em que o
+    Smoothcomp renderizou pra quem salvou o HTML — ver _MESES_EN_PT) — usa
+    o ano do evento (já resolvido via JSON-LD) pra montar a data completa.
+    Quando há mais de uma fase, o prazo final de inscrição é o fim da fase
+    mais tardia (normalmente a última, "Late"/"tardia"). Sem ano do evento,
+    não dá pra montar a data com segurança (o intervalo pode virar o ano)."""
     if not ano_evento:
         return None
     prazos = []
@@ -204,13 +216,14 @@ def _extrair_prazo_inscricao(soup, ano_evento):
         info_el = item.select_one(".info")
         if not titulo_el or not info_el:
             continue
-        if "registration" not in titulo_el.get_text(strip=True).lower():
+        titulo = titulo_el.get_text(strip=True).lower()
+        if "registration" not in titulo and "inscri" not in titulo:
             continue
         m = _SCHEDULE_ITEM_INTERVALO.search(info_el.get_text(" ", strip=True))
         if not m:
             continue
         _dia_ini, _mes_ini, dia_fim, mes_fim_txt = m.groups()
-        mes_fim = _MESES_EN.get(mes_fim_txt.strip().lower()[:3])
+        mes_fim = _MESES_EN_PT.get(mes_fim_txt.strip().lower()[:3])
         if not mes_fim:
             continue
         try:
