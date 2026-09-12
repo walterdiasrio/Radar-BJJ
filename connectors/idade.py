@@ -269,6 +269,13 @@ TABELAS = {
     "fjjemg": _FJJEMG,
     "fjjgo": _FJJGO,
     "fcojj": _FCOJJ,
+    # FJJPR: faixas etárias idênticas à CBJJE (Pré-Mirim 4-5, Mirim 6-7,
+    # Infantil A/B 8-9/10-11, Infanto Juvenil A/B 12-13/14-15, Juvenil
+    # 16-17, Adulto, Master 1-6 — conferido ao vivo contra a lista real de
+    # atletas). O site usa os mesmos nomes sem acento ("Pre Mirim"),
+    # normalizados pro conector antes de chegar aqui (ver
+    # connectors/fjjpr.py::_IDADE_NORMALIZADA).
+    "fjjpr": _CBJJE,
 }
 
 

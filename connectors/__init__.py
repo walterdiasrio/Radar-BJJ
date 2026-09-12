@@ -5,7 +5,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date
 
-from . import cbjj, fjjrio, cbjjd, cbjjo, cbjje, fpjj, cbjjc, fjjpe, fjjemg, fjjgo, fcojj, adcc, ajp, idade as idade_mod, peso as peso_mod, datas as datas_mod
+from . import cbjj, fjjrio, cbjjd, cbjjo, cbjje, fpjj, cbjjc, fjjpe, fjjemg, fjjgo, fcojj, fjjpr, adcc, ajp, idade as idade_mod, peso as peso_mod, datas as datas_mod
 
 # Quantas buscas em paralelo por vez. Já foi reduzido de 8 pra 4 quando o
 # Render Starter (512MB de RAM) derrubou o serviço por estouro de memória
@@ -40,6 +40,7 @@ FEDERACOES = {
     # a competição acontece, não uma afirmação de que a federação só cobre
     # o Distrito Federal (ver docstring de connectors/fcojj.py).
     "fcojj": {"label": "FCOJJ", "nome": "Federação Centro-Oeste de Jiu-Jitsu e Artes Marciais", "module": fcojj, "grupo": "estadual", "uf": "DF"},
+    "fjjpr": {"label": "FJJPR", "nome": "Federação de Jiu-Jitsu do Paraná", "module": fjjpr, "grupo": "estadual", "uf": "PR"},
     "adcc": {"label": "ADCC", "nome": "Abu Dhabi Combat Club", "module": adcc, "grupo": "internacional"},
     "ajp": {"label": "AJP", "nome": "Abu Dhabi Jiu-Jitsu Pro", "module": ajp, "grupo": "internacional"},
 }
@@ -652,8 +653,10 @@ _PALAVRAS_ADULTO = re.compile(r"\bmaster\b|\badulto\b|\bjuvenil\b", re.I)
 # mostrou Mirim/Infantil/Infanto-Juvenil misturados com Adulto/Master no
 # mesmo evento (ver connectors/fjjgo.py). FCOJJ pelo mesmo motivo: "CAMPEONATO
 # BRASILIENSE DE JIU-JITSU" mistura Kids/Infantil/Júnior/Adolescente/Juvenil/
-# Adulto/Master (ver connectors/fcojj.py).
-_FEDERACOES_SEM_SEPARACAO_POR_NOME = {"cbjjd", "cbjjo", "cbjje", "ajp", "adcc", "fjjemg", "fjjgo", "fcojj"}
+# Adulto/Master (ver connectors/fcojj.py). FJJPR pelo mesmo motivo: "1ª Etapa
+# 2026" etc não tem kids/adulto no nome, mas cada etapa mistura Pré-Mirim a
+# Master no mesmo evento (ver connectors/fjjpr.py).
+_FEDERACOES_SEM_SEPARACAO_POR_NOME = {"cbjjd", "cbjjo", "cbjje", "ajp", "adcc", "fjjemg", "fjjgo", "fcojj", "fjjpr"}
 
 
 def _classificar_publico(nome, fed):
