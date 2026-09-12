@@ -1,6 +1,7 @@
 const promessaBloqueioPlanoFree = bloquearSePlanoFree(
   "#conteudo-plano-pro",
-  "Organize suas turmas, crie planos de aula com apoio de Inteligência Artificial e acompanhe a evolução dos seus alunos aula a aula."
+  "Organize suas turmas, crie planos de aula com apoio de Inteligência Artificial e acompanhe a evolução dos seus alunos aula a aula.",
+  "mestre"
 );
 
 const elStatus = document.getElementById("status");

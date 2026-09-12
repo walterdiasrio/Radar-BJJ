@@ -1,6 +1,7 @@
 const promessaBloqueioPlanoFree = bloquearSePlanoFree(
   "#conteudo-plano-pro",
-  "Vincule seus alunos à sua conta e acompanhe o histórico de competições e evolução de cada um, tudo num só lugar."
+  "Vincule seus alunos à sua conta e acompanhe o histórico de competições e evolução de cada um, tudo num só lugar.",
+  "mestre"
 );
 
 const elStatus = document.getElementById("status");

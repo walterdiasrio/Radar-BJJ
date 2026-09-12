@@ -37,8 +37,8 @@ function badgeAssinatura(usuario) {
 function renderizarResumo(resumo) {
   const cards = [
     { label: "Total de contas", value: resumo.total },
-    { label: "Perfil Atleta", value: resumo.por_perfil.atleta || 0 },
-    { label: "Perfil Mestre", value: resumo.por_perfil.mestre || 0 },
+    { label: "Atleta PRO", value: resumo.por_plano["Atleta PRO"] || 0 },
+    { label: "Mestre PRO", value: resumo.por_plano["Mestre PRO"] || 0 },
     { label: "Em teste grátis", value: resumo.por_status_assinatura.trialing || 0 },
     { label: "Assinatura ativa", value: resumo.por_status_assinatura.active || 0 },
     { label: "Pagamento pendente", value: resumo.por_status_assinatura.past_due || 0 },
@@ -65,14 +65,13 @@ function badgePlano(plano) {
 
 function renderizarTabela(usuarios) {
   if (!usuarios.length) {
-    elCorpoTabela.innerHTML = '<tr><td colspan="9">Nenhum usuário encontrado.</td></tr>';
+    elCorpoTabela.innerHTML = '<tr><td colspan="8">Nenhum usuário encontrado.</td></tr>';
     return;
   }
   elCorpoTabela.innerHTML = usuarios.map(u => `
     <tr>
       <td><input type="checkbox" class="chk-usuario" data-id="${u.id}" ${idsSelecionados.has(u.id) ? "checked" : ""}></td>
       <td>${u.email}</td>
-      <td>${u.tipo_perfil === "mestre" ? "Mestre" : "Atleta"}</td>
       <td>${u.nome_usuario || "—"}</td>
       <td>${badgePlano(u.plano)}</td>
       <td>${badgeAssinatura(u)}</td>
@@ -101,12 +100,10 @@ function fecharMenuAcoes() {
 
 function abrirMenuAcoes(usuario, botao) {
   fecharMenuAcoes();
-  const novoPerfil = usuario.tipo_perfil === "mestre" ? "atleta" : "mestre";
 
   const menu = document.createElement("div");
   menu.className = "menu-acoes-usuario";
   menu.innerHTML = `
-    <button type="button" class="item-acao" data-acao="perfil">Tornar ${novoPerfil === "mestre" ? "Mestre" : "Atleta"}</button>
     <button type="button" class="item-acao" data-acao="email">Editar e-mail</button>
     ${!usuario.email_verificado ? `<button type="button" class="item-acao" data-acao="reenviar">Reenviar confirmação</button>` : ""}
     ${!usuario.email_verificado ? `<button type="button" class="item-acao" data-acao="confirmar-manual">Marcar como confirmado</button>` : ""}
@@ -125,8 +122,7 @@ function abrirMenuAcoes(usuario, botao) {
     const item = ev.target.closest(".item-acao");
     if (!item) return;
     fecharMenuAcoes();
-    if (item.dataset.acao === "perfil") alternarPerfil(usuario, novoPerfil, botao);
-    else if (item.dataset.acao === "email") editarEmail(usuario, botao);
+    if (item.dataset.acao === "email") editarEmail(usuario, botao);
     else if (item.dataset.acao === "reenviar") reenviarConfirmacao(usuario, botao);
     else if (item.dataset.acao === "confirmar-manual") confirmarEmailManualmente(usuario, botao);
     else if (item.dataset.acao === "liberar-pro") liberarPlanoPro(usuario, botao);
@@ -141,26 +137,6 @@ document.addEventListener("click", (ev) => {
   if (elMenuAcoesAberto.contains(ev.target) || ev.target.closest(".btn-menu-acoes")) return;
   fecharMenuAcoes();
 });
-
-async function alternarPerfil(usuario, novoPerfil, botao) {
-  const rotulo = novoPerfil === "mestre" ? "Mestre" : "Atleta";
-  if (!confirm(`Mudar o perfil de ${usuario.email} para ${rotulo}?`)) return;
-
-  botao.disabled = true;
-  try {
-    const resp = await fetchAutenticado(`/api/usuarios/${usuario.id}/tipo-perfil`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ tipo_perfil: novoPerfil }),
-    });
-    const dados = await resp.json();
-    if (!resp.ok) throw new Error(dados.erro || "erro ao mudar o perfil");
-    await carregarUsuarios();
-  } catch (err) {
-    mostrarStatus(`Erro: ${err.message}`, true);
-    botao.disabled = false;
-  }
-}
 
 async function editarEmail(usuario, botao) {
   const novoEmail = prompt(`Corrigir o e-mail de ${usuario.email} para:`, usuario.email);

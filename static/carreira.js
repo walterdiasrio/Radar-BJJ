@@ -21,22 +21,22 @@ document.querySelectorAll(".tab-carreira-btn").forEach(btn => {
   });
 });
 
-function bannerProPara(tipoPerfil) {
-  return tipoPerfil === "mestre"
-    ? { imagem: "img/banner-plano-mestre-pro.jpg", nome: "Mestre PRO" }
-    : { imagem: "img/banner-plano-atleta-pro.jpg", nome: "Atleta PRO" };
-}
-
-function aplicarBloqueioPro(tipoPerfil) {
-  const { imagem, nome } = bannerProPara(tipoPerfil);
+// Minha Carreira serve tanto Atleta quanto Mestre (histórico de competições
+// é útil pros dois) — por isso o bloqueio pro Free não escolhe UM banner,
+// mostra os dois planos (pedido do usuário 11/09/2026: não faz sentido
+// direcionar só pra um, já que qualquer um dos dois libera essa área).
+function aplicarBloqueioPro() {
   document.querySelectorAll(".bloqueio-pro").forEach(elBloqueio => {
     elBloqueio.innerHTML = `
-      <div class="card-carreira" style="text-align:center; max-width:480px; margin:0 auto;">
-        <img src="${imagem}" alt="Plano ${nome}" style="width:100%; border-radius:10px; margin-bottom:12px;">
+      <div class="card-carreira" style="text-align:center; max-width:560px; margin:0 auto;">
+        <div style="display:flex; gap:12px; margin-bottom:12px;">
+          <img src="img/banner-plano-atleta-pro.jpg" alt="Plano Atleta PRO" style="width:50%; border-radius:10px;">
+          <img src="img/banner-plano-mestre-pro.jpg" alt="Plano Mestre PRO" style="width:50%; border-radius:10px;">
+        </div>
         <p style="color:#55606b; font-size:0.9rem;">
-          Essa área é exclusiva de quem assina o <strong>Plano ${nome}</strong>.
+          Essa área é exclusiva de quem assina o <strong>Plano Atleta PRO</strong> ou <strong>Mestre PRO</strong> — os dois liberam Minha Carreira.
         </p>
-        <a href="/assinatura"><button type="button">Assinar ${nome}</button></a>
+        <a href="/assinatura"><button type="button">Ver planos</button></a>
       </div>
     `;
     elBloqueio.style.display = "block";
@@ -50,7 +50,7 @@ async function checarSessaoCarreira() {
     const resp = await fetch("/api/sessao");
     const dados = await resp.json();
     temAssinaturaCarreira = !!(dados.assinatura && dados.assinatura.tem_acesso);
-    if (!temAssinaturaCarreira) aplicarBloqueioPro(dados.tipo_perfil);
+    if (!temAssinaturaCarreira) aplicarBloqueioPro();
   } catch (err) {
     // sessão não carregou — segue sem bloquear nada, os próprios endpoints
     // continuam protegidos no servidor de qualquer forma

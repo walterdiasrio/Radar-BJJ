@@ -15,7 +15,12 @@
 // dando 402, e fetchAutenticado já redireciona sozinho nesse caso — sem
 // pular, a pessoa via o aviso por uma fração de segundo e já saía voando
 // pra /assinatura de novo, por causa de alguma OUTRA chamada da página).
-async function bloquearSePlanoFree(seletorConteudo, resumo) {
+// nivelExigido "atleta" (padrão) libera com QUALQUER plano ativo (Atleta
+// PRO ou Mestre PRO — Mestre PRO inclui tudo do Atleta PRO). "mestre" exige
+// especificamente o Plano Mestre PRO (ver dados.mestre em /api/sessao, já
+// derivado da assinatura ativa) — usado nas ferramentas exclusivas de
+// Mestre (Meus Alunos, Turmas, detalhe de aluno).
+async function bloquearSePlanoFree(seletorConteudo, resumo, nivelExigido = "atleta") {
   let dados;
   try {
     const resp = await fetch("/api/sessao");
@@ -24,7 +29,8 @@ async function bloquearSePlanoFree(seletorConteudo, resumo) {
     return false;
   }
   if (!dados.logado) return false;
-  if (dados.admin || (dados.assinatura && dados.assinatura.tem_acesso)) return false;
+  const acessoNoNivel = nivelExigido === "mestre" ? dados.mestre : (dados.assinatura && dados.assinatura.tem_acesso);
+  if (dados.admin || acessoNoNivel) return false;
 
   const elConteudo = typeof seletorConteudo === "string" ? document.querySelector(seletorConteudo) : seletorConteudo;
   if (!elConteudo) return true;
@@ -162,11 +168,17 @@ async function carregarSessaoNoMenu() {
       });
       if (elNavAdmin) elNavAdmin.style.display = dados.admin ? "" : "none";
       if (elNavAdminMobile) elNavAdminMobile.style.display = dados.admin ? "" : "none";
-      if (elMeusAlunos) elMeusAlunos.style.display = dados.mestre ? "" : "none";
-      if (elTurmas) elTurmas.style.display = dados.mestre ? "" : "none";
-      if (elTurmasMobile) elTurmasMobile.style.display = dados.mestre ? "" : "none";
+      // Meus Alunos/Turmas ficam visíveis pra qualquer conta logada agora
+      // (pedido do usuário 11/09/2026: "todas as opções habilitadas no
+      // menu") — não existe mais um "papel" que esconda ferramenta do
+      // menu; quem não tem o Plano Mestre PRO ativo só esbarra no aviso
+      // de conteúdo bloqueado ao abrir (bloquearSePlanoFree nível
+      // "mestre", ver meus-alunos.js/turmas.js/aluno-detalhe.js).
+      if (elMeusAlunos) elMeusAlunos.style.display = "";
+      if (elTurmas) elTurmas.style.display = "";
+      if (elTurmasMobile) elTurmasMobile.style.display = "";
       if (elPlanos) elPlanos.style.display = "none";
-      if (dados.mestre) await carregarSubmenuTurmas();
+      await carregarSubmenuTurmas();
       aplicarSessao({ logado: true, mestre: !!dados.mestre, admin: !!dados.admin, email: dados.email });
     } else {
       // Entrar/Cadastrar continuam dentro do menu rolante (CSS manda pro

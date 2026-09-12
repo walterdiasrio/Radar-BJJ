@@ -118,6 +118,24 @@ def usuario_tem_acesso(usuario_id):
     return bool(assinatura) and assinatura["status"] in STATUS_COM_ACESSO
 
 
+def plano_atual(usuario_id):
+    """Plano ATIVO agora ('atleta'/'mestre') ou None — fonte única de
+    verdade pra saber o "papel" de alguém (ver app.py::_usuario_eh_mestre e
+    /api/sessao). Não existe mais tipo_perfil independente: o papel é
+    sempre derivado da assinatura de verdade, calculado a cada request, pra
+    nunca dessincronizar (era exatamente isso que dava pra acontecer antes:
+    o webhook do Stripe atualiza assinaturas, mas nunca atualizava
+    usuarios.tipo_perfil)."""
+    assinatura = obter_assinatura(usuario_id)
+    if not assinatura or assinatura["status"] not in STATUS_COM_ACESSO:
+        return None
+    return assinatura["plano"]
+
+
+def usuario_eh_mestre(usuario_id):
+    return plano_atual(usuario_id) == "mestre"
+
+
 def _upsert(usuario_id, **campos):
     with _conn() as conn:
         existente = conn.execute(

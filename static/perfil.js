@@ -231,12 +231,11 @@ async function removerMestre(mestreId) {
   }
 }
 
-// ---------- Trocar perfil pra Mestre ----------
-// No Free, a troca é imediata (não tem assinatura de Atleta "presa" pra
-// dessincronizar). Assinando Atleta PRO, o back recusa com 402 e manda
-// assinar o Mestre PRO em vez de só virar o tipo_perfil (ver
-// api_tornar_mestre em app.py).
-async function checarTipoPerfilESessao() {
+// ---------- Cards que dependem do papel (Atleta/Mestre) ----------
+// O papel não é mais escolhido pela própria pessoa (era um "Trocar perfil
+// pra Mestre" de graça) — é derivado da assinatura ativa (Plano Mestre PRO),
+// ver pagamentos.plano_atual/api_sessao em app.py.
+async function ajustarCardsConformeSessao() {
   try {
     const resp = await fetch("/api/sessao");
     const dados = await resp.json();
@@ -248,31 +247,10 @@ async function checarTipoPerfilESessao() {
     if (elTextoInstrucao && dados.mestre) {
       elTextoInstrucao.textContent = "Compartilhe o seu login com seus alunos e peça-os para o adicionar como Mestre no Perfil.";
     }
-
-    const elCardTornarMestre = document.getElementById("card-tornar-mestre");
-    if (elCardTornarMestre) elCardTornarMestre.style.display = dados.tipo_perfil === "atleta" ? "block" : "none";
   } catch (err) {
     // sessão não carregou — segue sem esconder nada
   }
 }
-
-document.getElementById("btn-tornar-mestre").addEventListener("click", async () => {
-  if (!confirm("Trocar seu perfil de Atleta pra Mestre?")) return;
-  try {
-    const resp = await fetchAutenticado("/api/conta/tornar-mestre", { method: "POST" });
-    const dados = await resp.json();
-    if (resp.status === 402 && dados.precisa_assinar_mestre) {
-      mostrarStatus("status-tornar-mestre", "Sua assinatura é do Atleta PRO — te levando pra assinar o Mestre PRO...", true);
-      window.location.href = "/assinatura?plano=mestre";
-      return;
-    }
-    if (!resp.ok) throw new Error(dados.erro || "não consegui trocar o perfil");
-    mostrarStatus("status-tornar-mestre", "Perfil trocado pra Mestre! Recarregando...");
-    window.location.reload();
-  } catch (err) {
-    mostrarStatus("status-tornar-mestre", `Erro: ${err.message}`, true);
-  }
-});
 
 // ---------- Trocar senha ----------
 document.getElementById("form-senha").addEventListener("submit", async (ev) => {
@@ -305,4 +283,4 @@ document.getElementById("form-senha").addEventListener("submit", async (ev) => {
 carregarPerfil();
 carregarNomeUsuario();
 carregarMestres();
-checarTipoPerfilESessao();
+ajustarCardsConformeSessao();

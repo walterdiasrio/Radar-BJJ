@@ -277,18 +277,6 @@ def buscar_por_nome_usuario(nome_usuario):
     return dict(linha) if linha else None
 
 
-def definir_tipo_perfil(usuario_id, tipo_perfil):
-    """Retorna True se mudou (usuário existe e o tipo é válido). Usado pelo
-    painel admin de usuários pra corrigir o perfil de uma conta já criada —
-    não tem como o próprio usuário trocar isso sozinho (o perfil é escolhido
-    só uma vez, no cadastro)."""
-    if tipo_perfil not in TIPOS_PERFIL:
-        return False
-    with _conn() as conn:
-        cursor = conn.execute("UPDATE usuarios SET tipo_perfil = ? WHERE id = ?", (tipo_perfil, usuario_id))
-    return cursor.rowcount > 0
-
-
 def confirmar_email_manualmente(usuario_id):
     """Retorna True se confirmou (usuário existe). Usado pelo admin quando a
     pessoa nunca recebeu o link por e-mail (provedores como Hotmail/Outlook

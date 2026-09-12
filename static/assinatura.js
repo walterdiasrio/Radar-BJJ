@@ -18,16 +18,6 @@ function mostrarStatus(texto, ehErro = false) {
   elStatus.className = "status-importacao" + (ehErro ? " erro" : "");
 }
 
-function filtrarPlanoPorPerfil(tipoPerfil) {
-  const elAtleta = document.getElementById("plano-card-atleta");
-  const elMestre = document.getElementById("plano-card-mestre");
-  if (tipoPerfil === "mestre") {
-    if (elAtleta) elAtleta.style.display = "none";
-  } else {
-    if (elMestre) elMestre.style.display = "none";
-  }
-}
-
 // Não oferece "assinar" pro plano+periodicidade que o usuário já tem
 // ativo/em teste — só faz sentido oferecer trocar de plano ou de
 // periodicidade (ex: mensal -> anual), não recontratar o que já tem.
@@ -46,8 +36,6 @@ async function carregarAssinaturaAtual() {
     const resp = await fetch("/api/sessao");
     const dados = await resp.json();
     if (!dados.logado) return;
-
-    filtrarPlanoPorPerfil(dados.tipo_perfil);
 
     const temAcesso = !!(dados.assinatura && dados.assinatura.tem_acesso);
     const veioDoRadar = new URLSearchParams(window.location.search).get("de") === "/buscador";

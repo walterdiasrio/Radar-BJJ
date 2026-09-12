@@ -190,16 +190,23 @@ def _usuario_atual_eh_admin():
     return bool(usuario) and usuario["email"] in ADMIN_EMAILS
 
 
+def _usuario_eh_mestre(usuario):
+    """Recebe um dict de usuário (não necessariamente o logado — usado
+    também pra checar OUTRA pessoa, ex: validar que um nome_usuario
+    informado é mesmo de um Mestre). Admin conta como Mestre também. O
+    "papel" não é mais um campo próprio (tipo_perfil) — é derivado da
+    assinatura ativa (ver pagamentos.usuario_eh_mestre), pra nunca
+    dessincronizar do que a pessoa realmente paga."""
+    if not usuario:
+        return False
+    return usuario["email"] in ADMIN_EMAILS or pagamentos.usuario_eh_mestre(usuario["id"])
+
+
 def _usuario_atual_eh_mestre():
-    """Admin conta como Mestre também (não perde acesso por causa do
-    perfil escolhido no cadastro)."""
     usuario_id = session.get("usuario_id")
     if not usuario_id:
         return False
-    usuario = auth.buscar_por_id(usuario_id)
-    if not usuario:
-        return False
-    return usuario["email"] in ADMIN_EMAILS or usuario["tipo_perfil"] == "mestre"
+    return _usuario_eh_mestre(auth.buscar_por_id(usuario_id))
 
 
 def admin_necessario(view):
@@ -284,13 +291,14 @@ def api_home_resumo():
         "tem_assinatura": tem_assinatura,
         "proximas_competicoes": agenda.listar(usuario_id)[:5],
     }
-    # Próximas Aulas fica fora do "if tem_assinatura" de propósito: mesmo
-    # Mestre no Free (sem acesso a Turmas ainda) precisa ver esse card na
-    # Home com um caminho pra assinar, em vez do espaço simplesmente sumir
-    # — /turmas deixa entrar mesmo sem assinatura e mostra um aviso "Plano
-    # PRO" por cima do conteúdo (ver bloquearSePlanoFree em auth-nav.js).
-    if usuario["tipo_perfil"] == "mestre":
-        resposta["proximas_aulas_turmas"] = turmas.resumo_proximas_aulas(usuario_id)
+    # Próximas Aulas fica fora do "if tem_assinatura" de propósito, e agora
+    # aparece pra todo mundo (não só quem já é Mestre) — não existe mais um
+    # "papel" escolhido à parte da assinatura (ver pagamentos.plano_atual),
+    # e a ferramenta de Turmas em si já é visível a todos no menu; quem não
+    # tem turma nenhuma só vê o card vazio, com o caminho normal pra
+    # conhecer/assinar — /turmas deixa entrar mesmo sem assinatura e mostra
+    # um aviso "Plano PRO" por cima do conteúdo (bloquearSePlanoFree).
+    resposta["proximas_aulas_turmas"] = turmas.resumo_proximas_aulas(usuario_id)
 
     if tem_assinatura:
         resposta["tem_filtro_salvo"] = bool(auth.obter_filtro_padrao(usuario_id))
@@ -650,7 +658,7 @@ def api_listar_usuarios():
     usuarios = auth.listar_usuarios()
     resumo = {
         "total": len(usuarios),
-        "por_perfil": {"atleta": 0, "mestre": 0},
+        "por_plano": {"Free": 0, "Atleta PRO": 0, "Mestre PRO": 0, "E-mail não confirmado": 0},
         "por_status_assinatura": {"trialing": 0, "active": 0, "past_due": 0, "canceled": 0, "sem_assinatura": 0},
     }
 
@@ -660,19 +668,19 @@ def api_listar_usuarios():
     for usuario in usuarios:
         assinatura = pagamentos.obter_assinatura(usuario["id"])
         status = assinatura["status"] if assinatura else None
+        plano = _plano_do_usuario(usuario, assinatura, status)
 
-        resumo["por_perfil"][usuario["tipo_perfil"]] = resumo["por_perfil"].get(usuario["tipo_perfil"], 0) + 1
+        resumo["por_plano"][plano] = resumo["por_plano"].get(plano, 0) + 1
         chave_status = status if status in resumo["por_status_assinatura"] else "sem_assinatura"
         resumo["por_status_assinatura"][chave_status] += 1
 
         lista.append({
             "id": usuario["id"],
             "email": usuario["email"],
-            "tipo_perfil": usuario["tipo_perfil"],
             "nome_usuario": usuario["nome_usuario"],
             "criado_em": usuario["criado_em"],
             "email_verificado": bool(usuario["email_verificado"]),
-            "plano": _plano_do_usuario(usuario, assinatura, status),
+            "plano": plano,
             "assinatura_status": status,
             "assinatura_plano": assinatura["plano"] if assinatura else None,
             "assinatura_periodicidade": assinatura["periodicidade"] if assinatura else None,
@@ -680,18 +688,6 @@ def api_listar_usuarios():
         })
 
     return jsonify({"resumo": resumo, "usuarios": lista})
-
-
-@app.post("/api/usuarios/<int:usuario_id>/tipo-perfil")
-@api_admin_necessario
-def api_definir_tipo_perfil_usuario(usuario_id):
-    dados = request.get_json(silent=True) or {}
-    tipo_perfil = dados.get("tipo_perfil")
-    if tipo_perfil not in auth.TIPOS_PERFIL:
-        return jsonify({"erro": "tipo de perfil inválido"}), 400
-    if not auth.definir_tipo_perfil(usuario_id, tipo_perfil):
-        return jsonify({"erro": "usuário não encontrado"}), 404
-    return jsonify({"ok": True})
 
 
 @app.post("/api/usuarios/<int:usuario_id>/email")
@@ -936,12 +932,20 @@ def api_sessao():
         return jsonify({"logado": False})
     eh_admin = usuario["email"] in ADMIN_EMAILS
     assinatura = pagamentos.obter_assinatura(usuario["id"])
+    # "Papel" (Atleta/Mestre) não é mais um campo próprio — é sempre
+    # derivado da assinatura ativa agora (ver pagamentos.plano_atual), pra
+    # nunca dessincronizar do que a pessoa realmente paga. Mantém os MESMOS
+    # nomes de chave no JSON (tipo_perfil/mestre) de propósito, pra não
+    # precisar mexer em quem já lê esses campos (assinatura.js/carreira.js/
+    # perfil.js) — só o valor por trás muda.
+    plano_ativo = pagamentos.plano_atual(usuario["id"])
+    eh_mestre = eh_admin or plano_ativo == "mestre"
     return jsonify({
         "logado": True,
         "email": usuario["email"],
         "admin": eh_admin,
-        "tipo_perfil": usuario["tipo_perfil"],
-        "mestre": eh_admin or usuario["tipo_perfil"] == "mestre",
+        "tipo_perfil": "mestre" if eh_mestre else plano_ativo,
+        "mestre": eh_mestre,
         "assinatura": {
             "tem_acesso": eh_admin or pagamentos.usuario_tem_acesso(usuario["id"]),
             "status": assinatura["status"] if assinatura else None,
@@ -1599,35 +1603,6 @@ def api_definir_nome_usuario():
     return jsonify({"ok": True})
 
 
-@app.post("/api/conta/tornar-mestre")
-@api_login_necessario
-def api_tornar_mestre():
-    """Autoatendimento (sem passar pelo admin) — troca o perfil da própria
-    conta pra Mestre. No Free, é imediato (não tem assinatura de Atleta
-    "presa" a trocar). Assinando Atleta PRO, trocar o tipo_perfil sozinho
-    deixaria a assinatura Stripe (ainda de atleta) e o perfil dessincronizados
-    — melhor mandar pra assinar o Mestre PRO, que aí sim reflete certo em
-    ambos (ver webhook do Stripe, que já grava o plano junto com o status)."""
-    usuario_id = session["usuario_id"]
-    usuario = auth.buscar_por_id(usuario_id)
-    if usuario["tipo_perfil"] == "mestre":
-        return jsonify({"erro": "sua conta já é Mestre"}), 400
-
-    assinatura = pagamentos.obter_assinatura(usuario_id)
-    tem_assinatura_atleta_ativa = (
-        assinatura and assinatura["status"] in pagamentos.STATUS_COM_ACESSO and assinatura["plano"] == "atleta"
-    )
-    if tem_assinatura_atleta_ativa:
-        return jsonify({
-            "ok": False,
-            "precisa_assinar_mestre": True,
-            "erro": "sua assinatura atual é do Atleta PRO — assine o Mestre PRO pra trocar",
-        }), 402
-
-    auth.definir_tipo_perfil(usuario_id, "mestre")
-    return jsonify({"ok": True})
-
-
 @app.post("/api/conta/senha")
 @api_login_necessario
 def api_alterar_senha():
@@ -1641,10 +1616,10 @@ def api_alterar_senha():
 @app.get("/meus-alunos")
 @login_necessario
 def pagina_meus_alunos():
-    if not _usuario_atual_eh_mestre():
-        return "Página não encontrada", 404
-    # Deixa entrar mesmo sem assinatura — ver comentário em index()/
-    # /buscador acima. As APIs continuam exigindo assinatura.
+    # Todo mundo pode abrir agora (antes só quem já era Mestre) — item de
+    # menu sempre visível, igual /buscador acima. bloquearSePlanoFree (com
+    # nível "mestre", ver meus-alunos.js) barra o CONTEÚDO de quem não tem
+    # o Plano Mestre PRO ativo; as APIs continuam exigindo isso também.
     return send_from_directory("static", "meus-alunos.html")
 
 
@@ -1727,7 +1702,7 @@ def api_buscar_alunos_por_academia():
     atletas = []
     for perfil in candidatos:
         usuario = auth.buscar_por_id(perfil["usuario_id"])
-        if not usuario or usuario["tipo_perfil"] == "mestre" or usuario["email"] in ADMIN_EMAILS:
+        if not usuario or _usuario_eh_mestre(usuario):
             continue
         atletas.append(perfil)
     return jsonify({"academia": academia, "atletas": atletas})
@@ -1784,10 +1759,8 @@ def api_aceitar_aluno(aluno_id):
 @app.get("/meus-alunos/<int:aluno_id>")
 @login_necessario
 def pagina_aluno_detalhe(aluno_id):
-    if not _usuario_atual_eh_mestre():
-        return "Página não encontrada", 404
-    # Deixa entrar mesmo sem assinatura — ver comentário em index()/
-    # /buscador acima. As APIs continuam exigindo assinatura.
+    # bloquearSePlanoFree (nível "mestre", ver aluno-detalhe.js) cuida do
+    # conteúdo — ver comentário em pagina_meus_alunos() acima.
     return send_from_directory("static", "aluno-detalhe.html")
 
 
@@ -1811,10 +1784,8 @@ def api_aluno_detalhe(aluno_id):
 @app.get("/turmas")
 @login_necessario
 def pagina_turmas():
-    if not _usuario_atual_eh_mestre():
-        return "Página não encontrada", 404
-    # Deixa entrar mesmo sem assinatura — ver comentário em index()/
-    # /buscador acima. As APIs continuam exigindo assinatura.
+    # bloquearSePlanoFree (nível "mestre", ver turmas.js) cuida do
+    # conteúdo — ver comentário em pagina_meus_alunos() acima.
     return send_from_directory("static", "turmas.html")
 
 
@@ -2081,7 +2052,7 @@ def api_adicionar_meu_mestre():
     mestre = auth.buscar_por_nome_usuario(dados.get("nome_usuario"))
     if not mestre:
         return jsonify({"erro": "nenhum usuário encontrado com esse nome de usuário"}), 404
-    if mestre["tipo_perfil"] != "mestre" and mestre["email"] not in ADMIN_EMAILS:
+    if not _usuario_eh_mestre(mestre):
         return jsonify({"erro": "esse usuário não é um perfil Mestre"}), 400
     ok, erro = carreira.criar_vinculo(mestre_id=mestre["id"], aluno_id=session["usuario_id"], criado_por="aluno")
     if not ok:
