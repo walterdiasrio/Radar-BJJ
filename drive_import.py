@@ -169,7 +169,21 @@ def _processar_pasta(drive, federacao, modulo, origem_folder_id, destino_folder_
             arquivo_evento = eventos_processados.get(chave)
             evento_ja_processado = arquivo_evento is not None
         if arquivo_evento and not arquivo_atletas:
-            log.append(f"{federacao} pendente: {arquivo_evento['name']} sem o arquivo de atletas ainda")
+            # Pedido do usuário (11/09/2026): não esperar o arquivo de
+            # atletas pra publicar data/local/prazo do evento — isso costuma
+            # ser divulgado bem antes da lista de inscritos fechar. Importa
+            # o evento já (salvar_evento faz upsert por id, então reimportar
+            # todo dia até o par de atletas aparecer não duplica nada), mas
+            # NÃO move o arquivo pra "Processados" — continua na pasta de
+            # origem, junto do grupo, até ter par pra seguir o fluxo normal
+            # (_processar_par cuida de mover os dois quando isso acontecer).
+            try:
+                evento = modulo.parse_evento_html(_baixar_texto(drive, arquivo_evento["id"]))
+                modulo.salvar_evento(evento)
+                log.append(f"{federacao} evento importado (aguardando atletas): {arquivo_evento['name']}")
+            except Exception as exc:
+                traceback.print_exc()
+                log.append(f"{federacao} ERRO ao importar evento {arquivo_evento['name']}: {exc}")
             continue
         if arquivo_atletas and not arquivo_evento:
             log.append(f"{federacao} pendente: {arquivo_atletas['name']} sem o arquivo do evento correspondente")
