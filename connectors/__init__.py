@@ -533,7 +533,8 @@ _CIDADE_PARA_UF = {
     "petrópolis": "RJ", "cabo frio": "RJ", "niterói": "RJ",
     "natal": "RN", "porto alegre": "RS", "porto velho": "RO",
     "boa vista": "RR", "florianópolis": "SC", "balneário camboriú": "SC",
-    "são paulo": "SP", "guarujá": "SP", "indaiatuba": "SP", "aracaju": "SE",
+    "são paulo": "SP", "guarujá": "SP", "indaiatuba": "SP",
+    "são josé dos campos": "SP", "aracaju": "SE",
     "palmas": "TO", "araguaína": "TO",
 }
 _CIDADES_POR_TAMANHO = sorted(_CIDADE_PARA_UF, key=len, reverse=True)
