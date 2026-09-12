@@ -2,6 +2,12 @@ const elForm = document.getElementById("form-noticia");
 const elStatus = document.getElementById("status");
 const elLista = document.getElementById("lista-noticias");
 
+// Evita repetir o bug real de 11/09/2026: uma data limite digitada errado
+// (dia/mês trocado) caiu no passado e a notícia sumiu assim que criada —
+// o "min" bloqueia a data no próprio seletor nativo antes de chegar a
+// enviar o formulário (o servidor também rejeita, ver noticias.py).
+document.getElementById("data_limite").min = new Date().toISOString().slice(0, 10);
+
 function mostrarStatus(texto, ehErro = false) {
   elStatus.textContent = texto;
   elStatus.className = "status-importacao" + (ehErro ? " erro" : "");

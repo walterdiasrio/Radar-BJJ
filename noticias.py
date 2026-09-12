@@ -60,9 +60,18 @@ def criar_noticia(manchete, texto, data_limite, arquivo_imagem, nome_original):
     data_limite = (data_limite or "").strip() or None
     if data_limite:
         try:
-            date.fromisoformat(data_limite)
+            data_limite_obj = date.fromisoformat(data_limite)
         except ValueError:
             return None, "data limite inválida"
+        # Achado ao vivo em 11/09/2026: uma notícia postada com data limite
+        # sem querer no passado (ex: dia/mês trocado — "7 de novembro" virou
+        # "07/11" lido como mês 07/dia 11) some da lista assim que criada,
+        # já que listar_noticias() só mostra data_limite >= hoje — e é
+        # apagada de vez no próximo remover_noticias_expiradas(). Rejeitar
+        # aqui na criação, com erro claro, evita esse "postei e não foi pro
+        # ar" silencioso.
+        if data_limite_obj < date.today():
+            return None, "data limite não pode ser uma data no passado"
 
     ext = _extensao(nome_original)
     if ext not in EXTENSOES_PERMITIDAS:
