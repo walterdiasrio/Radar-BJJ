@@ -134,7 +134,16 @@ header {
   min-width: 220px;
   background: #ffffff;
   border: 1px solid var(--borda);
-  z-index: 40;
+  /* 100, bem acima de qualquer outro z-index de UI de navegação/tabela
+     (40/45/60) — relatado no celular real (11/09/2026) que o submenu de
+     "Minha Conta" no mobile abria mas ficava "por baixo" do conteúdo
+     principal (não dava pra ler/tocar os itens), mesmo com display:flex e
+     position:fixed corretos. Não reproduzido no emulador aqui (Chromium),
+     então é mais provável stacking-context de algum navegador real do que
+     um bug de lógica — subir bem o z-index é a correção defensiva mais
+     segura, sem mexer em nada mais (100 ainda fica abaixo do popup-trial-
+     overlay, z-index:500, que precisa continuar por cima de tudo). */
+  z-index: 100;
   flex-direction: column;
   gap: 0;
   padding: 0;
