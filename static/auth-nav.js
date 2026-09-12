@@ -94,6 +94,8 @@ async function carregarSessaoNoMenu() {
 
   const elNavAdmin = document.getElementById("nav-admin");
   const elNavAdminMobile = document.getElementById("nav-admin-toggle-mobile");
+  const elContaToggleMobile = document.getElementById("nav-conta-toggle-mobile");
+  const elPainelConta = document.getElementById("painel-nav-conta");
   const elMeusAlunos = document.getElementById("nav-meus-alunos");
   const elTurmas = document.getElementById("nav-turmas");
   const elTurmasMobile = document.getElementById("nav-turmas-toggle-mobile");
@@ -159,6 +161,20 @@ async function carregarSessaoNoMenu() {
         elMobile.style.display = "";
         elMobile.innerHTML = `<a href="/assinatura" title="Minha Assinatura">${ICONE_ASSINATURA}</a><a href="/perfil" title="Meu Perfil">${ICONE_PERFIL}</a><a href="#" class="nav-sair" title="Sair">${ICONE_LOGOUT}</a>`;
       }
+      // "Minha Conta" no menu rolante do mobile usa o MESMO painel sticky
+      // de Admin/Turmas (MAPA_TOGGLE_PAINEL_MOBILE abaixo), não o dropdown
+      // clássico acima (#nav-usuario .nav-admin-dropdown some no mobile via
+      // CSS) — esse dropdown com posição calculada em JS só funciona no
+      // preview, falha em celular real (relatado ao vivo 11/09/2026; mesmo
+      // motivo que já tinha tirado Admin/Turmas dele antes, ver style.css).
+      if (elContaToggleMobile) elContaToggleMobile.style.display = "";
+      if (elPainelConta) {
+        elPainelConta.innerHTML = `
+          <a href="/assinatura">${ICONE_ASSINATURA}<span>Minha Assinatura</span></a>
+          <a href="/perfil">${ICONE_PERFIL}<span>Meu Perfil</span></a>
+          <a href="#" class="nav-sair">${ICONE_LOGOUT}<span>Sair</span></a>
+        `;
+      }
       document.querySelectorAll(".nav-sair").forEach((btn) => {
         btn.addEventListener("click", async (ev) => {
           ev.preventDefault();
@@ -190,6 +206,8 @@ async function carregarSessaoNoMenu() {
       if (elMobile) { elMobile.style.display = "none"; elMobile.innerHTML = ""; }
       if (elNavAdmin) elNavAdmin.style.display = "none";
       if (elNavAdminMobile) elNavAdminMobile.style.display = "none";
+      if (elContaToggleMobile) elContaToggleMobile.style.display = "none";
+      if (elPainelConta) elPainelConta.innerHTML = "";
       if (elMeusAlunos) elMeusAlunos.style.display = "none";
       if (elTurmas) elTurmas.style.display = "none";
       if (elTurmasMobile) elTurmasMobile.style.display = "none";
@@ -204,6 +222,8 @@ async function carregarSessaoNoMenu() {
     if (elMobile) { elMobile.style.display = "none"; elMobile.innerHTML = ""; }
     if (elNavAdmin) elNavAdmin.style.display = "none";
     if (elNavAdminMobile) elNavAdminMobile.style.display = "none";
+    if (elContaToggleMobile) elContaToggleMobile.style.display = "none";
+    if (elPainelConta) elPainelConta.innerHTML = "";
     if (elMeusAlunos) elMeusAlunos.style.display = "none";
     if (elTurmas) elTurmas.style.display = "none";
     if (elTurmasMobile) elTurmasMobile.style.display = "none";
@@ -375,6 +395,7 @@ const MAPA_TOGGLE_PAINEL_MOBILE = [
   [".menu-atleta-toggle", "painel-menu-atleta"],
   [".turmas-toggle-mobile", "painel-nav-turmas"],
   [".admin-toggle-mobile", "painel-nav-admin"],
+  [".conta-toggle-mobile", "painel-nav-conta"],
 ];
 document.addEventListener("click", (ev) => {
   for (const [seletorToggle, idPainel] of MAPA_TOGGLE_PAINEL_MOBILE) {
