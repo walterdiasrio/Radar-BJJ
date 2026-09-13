@@ -1,5 +1,32 @@
 const TODAS = "todas";
 
+const MESES_ABREV_DATA_COMPACTA = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+
+// A data já vem pronta do back (connectors/datas.py::formatar) por extenso
+// e com ano — "20 de setembro de 2026" ou, em intervalo, "14 a 15 de março
+// de 2026" / "30 de agosto de 2026 a 02 de setembro de 2026". Na coluna
+// "Data" isso é textual demais (repete o ano em toda linha, já agrupada por
+// mês/ano no cabeçalho da seção); aqui só reformata pra "20 Set" (ou "14 a
+// 15 Mar" / "30 Ago a 02 Set"), sem ano. Se o texto não bater com nenhum
+// desses 3 formatos conhecidos, devolve como veio.
+function formatarDataCompacta(texto) {
+  if (!texto) return "";
+  const mesesRegex = MESES_ABREV_DATA_COMPACTA.join("|");
+  const abrevDe = mes => MESES_ABREV_DATA_COMPACTA.indexOf(mes.toLowerCase());
+  const rotulo = indice => indice === -1 ? "" : MESES_ABREV_DATA_COMPACTA[indice][0].toUpperCase() + MESES_ABREV_DATA_COMPACTA[indice].slice(1);
+
+  let m = texto.match(new RegExp(`^(\\d{1,2}) de (${mesesRegex})[a-zç]* de \\d{4} a (\\d{1,2}) de (${mesesRegex})[a-zç]* de \\d{4}$`, "i"));
+  if (m) return `${m[1].padStart(2, "0")} ${rotulo(abrevDe(m[2]))} a ${m[3].padStart(2, "0")} ${rotulo(abrevDe(m[4]))}`;
+
+  m = texto.match(new RegExp(`^(\\d{1,2}) a (\\d{1,2}) de (${mesesRegex})[a-zç]* de \\d{4}$`, "i"));
+  if (m) return `${m[1].padStart(2, "0")} a ${m[2].padStart(2, "0")} ${rotulo(abrevDe(m[3]))}`;
+
+  m = texto.match(new RegExp(`^(\\d{1,2}) de (${mesesRegex})[a-zç]* de \\d{4}$`, "i"));
+  if (m) return `${m[1].padStart(2, "0")} ${rotulo(abrevDe(m[2]))}`;
+
+  return texto;
+}
+
 const elFederacaoOpcoes = document.getElementById("federacao-opcoes");
 const elPublicoAdulto = document.getElementById("publico-adulto");
 const elPublicoKids = document.getElementById("publico-kids");
@@ -186,7 +213,7 @@ function renderizarCompeticoes(competicoes, mensagemVazia) {
           <tr>
             <td>${c.federacao || ""}</td>
             <td>${c.url ? `<a href="${c.url}" target="_blank" rel="noopener noreferrer">${c.nome || ""}</a>` : (c.nome || "")}</td>
-            <td>${c.data || ""}</td>
+            <td>${formatarDataCompacta(c.data)}</td>
             <td>${c.local || ""}</td>
             <td>${badgeInscricao(c.inscricoes_abertas)}</td>
             <td>${c.prazo_inscricao || "Não informado"}</td>

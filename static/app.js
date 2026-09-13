@@ -1,5 +1,34 @@
 const TODAS = "todas";
 
+const MESES_ABREV_DATA_COMPACTA = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+
+// A data já vem pronta do back (connectors/datas.py::formatar) por extenso
+// e com ano — "20 de setembro de 2026" ou, em intervalo, "14 a 15 de março
+// de 2026" / "30 de agosto de 2026 a 02 de setembro de 2026". Pro cabeçalho
+// da competição isso é textual demais; aqui só reformata pra "20 Set" (ou
+// "14 a 15 Mar" / "30 Ago a 02 Set"), sem ano (o ano já não importa muito
+// pra decidir "vou nessa competição", e evita repetir 4 dígitos toda hora).
+// Se o texto não bater com nenhum desses 3 formatos conhecidos, devolve
+// como veio — mais seguro que quebrar a exibição por causa de um formato
+// que a gente não previu.
+function formatarDataCompacta(texto) {
+  if (!texto) return "";
+  const mesesRegex = MESES_ABREV_DATA_COMPACTA.join("|");
+  const abrevDe = mes => MESES_ABREV_DATA_COMPACTA.indexOf(mes.toLowerCase());
+  const rotulo = indice => indice === -1 ? "" : MESES_ABREV_DATA_COMPACTA[indice][0].toUpperCase() + MESES_ABREV_DATA_COMPACTA[indice].slice(1);
+
+  let m = texto.match(new RegExp(`^(\\d{1,2}) de (${mesesRegex})[a-zç]* de \\d{4} a (\\d{1,2}) de (${mesesRegex})[a-zç]* de \\d{4}$`, "i"));
+  if (m) return `${m[1].padStart(2, "0")} ${rotulo(abrevDe(m[2]))} a ${m[3].padStart(2, "0")} ${rotulo(abrevDe(m[4]))}`;
+
+  m = texto.match(new RegExp(`^(\\d{1,2}) a (\\d{1,2}) de (${mesesRegex})[a-zç]* de \\d{4}$`, "i"));
+  if (m) return `${m[1].padStart(2, "0")} a ${m[2].padStart(2, "0")} ${rotulo(abrevDe(m[3]))}`;
+
+  m = texto.match(new RegExp(`^(\\d{1,2}) de (${mesesRegex})[a-zç]* de \\d{4}$`, "i"));
+  if (m) return `${m[1].padStart(2, "0")} ${rotulo(abrevDe(m[2]))}`;
+
+  return texto;
+}
+
 // Guarda a Promise (não o resultado ainda) — o carregamento inicial mais
 // abaixo espera ela resolver antes de decidir se chama carregarFiltroPadrao
 // (também exige assinatura): sem esperar, fetchAutenticado já redirecionava
@@ -254,7 +283,7 @@ function renderizarResultados(atletas) {
         <div class="bloco-competicao">
           <h3 class="destaque-competicao">
             ${bloco.url ? `<a href="${bloco.url}" target="_blank" rel="noopener noreferrer">${bloco.evento}</a>` : bloco.evento} <span class="contagem">(${bloco.itens.length})</span>
-            ${bloco.data ? `<span class="destaque-competicao-data">${bloco.data}</span>` : ""}
+            ${bloco.data ? `<span class="destaque-competicao-data">${formatarDataCompacta(bloco.data)}</span>` : ""}
           </h3>
           <table>
             <thead>
