@@ -1445,16 +1445,16 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
    aparece por uma fração de segundo até o fetch responder. */
 .home-placar {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
-  gap: 32px;
+  gap: clamp(6px, 2vw, 32px);
   background: var(--azul);
   color: white;
   border-radius: 16px;
-  padding: 24px 28px;
+  padding: 18px 10px;
   margin-bottom: 28px;
   box-shadow: 0 8px 28px rgba(0, 30, 120, 0.12);
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .home-placar-item {
@@ -1462,12 +1462,13 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
   flex-direction: column;
   align-items: center;
   text-align: center;
-  min-width: 150px;
+  flex: 1;
+  min-width: 0;
 }
 
 .home-placar-numero {
   font-family: var(--fonte-menu);
-  font-size: 3.4rem;
+  font-size: clamp(1.5rem, 6vw, 4.2rem);
   font-weight: 700;
   line-height: 1.1;
 }
@@ -1476,34 +1477,27 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
    fonte pequena e mais apagada, senão "—" nesse tamanho de letra parecia
    uma barra sólida em vez de um traço de carregando. */
 .home-placar-numero.carregando {
-  font-size: 1.3rem;
+  font-size: 1rem;
   font-weight: 400;
   opacity: 0.55;
   letter-spacing: 0.15em;
 }
 
 .home-placar-rotulo {
-  font-size: 1rem;
+  font-size: clamp(0.6rem, 2.1vw, 1.1rem);
   font-weight: 600;
   color: #d7e2f2;
   margin-top: 4px;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-
-@media (min-width: 640px) {
-  .home-placar-numero { font-size: 4.2rem; }
-  .home-placar-rotulo { font-size: 1.1rem; }
+  letter-spacing: 0.02em;
+  line-height: 1.25;
 }
 
 .home-placar-divisor {
   width: 1px;
   align-self: stretch;
   background: rgba(255, 255, 255, 0.25);
-}
-
-@media (max-width: 480px) {
-  .home-placar-divisor { display: none; }
+  flex-shrink: 0;
 }
 
 .home-hero h1 {
