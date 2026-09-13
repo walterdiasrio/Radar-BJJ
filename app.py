@@ -1,5 +1,6 @@
 import base64
 import html
+import json
 import os
 import re
 import secrets
@@ -144,17 +145,30 @@ def _iniciar_verificacao_periodica_de_alertas():
 # connectors/__init__.py) e a Home é vista por visitante deslogado também,
 # então NUNCA calcula isso na hora do request: só lê um cache atualizado
 # em background (no loop de 30 em 30 min acima, mais uma vez já no start do
-# processo — ver chamada logo depois de _iniciar_verificacao_periodica_de_
-# alertas() — pra não ficar mostrando zero por até 30min a cada deploy).
+# processo — ver iniciar_tarefas_de_fundo() — pra não ficar mostrando zero
+# por até 30min a cada deploy).
+#
+# Em produção, só UM worker de verdade roda esse cálculo (ver gunicorn.conf.py
+# — trava de arquivo no post_fork), mas o Gunicorn tem 2 workers e QUALQUER
+# um deles pode responder o /api/estatisticas-publicas — um dict em memória
+# não seria visto pelo worker que não calculou nada. Por isso o resultado
+# também é gravado num arquivo em DATA_DIR (disco persistente, compartilhado
+# entre os processos): quem calcula escreve nele, e a rota sempre lê dali
+# em vez do dict em memória (que fica só como fallback pro processo que
+# realmente calculou, caso o arquivo não exista ainda).
 _estatisticas_publicas_lock = threading.Lock()
 _estatisticas_publicas_cache = {"total_competicoes": 0, "total_atletas": 0}
+_ESTATISTICAS_PUBLICAS_PATH = DATA_DIR / "estatisticas_publicas.json"
 
 
 def _recalcular_estatisticas_publicas():
     atletas, _erros, total_eventos = buscar_atletas_agregado(TODAS, TODAS, {})
+    dados = {"total_competicoes": total_eventos, "total_atletas": len(atletas)}
     with _estatisticas_publicas_lock:
-        _estatisticas_publicas_cache["total_competicoes"] = total_eventos
-        _estatisticas_publicas_cache["total_atletas"] = len(atletas)
+        _estatisticas_publicas_cache.update(dados)
+    caminho_temporario = _ESTATISTICAS_PUBLICAS_PATH.with_suffix(".tmp")
+    caminho_temporario.write_text(json.dumps(dados))
+    caminho_temporario.replace(_ESTATISTICAS_PUBLICAS_PATH)  # troca atômica
 
 
 def _iniciar_calculo_inicial_de_estatisticas_publicas():
@@ -167,9 +181,21 @@ def _iniciar_calculo_inicial_de_estatisticas_publicas():
     threading.Thread(target=rodar, daemon=True).start()
 
 
-_iniciar_verificacao_periodica_de_alertas()
-_iniciar_calculo_inicial_de_estatisticas_publicas()
-drive_import._iniciar_agendador_diario()
+def iniciar_tarefas_de_fundo():
+    """Liga as 3 tarefas em background do processo (alertas periódicos,
+    placar público, reimportação diária). Só deve rodar UMA vez por
+    processo que vá continuar vivo servindo request — nunca chamada
+    incondicionalmente no import do módulo (ver motivo em __main__ logo
+    abaixo e no post_fork de gunicorn.conf.py): em produção (Gunicorn com
+    --preload), threads iniciadas ANTES do fork() do processo mestre não
+    sobrevivem nos processos-trabalhadores de verdade (limitação de
+    fork(), não bug do Gunicorn) — ficavam "vivas" só no mestre, que nunca
+    atende request nenhum. Foi assim que o placar público da Home ficou
+    preso em 0/0 pra sempre em produção, e é bem provável que os alertas
+    de 30 em 30 min também nunca rodassem de verdade lá."""
+    _iniciar_verificacao_periodica_de_alertas()
+    _iniciar_calculo_inicial_de_estatisticas_publicas()
+    drive_import._iniciar_agendador_diario()
 
 
 def _parse_federacao(bruto):
@@ -1084,11 +1110,18 @@ def api_sair():
 
 @app.get("/api/estatisticas-publicas")
 def api_estatisticas_publicas():
-    """Pública (sem login) — números do placar da Home. Vem só do cache em
-    memória, atualizado em background (ver _recalcular_estatisticas_publicas)
-    — nunca dispara a busca agregada de verdade na hora do request."""
-    with _estatisticas_publicas_lock:
-        return jsonify(dict(_estatisticas_publicas_cache))
+    """Pública (sem login) — números do placar da Home. Lê do arquivo em
+    DATA_DIR (compartilhado entre todos os workers do Gunicorn — só um
+    deles de fato calcula, ver gunicorn.conf.py), com o dict em memória só
+    como fallback pro processo que calculou, pro caso do arquivo ainda não
+    existir (recém-deployado). Nunca dispara a busca agregada de verdade
+    na hora do request."""
+    try:
+        dados = json.loads(_ESTATISTICAS_PUBLICAS_PATH.read_text())
+    except (OSError, ValueError):
+        with _estatisticas_publicas_lock:
+            dados = dict(_estatisticas_publicas_cache)
+    return jsonify(dados)
 
 
 @app.get("/api/federacoes")
@@ -2186,7 +2219,11 @@ def webhook_stripe():
 
 
 if __name__ == "__main__":
+    # Só chega aqui rodando "python app.py" direto (dev local) — processo
+    # único, sem fork, pode ligar as tarefas de fundo sem trava nenhuma.
+    # Em produção (Gunicorn), quem liga é o post_fork de gunicorn.conf.py.
     # use_reloader=False: com o reload automático ligado, o Flask importa
     # este módulo duas vezes (processo monitor + processo de trabalho), o
     # que duplicaria a thread de verificação de alertas.
+    iniciar_tarefas_de_fundo()
     app.run(debug=True, port=5050, use_reloader=False)

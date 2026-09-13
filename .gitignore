@@ -1,6 +1,9 @@
 __pycache__/
 *.pyc
 .secret_key
+.tarefas_de_fundo.lock
+estatisticas_publicas.json
+estatisticas_publicas.tmp
 .import_api_key
 .google_service_account.json
 usuarios.db
