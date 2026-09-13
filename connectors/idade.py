@@ -276,6 +276,14 @@ TABELAS = {
     # normalizados pro conector antes de chegar aqui (ver
     # connectors/fjjpr.py::_IDADE_NORMALIZADA).
     "fjjpr": _CBJJE,
+    # FJJPA: faixas etárias idênticas à CBJJE (Pré-Mirim 4-5, Mirim 6-7,
+    # Infantil A/B 8-9/10-11, Infanto Juvenil A/B 12-13/14-15, Juvenil
+    # 16-17, Adulto, Master 1-6 — conferido ao vivo: idade 42 caiu em
+    # "MASTER 3 / MASTER 4" na checagem real, que bate com Master 3 na
+    # _CBJJE). O site agrupa os Masters em pares ("Master 1 / Master 2"),
+    # normalizado pro rótulo individual exato dentro do conector antes de
+    # chegar aqui (ver connectors/fjjpa.py::_master_exato).
+    "fjjpa": _CBJJE,
 }
 
 

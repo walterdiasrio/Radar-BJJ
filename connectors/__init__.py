@@ -5,7 +5,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date
 
-from . import cbjj, fjjrio, cbjjd, cbjjo, cbjje, fpjj, cbjjc, fjjpe, fjjemg, fjjgo, fcojj, fjjpr, adcc, ajp, idade as idade_mod, peso as peso_mod, datas as datas_mod
+from . import cbjj, fjjrio, cbjjd, cbjjo, cbjje, fpjj, cbjjc, fjjpe, fjjemg, fjjgo, fcojj, fjjpr, fjjpa, adcc, ajp, idade as idade_mod, peso as peso_mod, datas as datas_mod
 
 # Quantas buscas em paralelo por vez. Já foi reduzido de 8 pra 4 quando o
 # Render Starter (512MB de RAM) derrubou o serviço por estouro de memória
@@ -41,6 +41,7 @@ FEDERACOES = {
     # o Distrito Federal (ver docstring de connectors/fcojj.py).
     "fcojj": {"label": "FCOJJ", "nome": "Federação Centro-Oeste de Jiu-Jitsu e Artes Marciais", "module": fcojj, "grupo": "estadual", "uf": "DF"},
     "fjjpr": {"label": "FJJPR", "nome": "Federação de Jiu-Jitsu do Paraná", "module": fjjpr, "grupo": "estadual", "uf": "PR"},
+    "fjjpa": {"label": "FJJPA", "nome": "Federação de Jiu-Jitsu do Pará", "module": fjjpa, "grupo": "estadual", "uf": "PA"},
     "adcc": {"label": "ADCC", "nome": "Abu Dhabi Combat Club", "module": adcc, "grupo": "internacional"},
     "ajp": {"label": "AJP", "nome": "Abu Dhabi Jiu-Jitsu Pro", "module": ajp, "grupo": "internacional"},
 }
@@ -550,6 +551,8 @@ _UF_FIXA_POR_FEDERACAO = {
     "fjjrio": "RJ",  # Federação de Jiu-Jitsu do Rio de Janeiro
     "fpjj": "SP",    # Federação Paulista de Jiu-Jitsu
     "fjjemg": "MG",  # Federação de Jiu-Jitsu do Estado de Minas Gerais
+    "fjjpa": "PA",   # Federação de Jiu-Jitsu do Pará (confirmado pelo usuário:
+                      # toda competição da FJJPA é no Pará)
 }
 
 
@@ -656,7 +659,7 @@ _PALAVRAS_ADULTO = re.compile(r"\bmaster\b|\badulto\b|\bjuvenil\b", re.I)
 # Adulto/Master (ver connectors/fcojj.py). FJJPR pelo mesmo motivo: "1ª Etapa
 # 2026" etc não tem kids/adulto no nome, mas cada etapa mistura Pré-Mirim a
 # Master no mesmo evento (ver connectors/fjjpr.py).
-_FEDERACOES_SEM_SEPARACAO_POR_NOME = {"cbjjd", "cbjjo", "cbjje", "ajp", "adcc", "fjjemg", "fjjgo", "fcojj", "fjjpr"}
+_FEDERACOES_SEM_SEPARACAO_POR_NOME = {"cbjjd", "cbjjo", "cbjje", "ajp", "adcc", "fjjemg", "fjjgo", "fcojj", "fjjpr", "fjjpa"}
 
 
 def _classificar_publico(nome, fed):
