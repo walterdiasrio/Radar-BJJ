@@ -39,8 +39,14 @@ Categorias infantis/adulto aparecem misturadas no mesmo evento, com
 nomes de evento genéricos ("1ª Etapa 2026", sem palavra kids/adulto no
 nome) — por isso "fjjpr" entra em connectors/__init__.py::
 _FEDERACOES_SEM_SEPARACAO_POR_NOME (mesmo caso já resolvido pra
-FJJGO/FCOJJ), senão o filtro "Kids" nunca acharia nada aqui."""
+FJJGO/FCOJJ), senão o filtro "Kids" nunca acharia nada aqui.
+
+status_inscricao() lê a mesma página de detalhe (ver-campeonato.php) —
+tem um campo explícito "Prazo final para Inscrições" (DD/MM/YYYY) e um
+botão que muda de "INSCREVA-SE AGORA" pra "INSCRIÇÕES ENCERRADAS"
+(conferido ao vivo nas duas variações, incluindo etapas já passadas)."""
 import re
+from datetime import date
 
 from bs4 import BeautifulSoup
 
@@ -49,6 +55,10 @@ from .http import get
 
 SITE = "https://fjjpr.com"
 APP = "https://app.fjjpr.com"
+
+_PRAZO_RE = re.compile(
+    r"Prazo final para Inscri[cç][õo]es</b>\s*<[Bb][Rr]>\s*(\d{1,2})/(\d{1,2})/(\d{4})"
+)
 
 _IDADE_NORMALIZADA = {
     "pre mirim": "Pré-Mirim",
@@ -124,6 +134,43 @@ def listar_eventos():
             "local": local,
         })
     return eventos
+
+
+def status_inscricao(evento):
+    """(inscricoes_abertas, prazo_inscricao). A página do evento
+    (ver-campeonato.php) tem um campo explícito "Prazo final para
+    Inscrições" (DD/MM/YYYY) e um botão que já reflete o estado real
+    ("INSCREVA-SE AGORA" vs "INSCRIÇÕES ENCERRADAS", conferido ao vivo nas
+    duas variações). Usa o botão em vez de só comparar a data com hoje pra
+    "abertas" porque a própria página avisa que a inscrição pode encerrar
+    antes do prazo por lotação ("As inscrições podem encerrar antes do
+    prazo final caso atinja a capacidade limite de atletas")."""
+    url = evento.get("url")
+    if not url:
+        return None, None
+    try:
+        resp = get(url)
+    except Exception:
+        return None, None
+    html = resp.text
+
+    prazo_inscricao = None
+    m = _PRAZO_RE.search(html)
+    if m:
+        dia, mes, ano = (int(x) for x in m.groups())
+        try:
+            prazo_inscricao = date(ano, mes, dia).isoformat()
+        except ValueError:
+            pass
+
+    inscricoes_abertas = None
+    texto_upper = html.upper()
+    if "INSCREVA-SE" in texto_upper:
+        inscricoes_abertas = True
+    elif "INSCRIÇÕES ENCERRADAS" in texto_upper:
+        inscricoes_abertas = False
+
+    return inscricoes_abertas, prazo_inscricao
 
 
 def buscar_atletas(evento_id, filtros):
