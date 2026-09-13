@@ -1447,11 +1447,11 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 24px;
+  gap: 32px;
   background: var(--azul);
   color: white;
   border-radius: 16px;
-  padding: 20px 28px;
+  padding: 24px 28px;
   margin-bottom: 28px;
   box-shadow: 0 8px 28px rgba(0, 30, 120, 0.12);
   flex-wrap: wrap;
@@ -1462,20 +1462,26 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
   flex-direction: column;
   align-items: center;
   text-align: center;
-  min-width: 140px;
+  min-width: 150px;
 }
 
 .home-placar-numero {
   font-family: var(--fonte-menu);
-  font-size: 2.2rem;
+  font-size: 3.4rem;
   font-weight: 700;
   line-height: 1.1;
 }
 
 .home-placar-rotulo {
-  font-size: 0.85rem;
+  font-size: 1rem;
+  font-weight: 600;
   color: #d7e2f2;
-  margin-top: 2px;
+  margin-top: 4px;
+}
+
+@media (min-width: 640px) {
+  .home-placar-numero { font-size: 4.2rem; }
+  .home-placar-rotulo { font-size: 1.1rem; }
 }
 
 .home-placar-divisor {
