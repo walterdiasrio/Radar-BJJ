@@ -14,7 +14,9 @@ configurada, o e-mail só é logado no console (útil pra testar localmente
 sem gastar envio de verdade).
 """
 import hashlib
+import html as html_mod
 import os
+import re
 import sqlite3
 import threading
 import traceback
@@ -525,6 +527,30 @@ def verificar_prazos_agenda():
         _marcar_prazo_avisado(item["usuario_id"], item["chave"], tipo)
 
 
+def _html_para_texto_simples(html_str):
+    """Fallback text/plain gerado a partir do HTML — não é sofisticado (só
+    pras tags/entidades que a gente mesmo gera nos e-mails daqui, não pra
+    HTML arbitrário de terceiros), mas evita mandar e-mail só em HTML.
+    Motivo (11/09/2026): relato de contas @outlook/@hotmail não recebendo
+    o e-mail de confirmação de cadastro — e-mail 100% HTML (sem a parte
+    text/plain alternativa) é um sinal que os filtros da Microsoft pesam
+    mais que os do Gmail. Não é garantia de resolver sozinho (o principal
+    suspeito é reputação do remetente com a Microsoft, não corrigível por
+    código — ver auth.py/app.py), mas é uma melhoria de graça, sem risco,
+    que vale fazer de qualquer forma."""
+    texto = re.sub(r"(?i)<(br|/p|/li|/div|/h[1-6])\s*/?>", "\n", html_str)
+    texto = re.sub(
+        r'(?is)<a\s+[^>]*href="([^"]*)"[^>]*>(.*?)</a>',
+        lambda m: f"{re.sub('<[^>]+>', '', m.group(2))} ({m.group(1)})",
+        texto,
+    )
+    texto = re.sub(r"<[^>]+>", "", texto)
+    texto = html_mod.unescape(texto)
+    texto = re.sub(r"[ \t]+", " ", texto)
+    texto = re.sub(r"\n\s*\n+", "\n\n", texto)
+    return texto.strip()
+
+
 def enviar_email(destinatario, assunto, corpo_html, anexos=None):
     """anexos, se informado: lista de {"filename": ..., "content_base64": ...}
     (ver turmas/planner_pdf — usado pra mandar o Planner de Aulas em PDF)."""
@@ -532,7 +558,10 @@ def enviar_email(destinatario, assunto, corpo_html, anexos=None):
         print(f"[alertas] RESEND_API_KEY não configurada — e-mail não enviado "
               f"(para={destinatario}, assunto={assunto!r})")
         return False
-    corpo = {"from": REMETENTE, "to": [destinatario], "subject": assunto, "html": corpo_html}
+    corpo = {
+        "from": REMETENTE, "to": [destinatario], "subject": assunto,
+        "html": corpo_html, "text": _html_para_texto_simples(corpo_html),
+    }
     if anexos:
         corpo["attachments"] = [
             {"filename": a["filename"], "content": a["content_base64"]} for a in anexos
