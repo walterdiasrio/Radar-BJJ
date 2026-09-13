@@ -388,8 +388,10 @@ async function carregarPlacarEstatisticas() {
     const dados = await resp.json();
     elCompeticoes.textContent = (dados.total_competicoes || 0).toLocaleString("pt-BR");
     elAtletas.textContent = (dados.total_atletas || 0).toLocaleString("pt-BR");
+    elCompeticoes.classList.remove("carregando");
+    elAtletas.classList.remove("carregando");
   } catch {
-    // sem número novo, mantém o "—" inicial em vez de quebrar a Home por causa disso
+    // sem número novo, mantém o "···" inicial em vez de quebrar a Home por causa disso
   }
 }
 
