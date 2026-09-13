@@ -529,6 +529,45 @@ def _fcojj(idade, genero):
     return tabela[_faixa_etaria_fcojj(max(idade, 4))]
 
 
+# ---------------------------------------------------------------------------
+# FJJPA — "Tabela Oficial (GI)" oficial (fjjpa.app.br, imagem lida
+# manualmente em 13/09/2026, link "Tabela de Pesos" no rodapé do site).
+# Faixas de idade em bandas de 2 anos até os 15 anos, unissex (igual
+# FJJEMG/CBJJC) — os números batem exatamente com a tabela CBJJ/FJJRio por
+# idade EXATA a partir dos 6/7 anos (usa sempre o número ímpar da banda: a
+# banda "6/7 anos" bate com o ano 7 da CBJJ, "8/9" com o ano 9, e assim por
+# diante) — reaproveita essas tabelas já existentes em vez de duplicar os
+# mesmos números. A banda mais nova (4/5 anos) tem números próprios da
+# FJJPA e não tem categoria "Galo" (a mais leve ali é Pluma — mesmo padrão
+# de "nem toda idade tem toda categoria" já visto na FPJJ). Do Juvenil em
+# diante os números também batem com CBJJ/FJJRio, mas com uma diferença:
+# a FJJPA fecha o "Super-Pesado" e abre um "Pesadíssimo" à parte pro
+# feminino (Juvenil e Adulto/Master), onde a CBJJ deixa o Super-Pesado
+# aberto sem essa faixa extra — por isso usa tabela própria pro feminino
+# em vez de reaproveitar _CBJJ_FJJRIO_JUVENIL_FEM/_ADULTO_FEM direto (só
+# o masculino é 100% idêntico, esse sim reaproveitado). Sem tabela Sem
+# Kimono cadastrada (a FJJPA também publica uma, mas não vimos nenhum
+# evento Sem Kimono dessa federação ainda pra confirmar contra dado real).
+# ---------------------------------------------------------------------------
+_FJJPA_4_5 = [
+    ("Pluma", 18.9), ("Pena", 22.0), ("Leve", 25.0), ("Médio", 28.0),
+    ("Meio-Pesado", 31.2), ("Pesado", 34.2), ("Super-Pesado", 37.2), ("Pesadíssimo", None),
+]
+_FJJPA_JUVENIL_FEM = _tabela(44.3, 48.3, 52.5, 56.5, 60.5, 65.0, 69.0, 73.0)
+_FJJPA_ADULTO_MASTER_FEM = _tabela(48.5, 53.5, 58.5, 64.0, 69.0, 74.0, 79.3, 84.3)
+
+
+def _fjjpa(idade, genero):
+    if idade <= 5:
+        return _FJJPA_4_5
+    if idade <= 15:
+        idade_tabela = idade if idade % 2 == 1 else idade + 1
+        return _CBJJ_FJJRIO_UNISSEX_POR_IDADE[idade_tabela]
+    if idade in (16, 17):
+        return _FJJPA_JUVENIL_FEM if genero == "feminino" else _CBJJ_FJJRIO_JUVENIL_MASC[17]
+    return _FJJPA_ADULTO_MASTER_FEM if genero == "feminino" else _CBJJ_FJJRIO_ADULTO_MASC
+
+
 _FUNCOES = {
     "cbjj": _cbjj_fjjrio,
     "fjjrio": _cbjj_fjjrio,
@@ -548,6 +587,14 @@ _FUNCOES = {
     # idade/gênero (mesma suposição já usada pra FJJPE).
     "fjjgo": _cbjj_fjjrio,
     "fcojj": _fcojj,
+    "fjjpa": _fjjpa,
+    # FJJPR: sem tabela oficial própria publicada (procurado no site,
+    # inclusive edital/regulamento — nada encontrado), mas os rótulos de
+    # peso na checagem real (Galo, Pluma, Pena, Leve, Médio, Meio Pesado,
+    # Pesado, Super Pesado, Pesadíssimo) são os mesmos da CBJJ/FJJRio —
+    # mesma suposição já usada pra FJJPE/FJJGO, sem confirmação contra os
+    # números em kg (só os nomes batem).
+    "fjjpr": _cbjj_fjjrio,
 }
 
 # Federações onde já confirmamos que a competição Sem Kimono usa uma tabela
