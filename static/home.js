@@ -374,6 +374,26 @@ async function ajustarCartaoBoasVindas() {
   }
 }
 
+// Placar público (todos os visitantes, sem precisar de login) — os números
+// já vêm prontos de um cache no servidor (nunca calculados na hora do
+// request, ver app.py::_recalcular_estatisticas_publicas), então é só um
+// fetch simples sem fetchAutenticado.
+async function carregarPlacarEstatisticas() {
+  const elCompeticoes = document.getElementById("placar-competicoes");
+  const elAtletas = document.getElementById("placar-atletas");
+  if (!elCompeticoes || !elAtletas) return;
+  try {
+    const resp = await fetch("/api/estatisticas-publicas");
+    if (!resp.ok) return;
+    const dados = await resp.json();
+    elCompeticoes.textContent = (dados.total_competicoes || 0).toLocaleString("pt-BR");
+    elAtletas.textContent = (dados.total_atletas || 0).toLocaleString("pt-BR");
+  } catch {
+    // sem número novo, mantém o "—" inicial em vez de quebrar a Home por causa disso
+  }
+}
+
 carregarDestaques();
 ajustarCartaoBoasVindas();
 carregarUltimosMedalhistas();
+carregarPlacarEstatisticas();

@@ -130,11 +130,45 @@ def _iniciar_verificacao_periodica_de_alertas():
                 _verificar_assinaturas_pix()
             except Exception:
                 traceback.print_exc()
+            try:
+                _recalcular_estatisticas_publicas()
+            except Exception:
+                traceback.print_exc()
 
     threading.Thread(target=loop, daemon=True).start()
 
 
+# Placar público da Home ("X competições, Y competidores") — pega os números
+# de uma busca agregada real (todas as federações, todas as competições),
+# mas isso demora dezenas de segundos (ver comentário de MAX_WORKERS em
+# connectors/__init__.py) e a Home é vista por visitante deslogado também,
+# então NUNCA calcula isso na hora do request: só lê um cache atualizado
+# em background (no loop de 30 em 30 min acima, mais uma vez já no start do
+# processo — ver chamada logo depois de _iniciar_verificacao_periodica_de_
+# alertas() — pra não ficar mostrando zero por até 30min a cada deploy).
+_estatisticas_publicas_lock = threading.Lock()
+_estatisticas_publicas_cache = {"total_competicoes": 0, "total_atletas": 0}
+
+
+def _recalcular_estatisticas_publicas():
+    atletas, _erros, total_eventos = buscar_atletas_agregado(TODAS, TODAS, {})
+    with _estatisticas_publicas_lock:
+        _estatisticas_publicas_cache["total_competicoes"] = total_eventos
+        _estatisticas_publicas_cache["total_atletas"] = len(atletas)
+
+
+def _iniciar_calculo_inicial_de_estatisticas_publicas():
+    def rodar():
+        try:
+            _recalcular_estatisticas_publicas()
+        except Exception:
+            traceback.print_exc()
+
+    threading.Thread(target=rodar, daemon=True).start()
+
+
 _iniciar_verificacao_periodica_de_alertas()
+_iniciar_calculo_inicial_de_estatisticas_publicas()
 drive_import._iniciar_agendador_diario()
 
 
@@ -1046,6 +1080,15 @@ def login_google_callback():
 def api_sair():
     session.clear()
     return jsonify({"ok": True})
+
+
+@app.get("/api/estatisticas-publicas")
+def api_estatisticas_publicas():
+    """Pública (sem login) — números do placar da Home. Vem só do cache em
+    memória, atualizado em background (ver _recalcular_estatisticas_publicas)
+    — nunca dispara a busca agregada de verdade na hora do request."""
+    with _estatisticas_publicas_lock:
+        return jsonify(dict(_estatisticas_publicas_cache))
 
 
 @app.get("/api/federacoes")

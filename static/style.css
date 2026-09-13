@@ -1438,6 +1438,56 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
 
 .home-hero-texto { min-width: 0; }
 
+/* Placar público (todos os visitantes, logados ou não) com os números
+   agregados de todas as federações — os valores em si vêm de um cache em
+   background no servidor (nunca calculados na hora do request, ver
+   app.py::_recalcular_estatisticas_publicas), então o "—" inicial só
+   aparece por uma fração de segundo até o fetch responder. */
+.home-placar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  background: var(--azul);
+  color: white;
+  border-radius: 16px;
+  padding: 20px 28px;
+  margin-bottom: 28px;
+  box-shadow: 0 8px 28px rgba(0, 30, 120, 0.12);
+  flex-wrap: wrap;
+}
+
+.home-placar-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  min-width: 140px;
+}
+
+.home-placar-numero {
+  font-family: var(--fonte-menu);
+  font-size: 2.2rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.home-placar-rotulo {
+  font-size: 0.85rem;
+  color: #d7e2f2;
+  margin-top: 2px;
+}
+
+.home-placar-divisor {
+  width: 1px;
+  align-self: stretch;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+@media (max-width: 480px) {
+  .home-placar-divisor { display: none; }
+}
+
 .home-hero h1 {
   color: var(--azul);
   font-size: 1.6rem;
