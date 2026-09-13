@@ -59,6 +59,57 @@ _TODAS_POSICOES = {posicao for lista in POSICOES.values() for posicao in lista}
 # Chave de pé reta fica de fora dessa lista (já é liberada mais cedo).
 POSICOES_ADULTO_APENAS = {"Chave de Calcanhar", "Toe Hold"}
 
+# Definição curta de cada posição/técnica de POSICOES, pro Mestre poder
+# clicar num termo do Plano de Aula (manual ou sugerido pela IA) e ver o que
+# significa — pensado pra quem está começando a montar aula e não conhece
+# de cabeça todas as posições ainda. Uma entrada por posição (checado no
+# fim do módulo: GLOSSARIO precisa cobrir exatamente _TODAS_POSICOES, senão
+# um termo novo em POSICOES fica sem definição e o pop-up não acha nada).
+GLOSSARIO = {
+    "Guarda Fechada": "Quem está por baixo prende o adversário travando as pernas ao redor do quadril dele, controlando a distância e buscando raspagens ou finalizações.",
+    "Guarda Aberta": "Guarda em que as pernas não ficam travadas ao redor do adversário — os pés e joelhos controlam distância e ângulo, dando mais mobilidade.",
+    "Meia Guarda": "Quem está por baixo prende uma das pernas do adversário entre as próprias pernas, controlando parte do quadril dele.",
+    "Guarda Borboleta": "Guarda aberta com os pés por dentro das coxas do adversário, como dois ganchos, usada pra desequilibrar e raspar.",
+    "De La Riva": "Guarda aberta em que uma perna envolve por fora a perna do adversário, prendendo o tornozelo dele e controlando o ângulo.",
+    "Guarda Aranha": "Guarda aberta em que os pés ficam nas mangas do adversário, controlando os braços dele com as pernas.",
+    "50/50": "Posição em que os dois atletas entrelaçam uma perna com a do outro, ficando em pé de igualdade — comum em disputas de chave de perna.",
+    "Passagem por Pressão": "Passagem de guarda que usa peso e pressão constante no tronco/quadril do adversário pra neutralizar as pernas dele antes de passar.",
+    "Passagem Torreando": "Passagem em pé: empurra as pernas do adversário pro lado e circula rápido, como um toureiro desviando do touro.",
+    "Passagem Leg Drag": "Passagem que puxa uma perna do adversário pro lado do próprio corpo (\"arrastando\" a perna) pra abrir caminho até o controle lateral.",
+    "Passagem de Joelho": "Passagem que avança com o joelho pressionando entre as pernas do adversário, indo por cima em direção ao controle lateral.",
+    "Montada": "Quem está por cima senta sobre o tronco do adversário, com um joelho de cada lado — uma das posições de maior controle no Jiu-Jitsu.",
+    "100kg (Side Control)": "Controle lateral: fica por cima do adversário, perpendicular ao corpo dele, pressionando o peito.",
+    "Joelho na Barriga": "Controle com um joelho apoiado na barriga do adversário e o outro pé no chão, dando mobilidade pra ir pro lado que quiser.",
+    "Costas": "Controle pelas costas do adversário, geralmente com os ganchos (pés) presos nas coxas dele — posição clássica pra estrangulamentos.",
+    "Norte-Sul": "Controle em que fica deitado sobre o adversário de cabeça para baixo (cabeça na altura do quadril dele), pressionando o peito.",
+    "Raspagem de Guarda Fechada": "Raspagem clássica saindo da guarda fechada, geralmente puxando um braço e um ombro do adversário pra derrubá-lo de lado.",
+    "Raspagem Flower Sweep": "Raspagem da guarda fechada em que se prende um braço e uma perna do adversário e gira o corpo, jogando-o de lado.",
+    "Raspagem Scissor": "Raspagem clássica da guarda aberta com as pernas em movimento de tesoura, desequilibrando o adversário de lado.",
+    "Raspagem Hip Bump": "Raspagem que usa o impulso do quadril pra derrubar o adversário pra trás, geralmente terminando em montada.",
+    "Raspagem De La Riva": "Raspagem feita a partir da guarda De La Riva, geralmente puxando a perna presa do adversário pra desequilibrá-lo.",
+    "Double Leg": "Queda de wrestling: agarra as duas pernas do adversário e o derruba pra trás.",
+    "Single Leg": "Queda em que se agarra uma única perna do adversário, erguendo-a pra desequilibrá-lo e derrubá-lo.",
+    "Queda de Judô": "Quedas baseadas em técnicas de judô (ex: Ippon Seoi Nage, O Soto Gari), geralmente usando o quimono e o desequilíbrio do tronco.",
+    "Armlock": "Finalização que hiperestende o cotovelo do adversário, geralmente com as pernas prendendo o braço dele.",
+    "Kimura": "Chave de ombro que gira o braço do adversário por trás das costas dele, com um controle em \"figura 4\" no pulso e no cotovelo.",
+    "Americana": "Chave de ombro que dobra o braço do adversário em formato de \"L\" e gira o ombro dele pra dentro, comum saindo do controle lateral.",
+    "Omoplata": "Chave de ombro feita com as pernas, torcendo o braço do adversário com o quadril e a perna em vez dos braços.",
+    "Mata-Leão": "Estrangulamento aplicado pelas costas, com o braço envolvendo o pescoço do adversário.",
+    "Triângulo": "Estrangulamento feito com as pernas em formato de triângulo ao redor do pescoço e um braço do adversário.",
+    "Guilhotina": "Estrangulamento aplicado de frente, envolvendo o pescoço do adversário com o braço enquanto ele está com a cabeça baixa.",
+    "Ezekiel": "Estrangulamento feito com as próprias mangas do quimono, geralmente por cima do adversário ou dentro da guarda dele.",
+    "Chave de Pé Reta": "Chave que hiperestende o tornozelo do adversário, pressionando o calcanhar contra o tendão de Aquiles.",
+    "Chave de Calcanhar": "Chave de perna que torce o joelho e o tornozelo do adversário girando o calcanhar — alto risco de lesão, por isso só liberada a partir de Adolescente/Adulto.",
+    "Toe Hold": "Chave que torce o pé do adversário pra dentro, pressionando o tornozelo em rotação.",
+    "Fuga de Quadril": "Movimento básico de deslocar o quadril de lado no chão, usado pra criar espaço e escapar de posições ruins.",
+    "Escape de Montada": "Técnica pra sair de baixo da montada do adversário, geralmente fazendo ponte (bridge) e virando de lado.",
+    "Escape de 100kg": "Técnica pra sair de baixo do controle lateral (100kg), recriando a guarda ou fazendo fuga de quadril.",
+    "Pontes (Bridge)": "Movimento de erguer o quadril do chão, usado como base pra escapes (como o escape de montada).",
+}
+assert set(GLOSSARIO) == _TODAS_POSICOES, (
+    set(GLOSSARIO) ^ _TODAS_POSICOES
+)  # POSICOES e GLOSSARIO precisam cobrir exatamente as mesmas posições
+
 _DIA_SEMANA_INDICE = {dia: i for i, dia in enumerate(DIAS_SEMANA)}
 
 

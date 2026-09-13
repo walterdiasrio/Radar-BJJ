@@ -1384,6 +1384,39 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
   z-index: 2;
 }
 
+/* Pop-up de definição das posições do Plano de Aula (Turmas) — mesmo
+   padrão visual do popup-trial-overlay (fundo escurecido, caixa central,
+   fade), só que reaproveitado genericamente pra qualquer termo clicável. */
+.popup-glossario-caixa {
+  position: relative;
+  background: white;
+  border-radius: 16px;
+  max-width: 380px;
+  width: 100%;
+  padding: 24px 28px;
+  text-align: left;
+  box-shadow: 0 20px 60px rgba(9, 20, 40, 0.35);
+}
+
+.popup-glossario-caixa h3 {
+  font-family: var(--fonte-menu);
+  color: var(--azul);
+  margin: 0 12px 10px 0;
+  font-size: 1.15rem;
+}
+
+.popup-glossario-caixa p {
+  color: #55606b;
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+@media (prefers-color-scheme: dark) {
+  .popup-glossario-caixa { background: #1a2230; }
+  .popup-glossario-caixa p { color: #a8b3c2; }
+}
+
 /* Hero da Home — mobile-first: empilhado (texto, depois a ilustração);
    vira duas colunas lado a lado só a partir de 901px (mesmo breakpoint
    usado no resto do site). */

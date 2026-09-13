@@ -1868,7 +1868,7 @@ def api_turma_remover_aluno(turma_id, aluno_id):
 def api_listar_posicoes():
     if not _usuario_atual_eh_mestre():
         return jsonify({"erro": "exclusivo do perfil Mestre"}), 403
-    return jsonify(turmas.POSICOES)
+    return jsonify({"grupos": turmas.POSICOES, "glossario": turmas.GLOSSARIO})
 
 
 @app.get("/api/turmas/<int:turma_id>/planos-aula")

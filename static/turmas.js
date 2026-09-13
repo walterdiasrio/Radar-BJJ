@@ -42,6 +42,7 @@ aplicarModoPagina();
 let meusAlunos = [];
 let turmasAtuais = [];
 let posicoesPorGrupo = {};
+let glossarioPosicoes = {};
 // Qual das 4 abas (futuras/passadas/plano-ia/planner) está aberta em cada
 // turma — só uma por vez (turmaId -> nome da aba, ou undefined/null se
 // nenhuma estiver aberta). Ver renderizarAbasTurma/alternarAba.
@@ -92,9 +93,12 @@ async function carregarPosicoes() {
   if (Object.keys(posicoesPorGrupo).length) return;
   try {
     const resp = await fetchAutenticado("/api/turmas/posicoes");
-    posicoesPorGrupo = resp.ok ? await resp.json() : {};
+    const dados = resp.ok ? await resp.json() : {};
+    posicoesPorGrupo = dados.grupos || {};
+    glossarioPosicoes = dados.glossario || {};
   } catch {
     posicoesPorGrupo = {};
+    glossarioPosicoes = {};
   }
 }
 
@@ -112,10 +116,37 @@ function mesAnoAtual() {
 // como texto normal abaixo — mesmo padrão nos cards de Futuras, Passadas
 // e nas sugestões do Plano de Aula IA, pra ficar tudo consistente.
 function pillsPosicoes(posicoes) {
-  return (posicoes || []).map(pos =>
-    `<span style="background:#eef2f6; border-radius:20px; padding:3px 10px; font-size:0.8rem; font-weight:700;">${pos}</span>`
-  ).join("");
+  return (posicoes || []).map(pos => {
+    const temDefinicao = Object.prototype.hasOwnProperty.call(glossarioPosicoes, pos);
+    const estilo = "background:#eef2f6; border-radius:20px; padding:3px 10px; font-size:0.8rem; font-weight:700;"
+      + (temDefinicao ? " cursor:pointer;" : "");
+    const atributo = temDefinicao ? ` class="pill-posicao-glossario" data-posicao="${pos}"` : "";
+    return `<span style="${estilo}"${atributo}>${pos}</span>`;
+  }).join("");
 }
+
+function abrirGlossarioPosicao(posicao) {
+  const definicao = glossarioPosicoes[posicao];
+  if (!definicao) return;
+  document.getElementById("glossario-posicao-titulo").textContent = posicao;
+  document.getElementById("glossario-posicao-definicao").textContent = definicao;
+  document.getElementById("popup-glossario-posicao").style.display = "flex";
+}
+
+function fecharGlossarioPosicao() {
+  document.getElementById("popup-glossario-posicao").style.display = "none";
+}
+
+document.addEventListener("click", (ev) => {
+  const pill = ev.target.closest(".pill-posicao-glossario");
+  if (pill) {
+    abrirGlossarioPosicao(pill.dataset.posicao);
+    return;
+  }
+  if (ev.target.closest("#glossario-posicao-fechar") || ev.target.id === "popup-glossario-posicao") {
+    fecharGlossarioPosicao();
+  }
+});
 
 function blocoObservacao(observacao) {
   return observacao ? `<div style="color:#55606b; font-size:0.82rem; margin-top:6px;">${observacao}</div>` : "";
