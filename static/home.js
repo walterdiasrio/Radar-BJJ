@@ -381,15 +381,18 @@ async function ajustarCartaoBoasVindas() {
 async function carregarPlacarEstatisticas() {
   const elCompeticoes = document.getElementById("placar-competicoes");
   const elAtletas = document.getElementById("placar-atletas");
-  if (!elCompeticoes || !elAtletas) return;
+  const elFederacoes = document.getElementById("placar-federacoes");
+  if (!elCompeticoes || !elAtletas || !elFederacoes) return;
   try {
     const resp = await fetch("/api/estatisticas-publicas");
     if (!resp.ok) return;
     const dados = await resp.json();
     elCompeticoes.textContent = (dados.total_competicoes || 0).toLocaleString("pt-BR");
     elAtletas.textContent = (dados.total_atletas || 0).toLocaleString("pt-BR");
+    elFederacoes.textContent = (dados.total_federacoes || 0).toLocaleString("pt-BR");
     elCompeticoes.classList.remove("carregando");
     elAtletas.classList.remove("carregando");
+    elFederacoes.classList.remove("carregando");
   } catch {
     // sem número novo, mantém o "···" inicial em vez de quebrar a Home por causa disso
   }

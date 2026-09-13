@@ -1121,6 +1121,9 @@ def api_estatisticas_publicas():
     except (OSError, ValueError):
         with _estatisticas_publicas_lock:
             dados = dict(_estatisticas_publicas_cache)
+    # total_federacoes não precisa de cache/cálculo em background — é só o
+    # tamanho do dict já carregado em memória, sem scraping nenhum envolvido.
+    dados["total_federacoes"] = len(FEDERACOES)
     return jsonify(dados)
 
 
