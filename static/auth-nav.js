@@ -102,12 +102,13 @@ async function carregarSessaoNoMenu() {
   const elPlanos = document.getElementById("nav-planos");
 
   // Pra quem ainda não tem login, "Planos" é o link mais importante do menu
-  // (é o caminho pra virar assinante) — por isso fica antes de "Radar de
-  // Atletas", não escondido lá no fim da fila.
+  // (é o caminho pra virar assinante) — por isso fica antes do grupo "Menu
+  // Atleta" (Radar de Atletas/Competições/Agenda/Carreira, agrupados desde
+  // 14/09/2026 — ver #nav-menu-atleta), não escondido lá no fim da fila.
   const reordenarPlanosAntesDoRadar = () => {
     if (!elPlanos) return;
-    const elRadar = document.querySelector('.nav-item-atleta[href="/buscador"]');
-    if (elRadar && elRadar.parentNode) elRadar.parentNode.insertBefore(elPlanos, elRadar);
+    const elMenuAtleta = document.getElementById("nav-menu-atleta");
+    if (elMenuAtleta && elMenuAtleta.parentNode) elMenuAtleta.parentNode.insertBefore(elPlanos, elMenuAtleta);
   };
 
   const ICONE_LOGOUT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>';
@@ -242,8 +243,8 @@ async function carregarSubmenuMestre() {
   // turmas não vier — sem isso, um erro na API (ex: 402 de Mestre no plano
   // Free, que ainda não tem assinatura) deixava o submenu inteiro vazio,
   // parecendo que o clique em "Menu Mestre" simplesmente não fazia nada.
-  const itemAlunos = `<a href="/meus-alunos"><strong>Meus Alunos</strong></a>`;
-  const itemNova = `<a href="/turmas?nova=1"><strong>+ Nova turma</strong></a>`;
+  const itemAlunos = `<a href="/meus-alunos">Meus Alunos</a>`;
+  const itemNova = `<a href="/turmas?nova=1">+ Nova turma</a>`;
   let html = itemAlunos + itemNova;
   try {
     const resp = await fetch("/api/turmas");
