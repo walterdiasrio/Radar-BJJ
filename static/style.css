@@ -926,6 +926,24 @@ button {
 
 .btn-secundario.ativo { background: var(--azul-claro); color: #fff; }
 
+.btn-compacto {
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  margin-top: 0;
+  margin-left: 0;
+  white-space: nowrap;
+}
+
+.card-carreira-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.card-carreira-topo h2 { margin-bottom: 0; }
+
 /* Botão "Continuar com Google" no padrão oficial de marca do Google
    (branco, borda cinza, logo colorido) — não usa as cores do site de
    propósito, é a identidade visual exigida pelo Google pra esse botão. */
