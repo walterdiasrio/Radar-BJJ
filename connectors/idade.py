@@ -284,6 +284,17 @@ TABELAS = {
     # normalizado pro rótulo individual exato dentro do conector antes de
     # chegar aqui (ver connectors/fjjpa.py::_master_exato).
     "fjjpa": _CBJJE,
+    # FJJ-RS: checagem real usa bandas de 2 anos (Pré-Mirim, Mirim,
+    # Infantil A/B, Infanto Juvenil A/B, Juvenil, Adulto, Master 1-6) —
+    # mesmas faixas da _CBJJE, apesar do edital citar as regras da CBJJ
+    # nacional pro resto (peso, regulamento). Normalizado no conector
+    # antes de chegar aqui (ver connectors/fjjrs.py::_normalizar_idade).
+    "fjjrs": _CBJJE,
+    # FBJJMMA: a própria checagem real já mostra o intervalo de idade
+    # entre parênteses (ex: "INFANTIL A (8 E 9 ANOS)", "MASTER 3 (41 A 45
+    # ANOS)") — conferido ao vivo, bate exatamente com as faixas da
+    # _CBJJE, sem precisar supor nada.
+    "fbjjmma": _CBJJE,
 }
 
 

@@ -595,6 +595,19 @@ _FUNCOES = {
     # mesma suposição já usada pra FJJPE/FJJGO, sem confirmação contra os
     # números em kg (só os nomes batem).
     "fjjpr": _cbjj_fjjrio,
+    # FJJ-RS: o próprio edital declara que o evento "seguirá rigorosamente
+    # as regras da CONFEDERAÇÃO BRASILEIRA DE JIU-JITSU" — reaproveita a
+    # tabela oficial da CBJJ/FJJRio direto (confirmação mais forte que a
+    # suposição de FJJPE/FJJGO/FJJPR acima, que só bateram os nomes).
+    "fjjrs": _cbjj_fjjrio,
+    # FBJJMMA: a própria checagem real mostra o limite em kg junto com o
+    # nome da categoria (ex: "PLUMA 26 KG", "PESADO 94,3 KG") — conferido
+    # ao vivo contra o Adulto Masculino inteiro (57.5/64/70/76/82.3/88.3/
+    # 94.3/100.5), bate exatamente com a tabela oficial CBJJ/FJJRio já
+    # cadastrada, sem precisar supor nada (mais forte que FJJPE/FJJGO/
+    # FJJPR/FJJ-RS acima, que só bateram nomes ou uma declaração no
+    # edital — aqui os números em si já vieram batendo).
+    "fbjjmma": _cbjj_fjjrio,
 }
 
 # Federações onde já confirmamos que a competição Sem Kimono usa uma tabela
