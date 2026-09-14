@@ -121,13 +121,17 @@ src="https://www.facebook.com/tr?id=28254694314126516&ev=PageView&noscript=1"
           Só letras, números ou _ (sem espaço). O link do seu perfil público será: <span id="preview-link-perfil">/atleta/joao_silva</span>
         </small>
       </div>
-      <!-- Sem pergunta de Atleta/Mestre no cadastro. Esse campo não decide
-           mais nada de acesso (11/09/2026: o "papel" virou algo derivado da
-           assinatura ativa, não um rótulo próprio — ver pagamentos.
-           plano_atual/api_sessao em app.py) — fica só de enfeite mesmo,
-           preenchido pelo link de plano quando existe (?plano=mestre, ver
-           preSelecionarPlano em cadastro.js), sem efeito prático. -->
-      <input type="hidden" id="tipo_perfil" value="atleta">
+      <div class="campo">
+        <label>Perfil</label>
+        <div class="opcoes-federacao">
+          <label><input type="radio" name="tipo_perfil" value="atleta" checked> Atleta</label>
+          <label><input type="radio" name="tipo_perfil" value="mestre"> Mestre</label>
+        </div>
+        <small style="color:#55606b; font-size:0.8rem;">
+          Perfil Mestre libera o Menu Mestre (Meus Alunos, Turmas) no menu — usar de verdade
+          continua exigindo o Plano Mestre PRO.
+        </small>
+      </div>
       <div class="campo" style="flex-direction: row; align-items: flex-start; gap: 8px;">
         <input type="checkbox" id="aceite_termos" required style="width: auto; margin-top: 3px;">
         <label for="aceite_termos" style="font-weight: normal; text-transform: none; color: #55606b; font-size: 0.85rem;">
@@ -191,8 +195,8 @@ src="https://www.facebook.com/tr?id=28254694314126516&ev=PageView&noscript=1"
   </main>
 </div>
 
-<script src="auth-nav.js?v=15"></script>
-<script src="cadastro.js"></script>
+<script src="auth-nav.js?v=16"></script>
+<script src="cadastro.js?v=1"></script>
 <nav class="menu-lateral menu-lateral-rodape" id="menu-rodape"></nav>
 </body>
 </html>

@@ -1017,12 +1017,22 @@ def api_sessao():
     # perfil.js) — só o valor por trás muda.
     plano_ativo = pagamentos.plano_atual(usuario["id"])
     eh_mestre = eh_admin or plano_ativo == "mestre"
+    # menu_mestre é só pra decidir se o Menu Mestre (Meus Alunos/Turmas)
+    # aparece no menu — inclui quem se cadastrou como Mestre de graça (voltou
+    # a ser possível escolher no cadastro, ver static/cadastro.html), além de
+    # quem já é Mestre por ter pago (eh_mestre). NÃO usar isso pra liberar
+    # acesso de verdade — quem só tem o perfil de cadastro, sem pagar,
+    # continua batendo no aviso de "Exclusivo do Plano MESTRE PRO" ao abrir
+    # (bloquearSePlanoFree nível "mestre" continua lendo "mestre", não este
+    # campo).
+    menu_mestre = eh_mestre or usuario["tipo_perfil"] == "mestre"
     return jsonify({
         "logado": True,
         "email": usuario["email"],
         "admin": eh_admin,
         "tipo_perfil": "mestre" if eh_mestre else plano_ativo,
         "mestre": eh_mestre,
+        "menu_mestre": menu_mestre,
         "assinatura": {
             "tem_acesso": eh_admin or pagamentos.usuario_tem_acesso(usuario["id"]),
             "status": assinatura["status"] if assinatura else None,

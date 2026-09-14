@@ -184,16 +184,17 @@ async function carregarSessaoNoMenu() {
       });
       if (elNavAdmin) elNavAdmin.style.display = dados.admin ? "" : "none";
       if (elNavAdminMobile) elNavAdminMobile.style.display = dados.admin ? "" : "none";
-      // Menu Mestre (Meus Alunos + Turmas) fica visível pra qualquer conta
-      // logada agora (pedido do usuário 11/09/2026: "todas as opções
-      // habilitadas no menu") — não existe mais um "papel" que esconda
-      // ferramenta do menu; quem não tem o Plano Mestre PRO ativo só
-      // esbarra no aviso de conteúdo bloqueado ao abrir (bloquearSePlanoFree
-      // nível "mestre", ver meus-alunos.js/turmas.js/aluno-detalhe.js).
-      if (elMestre) elMestre.style.display = "";
-      if (elMestreMobile) elMestreMobile.style.display = "";
+      // Menu Mestre (Meus Alunos + Turmas) só aparece pra quem se cadastrou
+      // como Mestre (voltou a ser uma escolha no cadastro, 14/09/2026) ou já
+      // é Mestre de verdade por ter pago (dados.menu_mestre cobre os dois,
+      // ver /api/sessao) — Perfil Atleta free nem vê o item. Quem tem o
+      // perfil mas não pagou ainda esbarra no aviso de conteúdo bloqueado ao
+      // abrir (bloquearSePlanoFree nível "mestre", que continua lendo só
+      // dados.mestre — pago de verdade — não este campo).
+      if (elMestre) elMestre.style.display = dados.menu_mestre ? "" : "none";
+      if (elMestreMobile) elMestreMobile.style.display = dados.menu_mestre ? "" : "none";
       if (elPlanos) elPlanos.style.display = "none";
-      await carregarSubmenuMestre();
+      if (dados.menu_mestre) await carregarSubmenuMestre();
       aplicarSessao({ logado: true, mestre: !!dados.mestre, admin: !!dados.admin, email: dados.email });
     } else {
       // Entrar/Cadastrar continuam dentro do menu rolante (CSS manda pro
