@@ -21,8 +21,16 @@ connectors/peso.py, inclusive pro Adulto Masculino (57.5/64/70/76/
 82.3/88.3/94.3/100.5kg) — por isso entra em peso.py reaproveitando
 _cbjj_fjjrio direto, com mais confiança que a suposição usada pra
 FJJPE/FJJGO/FJJPR (lá só os NOMES batiam; aqui os KG batem exatamente).
+
+status_inscricao() é melhor esforço: o prazo de inscrição é texto livre
+por evento, escrito à mão na descrição — alguns dizem "as inscrições
+serão encerradas definitivamente em <data>", outros só "encerram ao
+atingir o limite de X atletas" (sem data nenhuma). Só extrai quando o
+organizador escreveu no primeiro formato; os outros ficam "não
+informado" em vez de tentar adivinhar uma data que não existe.
 """
 import re
+from datetime import date
 
 from bs4 import BeautifulSoup
 
@@ -41,6 +49,34 @@ _PESO_RE = re.compile(r"^((?:(?!ACIMA)[A-ZÀ-ÜÇ]+\s*)+)")
 # (ex: "INFANTIL A (8 E 9 ANOS)" -> "INFANTIL A"; "MASTER 3 (41 A 45
 # ANOS)" -> "MASTER 3" — precisa incluir dígito no meio do nome).
 _IDADE_RE = re.compile(r"^([A-ZÀ-ÜÇ0-9 ]+)")
+
+# Prazo de inscrição é texto livre por evento, escrito à mão na descrição
+# — um evento diz "as inscrições serão encerradas definitivamente em 18
+# de setembro de 2026, às 23h59"; outro só diz "encerram ao atingir o
+# limite de X atletas", sem data nenhuma. Só dá pra extrair quando o
+# organizador escreveu no primeiro formato — melhor esforço: os outros
+# ficam "não informado" (mesmo fallback que outras federações sem essa
+# informação estruturada já usam), em vez de tentar adivinhar uma data
+# que não existe.
+_PRAZO_RE = re.compile(r"encerradas?[^<]{0,60}em\s*<strong>(\d{1,2}) de (\w+) de (\d{4})", re.I)
+
+
+def status_inscricao(evento):
+    url = evento.get("url")
+    if not url:
+        return None, None
+    try:
+        html = get(url).text
+    except Exception:
+        return None, None
+
+    m = _PRAZO_RE.search(html)
+    if not m:
+        return None, None
+    prazo = datas_mod.extrair_data(f"{m.group(1)} de {m.group(2)} de {m.group(3)}")
+    if not prazo:
+        return None, None
+    return date.today() <= prazo, prazo.isoformat()
 
 
 def listar_eventos():
