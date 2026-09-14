@@ -2259,6 +2259,17 @@ tr:hover td { background: #f8fafc; }
   box-shadow: 0 8px 28px rgba(0, 30, 120, 0.07);
 }
 
+/* Cada tipo de alerta (Radar de Atletas / Novas Competições / Prazo de
+   Inscrição) num card separado — antes era só <h3>/<p> soltos direto no
+   <main>, sem nenhuma fronteira visual entre um tipo e outro (relatado
+   pelo usuário: "muito textual, sem separação"). max-width mais largo que
+   o padrão do .card-carreira (480px) porque aqui dentro cabe uma lista
+   inteira de cartões de alerta, não só texto/formulário. */
+.secao-alerta {
+  max-width: 620px;
+  margin: 0 0 24px;
+}
+
 .luta-row {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr auto;
