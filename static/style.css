@@ -1877,7 +1877,7 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 18px;
-  max-width: 1080px;
+  max-width: 100%;
 }
 
 .plano-card {
@@ -1933,6 +1933,16 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
     width: 100%;
     padding: 0;
   }
+}
+
+/* /assinatura só tem 2 planos (Atleta/Mestre), não 3 — reaproveita o
+   "escapar do max-width do <main>" de .grade-planos-full sem herdar as 3
+   colunas fixas (deixaria uma coluna vazia à toa). auto-fit já cresce os
+   2 cards pra ocupar o espaço que sobrou, em vez de ficarem pequenos
+   numa pontinha da tela — foi exatamente isso que sobrou pequeno e com
+   um vão grande do lado antes desse ajuste. */
+.grade-planos-full.grade-planos-2col {
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
 }
 
 .plano-card h3 {
