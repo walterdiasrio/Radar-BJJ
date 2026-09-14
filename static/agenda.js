@@ -206,9 +206,9 @@ async function gerarImagemAgendaStory() {
   ctx.lineTo(W - 60, yTitulo);
   ctx.stroke();
 
-  // "PRÓXIMAS COMPETIÇÕES", alinhado à esquerda com uma linha se
-  // estendendo até a margem direita — mesmo padrão do template de
-  // referência.
+  // "PRÓXIMAS COMPETIÇÕES", centralizado com uma linha de cada lado —
+  // mesmo padrão de "linha — texto — linha" já usado no cabeçalho
+  // "MINHA AGENDA" acima.
   const margem = 54;
   const larguraCartao = W - margem * 2;
   const yRotulo = yTitulo + 90;
@@ -216,13 +216,18 @@ async function gerarImagemAgendaStory() {
   ctx.letterSpacing = "1.5px";
   ctx.fillStyle = CIANO;
   const rotulo = "PRÓXIMAS COMPETIÇÕES";
-  ctx.fillText(rotulo, margem, yRotulo);
   const larguraRotulo = ctx.measureText(rotulo).width;
+  const xCentro = W / 2;
+  ctx.textAlign = "center";
+  ctx.fillText(rotulo, xCentro, yRotulo);
+  ctx.textAlign = "left";
   ctx.letterSpacing = "0px";
   ctx.strokeStyle = "rgba(127, 212, 255, 0.35)";
   ctx.lineWidth = 1.5;
   ctx.beginPath();
-  ctx.moveTo(margem + larguraRotulo + 24, yRotulo - 8);
+  ctx.moveTo(margem, yRotulo - 8);
+  ctx.lineTo(xCentro - larguraRotulo / 2 - 20, yRotulo - 8);
+  ctx.moveTo(xCentro + larguraRotulo / 2 + 20, yRotulo - 8);
   ctx.lineTo(margem + larguraCartao, yRotulo - 8);
   ctx.stroke();
 
