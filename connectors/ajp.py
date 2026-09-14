@@ -10,6 +10,7 @@ ver connectors/adcc.py pros comentários detalhados de cada função."""
 import json
 import os
 import re
+import unicodedata
 from collections import Counter
 from datetime import date
 from pathlib import Path
@@ -61,7 +62,18 @@ def listar_eventos():
 
 
 def _chave_dedup(texto):
-    return re.sub(r"\s+", " ", (texto or "").strip().lower())
+    """Normaliza texto pra comparar o MESMO atleta entre duas fontes
+    independentes (Smoothcomp importado à mão x SouCompetidor raspado ao
+    vivo, ver buscar_atletas) — minúsculo, sem acento, sem pontuação,
+    espaços colapsados. Sem remover acento/pontuação, "José Silva" (uma
+    fonte) e "Jose  Silva -" (a outra, digitado sem acento e com espaço/
+    traço a mais) contavam como duas pessoas diferentes e duplicavam o
+    mesmo atleta na busca (investigado 14/09/2026, usuário relatou nomes
+    duplicados na AJP)."""
+    texto = unicodedata.normalize("NFKD", (texto or "")).encode("ascii", "ignore").decode()
+    texto = texto.lower().replace("'", "").replace("’", "")
+    texto = re.sub(r"[^a-z0-9\s]", " ", texto)
+    return re.sub(r"\s+", " ", texto).strip()
 
 
 def buscar_atletas(evento_id, filtros):
@@ -79,12 +91,30 @@ def buscar_atletas(evento_id, filtros):
         except Exception:
             extras = []
         if extras:
-            vistos = {(_chave_dedup(a["nome"]), _chave_dedup(a.get("equipe"))) for a in atletas}
+            # Nome bate = mesma pessoa, A NÃO SER que as duas fontes deem
+            # equipe DIFERENTE pra esse nome (aí sim são duas pessoas
+            # homônimas de verdade). Guarda o CONJUNTO de equipes já visto
+            # pra cada nome (normalmente só uma, mas pode crescer se essa
+            # ambiguidade acontecer) — se qualquer uma delas for "" (equipe
+            # não preenchida nessa entrada) ou bater com a da entrada nova,
+            # conta como a mesma pessoa. Sem esse fallback pra "" de
+            # qualquer um dos lados, o mesmo atleta com equipe preenchida
+            # numa fonte e vazia na outra escapava do dedupe e duplicava na
+            # busca (investigado 14/09/2026, usuário relatou nomes
+            # duplicados na AJP).
+            equipes_por_nome = {}
+            for a in atletas:
+                equipes_por_nome.setdefault(_chave_dedup(a["nome"]), set()).add(_chave_dedup(a.get("equipe")))
+
             for extra in extras:
-                chave = (_chave_dedup(extra["nome"]), _chave_dedup(extra.get("equipe")))
-                if chave in vistos:
+                nome_chave = _chave_dedup(extra["nome"])
+                equipe_chave = _chave_dedup(extra.get("equipe"))
+                equipes_conhecidas = equipes_por_nome.get(nome_chave)
+                if equipes_conhecidas is not None and (
+                    not equipe_chave or "" in equipes_conhecidas or equipe_chave in equipes_conhecidas
+                ):
                     continue
-                vistos.add(chave)
+                equipes_por_nome.setdefault(nome_chave, set()).add(equipe_chave)
                 atletas.append(extra)
 
     return atletas
