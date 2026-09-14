@@ -213,11 +213,16 @@ def criar_alerta(usuario_id, titulo, federacao, data_nascimento, genero, faixa,
     def _preparar():
         try:
             _marcar_vistos(alerta_id, _rodar_busca(alerta))
-        except Exception:
-            traceback.print_exc()
-        finally:
             with _conn() as conn:
                 conn.execute("UPDATE alertas SET ativo = 1 WHERE id = ?", (alerta_id,))
+        except Exception:
+            # Não ativa em caso de falha (rede, timeout etc.) — ativar sem
+            # ter marcado quem já estava inscrito faria o próximo
+            # verificar_todos() mandar e-mail de gente que já estava lá
+            # antes do alerta existir. Fica "Preparando..." (ver alertas.js)
+            # até _ativar_alertas_atleta_pendentes tentar de novo no
+            # próximo ciclo.
+            traceback.print_exc()
 
     threading.Thread(target=_preparar, daemon=True).start()
     return alerta_id, None
@@ -350,11 +355,20 @@ def criar_alerta_competicao(usuario_id, titulo, federacao, publico):
     def _preparar():
         try:
             _marcar_competicoes_vistas(alerta_id, _rodar_busca_competicoes(alerta))
-        except Exception:
-            traceback.print_exc()
-        finally:
             with _conn() as conn:
                 conn.execute("UPDATE alertas_competicao SET ativo = 1 WHERE id = ?", (alerta_id,))
+        except Exception:
+            # Não ativa em caso de falha (rede, timeout etc.) — ativar sem
+            # ter marcado as competições que já existiam faria o próximo
+            # verificar_todas_competicoes() mandar e-mail de "nova
+            # competição" pra tudo que já estava no calendário antes do
+            # alerta existir (suspeita principal pro alerta falso de
+            # "Manaus" CBJJ relatado pelo usuário 14/09/2026 — o "finally"
+            # antigo aqui ativava mesmo se a busca acima tivesse falhado).
+            # Fica "Preparando..." (ver alertas.js) até
+            # _ativar_alertas_competicao_pendentes tentar de novo no
+            # próximo ciclo.
+            traceback.print_exc()
 
     threading.Thread(target=_preparar, daemon=True).start()
     return alerta_id, None
@@ -415,9 +429,32 @@ def _verificar_alerta_competicao(alerta):
         _enviar_email_alerta_competicao(usuario["email"], alerta["titulo"], novas)
 
 
+def _ativar_alertas_competicao_pendentes():
+    """Retry de _preparar() (ver criar_alerta_competicao) pra alertas que
+    ficaram travados em ativo=0 por causa de uma falha transitória (rede,
+    timeout) na busca inicial que marca as competições já existentes —
+    sem isso, um alerta que falhou na criação ficava "Preparando..." pra
+    sempre, nunca reativando sozinho."""
+    with _conn() as conn:
+        pendentes = [
+            dict(linha) for linha in
+            conn.execute("SELECT * FROM alertas_competicao WHERE ativo = 0")
+        ]
+
+    for alerta in pendentes:
+        try:
+            _marcar_competicoes_vistas(alerta["id"], _rodar_busca_competicoes(alerta))
+            with _conn() as conn:
+                conn.execute("UPDATE alertas_competicao SET ativo = 1 WHERE id = ?", (alerta["id"],))
+        except Exception:
+            traceback.print_exc()
+
+
 def verificar_todas_competicoes():
     """Chamada periodicamente (mesma thread de fundo dos alertas de atleta,
     ver app.py) pra checar todos os alertas de competição ativos."""
+    _ativar_alertas_competicao_pendentes()
+
     with _conn() as conn:
         alertas = [
             dict(linha) for linha in
@@ -621,9 +658,29 @@ def _verificar_alerta(alerta):
         _enviar_email_alerta(usuario["email"], alerta["titulo"], novos)
 
 
+def _ativar_alertas_atleta_pendentes():
+    """Retry de _preparar() (ver criar_alerta) pra alertas que ficaram
+    travados em ativo=0 por causa de uma falha transitória (rede, timeout)
+    na busca inicial que marca quem já estava inscrito — sem isso, um
+    alerta que falhou na criação ficava "Preparando..." pra sempre, nunca
+    reativando sozinho."""
+    with _conn() as conn:
+        pendentes = [dict(linha) for linha in conn.execute("SELECT * FROM alertas WHERE ativo = 0")]
+
+    for alerta in pendentes:
+        try:
+            _marcar_vistos(alerta["id"], _rodar_busca(alerta))
+            with _conn() as conn:
+                conn.execute("UPDATE alertas SET ativo = 1 WHERE id = ?", (alerta["id"],))
+        except Exception:
+            traceback.print_exc()
+
+
 def verificar_todos():
     """Chamada periodicamente (thread de fundo em app.py) pra checar todos
     os alertas ativos de todos os usuários."""
+    _ativar_alertas_atleta_pendentes()
+
     with _conn() as conn:
         alertas = [dict(linha) for linha in conn.execute("SELECT * FROM alertas WHERE ativo = 1")]
 
