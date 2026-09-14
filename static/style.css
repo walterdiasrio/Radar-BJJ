@@ -954,6 +954,27 @@ button {
   margin-bottom: 14px;
 }
 
+.botao-registre-medalha-link {
+  display: block;
+  width: 260px;
+  max-width: 100%;
+  margin: 0 0 0 auto;
+  border-radius: 999px;
+  overflow: hidden;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.botao-registre-medalha-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+}
+
+.botao-registre-medalha-img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
 /* Botão "Continuar com Google" no padrão oficial de marca do Google
    (branco, borda cinza, logo colorido) — não usa as cores do site de
    propósito, é a identidade visual exigida pelo Google pra esse botão. */
@@ -2303,6 +2324,39 @@ tr:hover td { background: #f8fafc; }
   color: #55606b;
   margin-top: 2px;
 }
+
+.atleta-publico-pizza-linha {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.legenda-pizza {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 140px;
+}
+
+.legenda-pizza-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.88rem;
+  color: var(--texto);
+}
+
+.legenda-pizza-bolinha {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.legenda-pizza-valor { font-weight: 700; color: var(--azul); margin-left: auto; }
 
 #grafico-evolucao {
   width: 100%;

@@ -1588,7 +1588,12 @@ def api_atleta_publico(nome_usuario):
     perfil = _com_foto_url(carreira.obter_perfil(usuario["id"]))
     perfil["nome_usuario"] = usuario["nome_usuario"]
     competicoes = carreira.listar_competicoes(usuario["id"])
-    return jsonify({"perfil": perfil, "competicoes": competicoes})
+    # Mesmo cálculo do "Estatísticas" de Minha Carreira (Plano PRO) — aqui
+    # é público de propósito: o histórico de competições em si já é
+    # público sem exigir assinatura (ver acima), então o resumo desses
+    # mesmos dados (lutas/vitórias/medalhas) também fica.
+    estatisticas = carreira.calcular_estatisticas(usuario["id"])
+    return jsonify({"perfil": perfil, "competicoes": competicoes, "estatisticas": estatisticas})
 
 
 @app.get("/api/home/medalhas-recentes")
