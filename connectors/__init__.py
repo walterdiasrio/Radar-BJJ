@@ -50,8 +50,13 @@ FEDERACOES = {
     # nem entram em connectors/idade.py e connectors/peso.py (cada
     # organizador usa seu próprio vocabulário de categoria, sem uma tabela
     # oficial única pra calcular por ano de nascimento).
-    "soucompetidor": {"label": "SouCompetidor", "nome": "SouCompetidor", "module": soucompetidor, "grupo": "avulsa"},
-    "meucombate": {"label": "Meu Combate", "nome": "Meu Combate", "module": meucombate, "grupo": "avulsa"},
+    #
+    # DESATIVADAS TEMPORARIAMENTE (13/09/2026) — usuário relatou vários bugs
+    # ao vivo em produção logo depois do primeiro deploy; tirado do ar até
+    # investigar e corrigir. Módulos/lógica de frontend continuam no
+    # código (inertes sem entrada aqui) — só descomentar depois de corrigido.
+    # "soucompetidor": {"label": "SouCompetidor", "nome": "SouCompetidor", "module": soucompetidor, "grupo": "avulsa"},
+    # "meucombate": {"label": "Meu Combate", "nome": "Meu Combate", "module": meucombate, "grupo": "avulsa"},
 }
 _ORDEM_FEDERACAO = {fid: i for i, fid in enumerate(FEDERACOES)}
 
