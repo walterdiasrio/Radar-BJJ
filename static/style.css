@@ -940,6 +940,7 @@ button {
   justify-content: space-between;
   gap: 10px;
   flex-wrap: wrap;
+  margin-bottom: 14px;
 }
 
 .card-carreira-topo h2 { margin-bottom: 0; }
