@@ -942,6 +942,18 @@ button {
 
 .card-carreira-topo h2 { margin-bottom: 0; }
 
+/* Sem <h2> ao lado (a arte do banner já traz o título desenhado) — só o
+   botão, encostado na direita em vez de espalhado pelas duas pontas. */
+.card-carreira-topo-direita { justify-content: flex-end; }
+
+.banner-secao-card {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
+  margin-bottom: 14px;
+}
+
 /* Botão "Continuar com Google" no padrão oficial de marca do Google
    (branco, borda cinza, logo colorido) — não usa as cores do site de
    propósito, é a identidade visual exigida pelo Google pra esse botão. */
