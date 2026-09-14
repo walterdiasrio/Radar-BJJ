@@ -496,6 +496,22 @@ def _notificar_admin_novo_cadastro(email, tipo_perfil, via_google=False):
         alertas.enviar_email(destino, "Radar BJJ — novo cadastro", corpo)
 
 
+def _notificar_admin_nova_mensagem_contato(nome, email, assunto, mensagem):
+    """Avisa o(s) admin(s) por e-mail a cada mensagem nova do Fale Conosco —
+    best-effort, mesma lógica de _notificar_admin_novo_cadastro (painel em
+    /gerenciar-mensagens continua sendo a fonte de verdade; isso é só um
+    aviso pra não depender de entrar no painel pra notar uma mensagem nova)."""
+    corpo = (
+        f"<p>Nova mensagem no Fale Conosco:</p>"
+        f"<p><strong>{html.escape(nome)}</strong> ({html.escape(email)})<br>"
+        f"Assunto: {html.escape(contato.ASSUNTO_LABEL.get(assunto, assunto or ''))}</p>"
+        f"<p>{'<br>'.join(html.escape(l) for l in mensagem.strip().splitlines())}</p>"
+        f'<p><a href="{alertas.URL_SITE}/gerenciar-mensagens">Ver no painel</a></p>'
+    )
+    for destino in ADMIN_EMAILS:
+        alertas.enviar_email(destino, "Radar BJJ — nova mensagem no Fale Conosco", corpo)
+
+
 @app.get("/confirmar-email")
 def pagina_confirmar_email():
     return send_from_directory("static", "confirmar-email.html")
@@ -660,6 +676,7 @@ def api_criar_mensagem_contato():
     )
     if erro:
         return jsonify({"erro": erro}), 400
+    _notificar_admin_nova_mensagem_contato(dados.get("nome"), dados.get("email"), dados.get("assunto"), dados.get("mensagem"))
     return jsonify({"ok": True, "id": mensagem_id})
 
 
