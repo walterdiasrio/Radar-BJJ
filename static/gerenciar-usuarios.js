@@ -23,6 +23,8 @@ function formatarData(data) {
   return new Date(data.replace(" ", "T") + "Z").toLocaleDateString("pt-BR");
 }
 
+const LABEL_PERIODICIDADE = { mensal: "mensal", anual: "anual" };
+
 function badgeAssinatura(usuario) {
   if (!usuario.assinatura_status) {
     return '<span class="badge-inscricao badge-desconhecida">Sem assinatura</span>';
@@ -30,7 +32,13 @@ function badgeAssinatura(usuario) {
   const label = LABEL_STATUS[usuario.assinatura_status] || usuario.assinatura_status;
   const classe = usuario.assinatura_status === "active" || usuario.assinatura_status === "trialing"
     ? "badge-aberta" : "badge-fechada";
-  const plano = usuario.assinatura_plano ? ` (${usuario.assinatura_plano})` : "";
+  // Periodicidade (mensal/anual) junto do plano, ex: "Teste grátis (mestre · anual)"
+  // — sem PIX, onde não existe periodicidade salva (pagamento avulso, não
+  // recorrente), essa parte simplesmente some.
+  const periodicidade = usuario.assinatura_periodicidade
+    ? ` · ${LABEL_PERIODICIDADE[usuario.assinatura_periodicidade] || usuario.assinatura_periodicidade}`
+    : "";
+  const plano = usuario.assinatura_plano ? ` (${usuario.assinatura_plano}${periodicidade})` : "";
   return `<span class="badge-inscricao ${classe}">${label}${plano}</span>`;
 }
 
