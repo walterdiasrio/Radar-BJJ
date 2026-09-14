@@ -17,7 +17,10 @@ document.querySelectorAll(".tab-carreira-btn").forEach(btn => {
     if (ABAS_COM_ASSINATURA.has(btn.dataset.tab) && !temAssinaturaCarreira) return;
     if (btn.dataset.tab === "historico") carregarHistorico();
     if (btn.dataset.tab === "estatisticas") carregarEstatisticas();
-    if (btn.dataset.tab === "compartilhar") gerarImagemStory();
+    if (btn.dataset.tab === "compartilhar") {
+      carregarPerfilPublicoCarreira();
+      gerarImagemStory();
+    }
   });
 });
 
@@ -335,6 +338,33 @@ const CORES_FAIXA = {
 
 function corDaFaixa(faixa) {
   return CORES_FAIXA[(faixa || "").toLowerCase()] || "#1e6091";
+}
+
+// ---------- Perfil Público ----------
+async function carregarPerfilPublicoCarreira() {
+  const elTexto = document.getElementById("texto-perfil-publico-carreira");
+  const elAcoes = document.getElementById("acoes-perfil-publico-carreira");
+  try {
+    const resp = await fetchAutenticado("/api/conta/nome-usuario");
+    const nomeUsuario = (await resp.json()).nome_usuario || "";
+    if (!nomeUsuario) {
+      elTexto.textContent = "Defina seu nome de usuário em Meu Perfil para ativar sua página pública.";
+      elAcoes.innerHTML = `<a href="/perfil" class="btn-secundario" style="display:inline-block; text-decoration:none;">Ir para Meu Perfil</a>`;
+      return;
+    }
+    const caminho = `/atleta/${encodeURIComponent(nomeUsuario)}`;
+    const url = `https://www.radarbjj.com${caminho}`;
+    elTexto.textContent = "É a página que qualquer pessoa vê ao te procurar no Radar BJJ.";
+    elAcoes.innerHTML = `
+      <a href="${caminho}" target="_blank" rel="noopener" class="btn-secundario" style="display:inline-block; text-decoration:none; margin-right:8px;">Ver meu perfil público</a>
+      <button type="button" id="btn-copiar-link-perfil-publico-carreira" class="btn-secundario">Copiar link</button>
+    `;
+    document.getElementById("btn-copiar-link-perfil-publico-carreira").addEventListener("click", (ev) => {
+      copiarParaClipboard(url, ev.target);
+    });
+  } catch (err) {
+    elTexto.textContent = "Não consegui carregar seu perfil público agora.";
+  }
 }
 
 let ultimoBlobStory = null;

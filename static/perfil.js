@@ -41,9 +41,31 @@ async function carregarPerfil() {
       // segue sem nome de usuário carregado
     }
     atualizarLembretePerfil(p, nomeUsuario);
+    atualizarPerfilPublicoUI(nomeUsuario);
   } catch (err) {
     // segue com os campos vazios
   }
+}
+
+// ---------- Perfil Público ----------
+function atualizarPerfilPublicoUI(nomeUsuario) {
+  const elTexto = document.getElementById("texto-perfil-publico");
+  const elAcoes = document.getElementById("acoes-perfil-publico");
+  if (!nomeUsuario) {
+    elTexto.textContent = "Defina seu nome de usuário acima para ativar sua página pública.";
+    elAcoes.innerHTML = "";
+    return;
+  }
+  const caminho = `/atleta/${encodeURIComponent(nomeUsuario)}`;
+  const url = `https://www.radarbjj.com${caminho}`;
+  elTexto.textContent = "É a página que qualquer pessoa vê ao te procurar no Radar BJJ.";
+  elAcoes.innerHTML = `
+    <a href="${caminho}" target="_blank" rel="noopener" class="btn-secundario" style="display:inline-block; text-decoration:none; margin-right:8px;">Ver meu perfil público</a>
+    <button type="button" id="btn-copiar-link-perfil-publico" class="btn-secundario">Copiar link</button>
+  `;
+  document.getElementById("btn-copiar-link-perfil-publico").addEventListener("click", (ev) => {
+    copiarParaClipboard(url, ev.target);
+  });
 }
 
 document.getElementById("p_foto_input").addEventListener("change", async (ev) => {
@@ -142,6 +164,7 @@ document.getElementById("form-nome-usuario").addEventListener("submit", async (e
     if (!resp.ok) throw new Error(dados.erro || "não consegui salvar");
     mostrarStatus("status-nome-usuario", "Nome de usuário salvo!");
     atualizarLembretePerfil({ academia: document.getElementById("p_academia").value }, nomeUsuario);
+    atualizarPerfilPublicoUI(nomeUsuario);
   } catch (err) {
     mostrarStatus("status-nome-usuario", `Erro: ${err.message}`, true);
   }

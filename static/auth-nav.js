@@ -484,3 +484,16 @@ async function fetchAutenticado(url, opts) {
   }
   return resp;
 }
+
+// Copia um texto (link do perfil público, etc.) e dá feedback visual no
+// próprio botão clicado, sem depender de um elemento de status separado.
+async function copiarParaClipboard(texto, elBotao) {
+  const textoOriginal = elBotao.textContent;
+  try {
+    await navigator.clipboard.writeText(texto);
+    elBotao.textContent = "Copiado!";
+  } catch (err) {
+    elBotao.textContent = "Não consegui copiar";
+  }
+  setTimeout(() => { elBotao.textContent = textoOriginal; }, 1800);
+}
