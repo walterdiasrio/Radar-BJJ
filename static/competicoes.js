@@ -241,7 +241,7 @@ function renderizarCompeticoes(competicoes, mensagemVazia) {
             <td>${formatarDataCompacta(c.data)}</td>
             <td>${c.local || ""}</td>
             <td>${badgeInscricao(c.inscricoes_abertas)}</td>
-            <td>${c.prazo_inscricao || "Não informado"}</td>
+            <td>${c.prazo_inscricao ? formatarDataCompacta(c.prazo_inscricao) : "Não informado"}</td>
             <td>${botoesAgenda(c)}</td>
           </tr>
         `).join("")}
