@@ -116,6 +116,7 @@ async function carregarSessaoNoMenu() {
   const ICONE_CADASTRO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>';
   const ICONE_ASSINATURA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>';
   const ICONE_PERFIL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 8 0 0 1 16 0v1"/></svg>';
+  const ICONE_GLOBO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10Z"/></svg>';
 
   const aplicarSessao = (dados) => {
     window.sessaoAtual = dados;
@@ -142,12 +143,14 @@ async function carregarSessaoNoMenu() {
       // aparecer no rótulo do botão (pedido do usuário 11/09/2026: rótulo
       // fixo "Minha Conta" no lugar do e-mail, que ficava comprido/estranho
       // no menu). Mobile continua só com os ícones.
+      const linkPerfilPublico = dados.nome_usuario ? `/atleta/${encodeURIComponent(dados.nome_usuario)}` : "/perfil";
       el.innerHTML = `
         <div class="nav-admin-dropdown">
           <a href="#" class="nav-admin-toggle">${ICONE_PERFIL}<span>Minha Conta</span><span class="nav-admin-seta">▾</span></a>
           <div class="nav-admin-submenu">
             <a href="/assinatura">${ICONE_ASSINATURA}<span>Minha Assinatura</span></a>
             <a href="/perfil">${ICONE_PERFIL}<span>Meu Perfil</span></a>
+            <a href="${linkPerfilPublico}">${ICONE_GLOBO}<span>Perfil Público</span></a>
             <a href="#" class="nav-sair">${ICONE_LOGOUT}<span>Sair</span></a>
           </div>
         </div>
@@ -160,7 +163,7 @@ async function carregarSessaoNoMenu() {
       }
       if (elMobile) {
         elMobile.style.display = "";
-        elMobile.innerHTML = `<a href="/assinatura" title="Minha Assinatura">${ICONE_ASSINATURA}</a><a href="/perfil" title="Meu Perfil">${ICONE_PERFIL}</a><a href="#" class="nav-sair" title="Sair">${ICONE_LOGOUT}</a>`;
+        elMobile.innerHTML = `<a href="/assinatura" title="Minha Assinatura">${ICONE_ASSINATURA}</a><a href="/perfil" title="Meu Perfil">${ICONE_PERFIL}</a><a href="${linkPerfilPublico}" title="Perfil Público">${ICONE_GLOBO}</a><a href="#" class="nav-sair" title="Sair">${ICONE_LOGOUT}</a>`;
       }
       // "Minha Conta" no menu rolante do mobile usa o MESMO painel sticky
       // de Admin/Turmas (MAPA_TOGGLE_PAINEL_MOBILE abaixo), não o dropdown
@@ -173,6 +176,7 @@ async function carregarSessaoNoMenu() {
         elPainelConta.innerHTML = `
           <a href="/assinatura">${ICONE_ASSINATURA}<span>Minha Assinatura</span></a>
           <a href="/perfil">${ICONE_PERFIL}<span>Meu Perfil</span></a>
+          <a href="${linkPerfilPublico}">${ICONE_GLOBO}<span>Perfil Público</span></a>
           <a href="#" class="nav-sair">${ICONE_LOGOUT}<span>Sair</span></a>
         `;
       }

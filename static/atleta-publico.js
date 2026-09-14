@@ -7,37 +7,58 @@ function mostrarStatus(texto, ehErro = false) {
   elStatus.className = "status-importacao" + (ehErro ? " erro" : "");
 }
 
-const MEDALHA_LABEL = { ouro: "🥇 Ouro", prata: "🥈 Prata", bronze: "🥉 Bronze" };
-const RESULTADO_LABEL = { vitoria: "Vitória", derrota: "Derrota", empate: "Empate" };
-const METODO_LABEL = { pontos: "Pontos", finalizacao: "Finalização", wo: "W.O.", desclassificacao: "Desclassificação", medica: "Médica" };
-
 function formatarData(data) {
   if (!data) return "";
   const iso = data.includes("T") ? data : data + "T00:00:00";
   return new Date(iso).toLocaleDateString("pt-BR");
 }
 
+// Página pública é uma vitrine de conquistas, não o histórico completo de
+// Minha Carreira — sem lutas/adversários (pedido do usuário), só o essencial
+// de cada competição, agrupada por medalha logo abaixo.
 function cardCompeticaoPublico(c) {
-  let tags = "";
-  if (c.medalha) tags += `<span class="tag-carreira medalha-${c.medalha}">${MEDALHA_LABEL[c.medalha]}</span>`;
-  if (c.pais && c.pais !== "Brasil") tags += `<span class="tag-carreira pais">🌎 ${c.pais}</span>`;
+  const internacional = !!(c.pais && c.pais !== "Brasil");
   const metaPartes = [formatarData(c.data)];
   if (c.categoria) metaPartes.push(c.categoria);
-  const lutasHtml = (c.lutas || []).map(l => `
-    <div class="luta-item">
-      <span class="tag-carreira ${l.resultado}">${RESULTADO_LABEL[l.resultado]}</span>
-      ${l.adversario ? "vs " + l.adversario : ""}${l.metodo ? " · " + METODO_LABEL[l.metodo] : ""}
-    </div>`).join("");
+  const tagInternacional = internacional
+    ? `<span class="tag-carreira pais">🌎 ${c.pais}</span>`
+    : "";
   return `
-    <div class="cartao-alerta">
+    <div class="cartao-alerta${internacional ? " cartao-alerta-internacional" : ""}">
       <div class="cartao-alerta-topo">
         <div>
-          <h3>${tags}${c.campeonato || "Competição"}</h3>
+          <h3>${tagInternacional}${c.campeonato || "Competição"}</h3>
           <div class="cartao-alerta-federacao">${metaPartes.join(" · ")}</div>
         </div>
       </div>
-      <div class="lutas-list">${lutasHtml}</div>
     </div>`;
+}
+
+// Divide as competições com medalha em 3 grupos (ouro/prata/bronze) — quem
+// não pontuou no pódio não entra aqui (já conta pro total de "lutas" nas
+// Estatísticas ali em cima).
+const GRUPOS_MEDALHA = [
+  { chave: "ouro", label: "🥇 Ouro" },
+  { chave: "prata", label: "🥈 Prata" },
+  { chave: "bronze", label: "🥉 Bronze" },
+];
+
+function renderCompeticoesPublicas(competicoes) {
+  const grupos = GRUPOS_MEDALHA
+    .map(g => ({ ...g, itens: competicoes.filter(c => c.medalha === g.chave) }))
+    .filter(g => g.itens.length);
+
+  if (!grupos.length) {
+    elListaCompeticoes.innerHTML = "";
+    return false;
+  }
+  elListaCompeticoes.innerHTML = grupos.map(g => `
+    <div class="secao-medalhas-publico">
+      <h4 class="titulo-secao-medalhas">${g.label} <span class="contagem-medalhas">(${g.itens.length})</span></h4>
+      ${g.itens.map(cardCompeticaoPublico).join("")}
+    </div>
+  `).join("");
+  return true;
 }
 
 // Pizza de lutas (Vitórias/Derrotas/Empates) via círculos SVG empilhados
@@ -116,12 +137,8 @@ async function carregarAtletaPublico() {
 
     if (dados.estatisticas) mostrarEstatisticas(dados.estatisticas);
 
-    if (!dados.competicoes.length) {
-      elListaCompeticoes.innerHTML = "";
-      return;
-    }
-    document.getElementById("titulo-competicoes").style.display = "";
-    elListaCompeticoes.innerHTML = dados.competicoes.map(cardCompeticaoPublico).join("");
+    const teveMedalhas = renderCompeticoesPublicas(dados.competicoes || []);
+    document.getElementById("titulo-competicoes").style.display = teveMedalhas ? "" : "none";
   } catch (err) {
     mostrarStatus(`Erro: ${err.message}`, true);
   }

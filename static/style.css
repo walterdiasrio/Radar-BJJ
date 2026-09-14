@@ -2313,6 +2313,11 @@ tr:hover td { background: #f8fafc; }
 .tag-carreira.medalha-bronze { background: #f7e3d3; color: #9a5b1f; }
 .tag-carreira.pais { background: #e6f0fa; color: var(--azul-claro); }
 
+.secao-medalhas-publico { margin-bottom: 20px; }
+.titulo-secao-medalhas { color: var(--azul); font-size: 1rem; margin: 0 0 8px; }
+.contagem-medalhas { color: #55606b; font-weight: 400; font-size: 0.85rem; }
+.cartao-alerta.cartao-alerta-internacional { border: 2px solid var(--azul-claro); box-shadow: 0 4px 16px rgba(0, 30, 120, 0.10); }
+
 .lutas-list {
   margin-top: 10px;
   display: flex;

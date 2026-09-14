@@ -1033,6 +1033,7 @@ def api_sessao():
         "tipo_perfil": "mestre" if eh_mestre else plano_ativo,
         "mestre": eh_mestre,
         "menu_mestre": menu_mestre,
+        "nome_usuario": usuario["nome_usuario"],
         "assinatura": {
             "tem_acesso": eh_admin or pagamentos.usuario_tem_acesso(usuario["id"]),
             "status": assinatura["status"] if assinatura else None,
