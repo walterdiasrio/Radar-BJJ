@@ -38,10 +38,16 @@ const elResultados = document.getElementById("resultados");
 
 let competicoesCarregadas = [];
 
+// Guarda a lista cheia (com "grupo" de cada uma) pra decidir se a seleção
+// atual é só de competições avulsas — ver atualizarBotaoAlertaCompeticao.
+let todasFederacoes = [];
+
 async function carregarFederacoes() {
   const resp = await fetchAutenticado("/api/federacoes");
   const federacoes = await resp.json();
+  todasFederacoes = federacoes;
   construirOpcoesFederacao(elFederacaoOpcoes, federacoes);
+  atualizarBotaoAlertaCompeticao();
 }
 
 // Mesmo agrupamento por tipo do Radar de Atletas (ver GRUPOS_FEDERACAO em
@@ -52,7 +58,25 @@ const GRUPOS_FEDERACAO = [
   { id: "nacional", titulo: "Confederações nacionais" },
   { id: "estadual", titulo: "Federações estaduais" },
   { id: "internacional", titulo: "Circuito internacional" },
+  { id: "avulsa", titulo: "Competições avulsas" },
 ];
+
+// Competições avulsas (SouCompetidor, Meu Combate...) não têm alerta — ver
+// mesmo motivo/comentário em static/app.js::selecaoSoAvulsa.
+function selecaoSoAvulsa(selecao) {
+  if (selecao === null || selecao === TODAS) return false;
+  const ids = Array.isArray(selecao) ? selecao : [selecao];
+  return ids.every(id => todasFederacoes.find(f => f.id === id)?.grupo === "avulsa");
+}
+
+function atualizarBotaoAlertaCompeticao() {
+  const soAvulsa = selecaoSoAvulsa(federacaoSelecionada(elFederacaoOpcoes));
+  elBtnCriarAlertaCompeticao.disabled = soAvulsa;
+  elStatusAlertaCompeticao.textContent = soAvulsa
+    ? "Alerta disponível apenas para confederações, federações e circuitos internacionais."
+    : "";
+  elStatusAlertaCompeticao.className = "";
+}
 
 // Monta os checkboxes de federação: nenhuma marcada por padrão; marcar uma
 // individual desmarca "Todas"; desmarcar a última individual volta para "Todas"
@@ -92,6 +116,7 @@ function construirOpcoesFederacao(container, federacoes) {
       if (ev.target.checked) todasCheckbox.checked = false;
       if (!individuais.some(c => c.checked)) todasCheckbox.checked = true;
     }
+    atualizarBotaoAlertaCompeticao();
   });
 }
 

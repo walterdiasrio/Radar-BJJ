@@ -1,11 +1,20 @@
-"""Conector SouCompetidor (soucompetidor.com.br) — complementa a AJP.
+"""Conector SouCompetidor (soucompetidor.com.br) — dois usos.
 
-Parte dos atletas da AJP se inscreve pelo Smoothcomp (ver connectors/ajp.py,
-importado manualmente/via Drive), mas outra parte se inscreve por um portal
-à parte, o SouCompetidor — atletas que não aparecem em nenhum lugar se só
-lermos o Smoothcomp. Esse conector busca esses atletas AO VIVO (página
-pública "Checagem Geral", sem bloqueio, sem precisar de login) e devolve
-pra ajp.buscar_atletas somar com o que já veio do Smoothcomp.
+1) Complementa a AJP: parte dos atletas da AJP se inscreve pelo Smoothcomp
+(ver connectors/ajp.py, importado manualmente/via Drive), mas outra parte
+se inscreve por um portal à parte, o SouCompetidor — atletas que não
+aparecem em nenhum lugar se só lermos o Smoothcomp. atletas_do_evento()
+busca esses atletas AO VIVO (página pública "Checagem Geral", sem
+bloqueio, sem precisar de login) e devolve pra ajp.buscar_atletas somar
+com o que já veio do Smoothcomp.
+
+2) Federação "avulsa" própria (listar_eventos/buscar_atletas, a interface
+padrão que connectors/__init__.py espera): o SouCompetidor também hospeda
+centenas de organizadores independentes (Copa X, Circuito Y, Open Z...)
+sem federação nenhuma por trás — competições que o Radar não tinha como
+achar antes. Ver a seção "Uso como federação avulsa" mais abaixo pro
+porquê dos filtros (não duplicar AJP/CBJJ/CBJJE, não misturar outro
+esporte).
 
 Não existe um ID de evento em comum entre as duas plataformas — o casamento
 do evento AJP (Smoothcomp) com o evento correspondente no SouCompetidor é
@@ -35,6 +44,7 @@ import unicodedata
 
 from bs4 import BeautifulSoup
 
+from . import datas as datas_mod
 from .http import get
 
 BASE = "https://soucompetidor.com.br"
@@ -263,3 +273,95 @@ def atletas_do_evento(nome_evento_ajp, local_evento_ajp):
     with _cache_atletas_lock:
         _cache_atletas[slug] = (time.time(), atletas)
     return atletas
+
+
+# ---------------------------------------------------------------------------
+# Uso como federação "avulsa" própria (não só complemento da AJP) — o
+# SouCompetidor hospeda centenas de organizadores independentes (Copa X,
+# Circuito Y, Open Z...) sem federação nenhuma por trás, o tipo de
+# competição que o Radar não tinha como achar antes. listar_eventos() lê a
+# mesma listagem "mais recentes primeiro" usada por _buscar_candidatos,
+# paginando até uma página inteira não trazer nenhum evento novo (a
+# listagem eventualmente repete o que já foi visto, sinal de que já deu a
+# volta em tudo que está com checagem aberta agora).
+#
+# Duas exclusões, pelo mesmo motivo — não duplicar o que o Radar já cobre
+# por outro caminho ou mostrar o que não é o que a busca promete:
+# 1) eventos de AJP/CBJJ/CBJJE aparecem aqui só porque essas entidades
+#    também usam o SouCompetidor pra ALGUNS eventos — mas essas federações
+#    já têm conector próprio (a AJP inclusive já lê o SouCompetidor pra
+#    somar atleta, ver atletas_do_evento acima); incluir de novo aqui
+#    duplicaria a competição na busca.
+# 2) o SouCompetidor não é site só de Jiu-Jitsu — tem Muay Thai,
+#    Kickboxing e até curso de arbitragem misturados na mesma listagem.
+#    _evento_valido() exige uma palavra de Jiu-Jitsu/BJJ/No-Gi/Grappling
+#    no nome; de propósito conservador — um evento sem nenhuma dessas
+#    palavras fica de fora mesmo que seja Jiu-Jitsu de verdade (ex:
+#    "Brasília Golden Cup Pro", sem nenhuma palavra-chave no nome),
+#    porque incluir por engano um Muay Thai/Kickboxing na busca é pior
+#    que perder um Jiu-Jitsu com nome ambíguo.
+_PALAVRAS_EXCLUIDAS_RE = re.compile(
+    r"\b(AJP|CBJJE?|MMA|MUAY\s*THAI|KICKBOXING|CURSO|SEMIN[AÁ]RIO)\b", re.I
+)
+_PALAVRAS_JIUJITSU_RE = re.compile(r"JIU[\s-]?JITSU|BJJ|NO[\s-]?GI|GRAPPLING", re.I)
+_SLUG_CHECAGEM_RE = re.compile(r"/pt-br/eventos/checagem-geral/(p\d+-[a-z0-9-]+)/", re.I)
+_MAX_PAGINAS_LISTAGEM = 30
+
+
+def _evento_valido(nome):
+    if _PALAVRAS_EXCLUIDAS_RE.search(nome):
+        return False
+    return bool(_PALAVRAS_JIUJITSU_RE.search(nome))
+
+
+def listar_eventos():
+    eventos = {}
+    pagina = 1
+    paginas_sem_novidade = 0
+    while paginas_sem_novidade < 2 and pagina <= _MAX_PAGINAS_LISTAGEM:
+        params = {} if pagina == 1 else {"page": pagina}
+        try:
+            resp = get(f"{BASE}/pt-br/eventos/todos-os-eventos/novos/", params=params)
+        except Exception:
+            break
+        soup = BeautifulSoup(resp.text, "lxml")
+
+        novos_nesta_pagina = 0
+        for card in soup.select(".card"):
+            link_checagem = card.select_one('a[href*="checagem-geral"]')
+            if not link_checagem:
+                continue
+            m = _SLUG_CHECAGEM_RE.search(link_checagem["href"])
+            if not m:
+                continue
+            slug = m.group(1)
+            if slug in eventos:
+                continue
+
+            titulo_el = card.select_one(".card-title h6")
+            nome = titulo_el.get_text(strip=True) if titulo_el else ""
+            if not nome or not _evento_valido(nome):
+                continue
+
+            locais = card.select(".card-title small")
+            local = locais[1].get_text(strip=True) if len(locais) > 1 else ""
+            data_el = card.select_one(".date-badge-card")
+            data_texto = data_el.get_text(" ", strip=True) if data_el else ""
+
+            eventos[slug] = {
+                "id": slug,
+                "nome": nome,
+                "url": f"{BASE}/pt-br/eventos/todos-os-eventos/{slug}/",
+                "data": datas_mod.formatar(data_texto),
+                "local": local,
+            }
+            novos_nesta_pagina += 1
+
+        paginas_sem_novidade = 0 if novos_nesta_pagina else paginas_sem_novidade + 1
+        pagina += 1
+
+    return list(eventos.values())
+
+
+def buscar_atletas(evento_id, filtros):
+    return _atletas_das_linhas(_linhas_checagem(evento_id), federacao="SOUCOMPETIDOR")

@@ -5,7 +5,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date
 
-from . import cbjj, fjjrio, cbjjd, cbjjo, cbjje, fpjj, cbjjc, fjjpe, fjjemg, fjjgo, fcojj, fjjpr, fjjpa, adcc, ajp, idade as idade_mod, peso as peso_mod, datas as datas_mod
+from . import cbjj, fjjrio, cbjjd, cbjjo, cbjje, fpjj, cbjjc, fjjpe, fjjemg, fjjgo, fcojj, fjjpr, fjjpa, adcc, ajp, soucompetidor, meucombate, idade as idade_mod, peso as peso_mod, datas as datas_mod
 
 # Quantas buscas em paralelo por vez. Já foi reduzido de 8 pra 4 quando o
 # Render Starter (512MB de RAM) derrubou o serviço por estouro de memória
@@ -44,6 +44,14 @@ FEDERACOES = {
     "fjjpa": {"label": "FJJPA", "nome": "Federação de Jiu-Jitsu do Pará", "module": fjjpa, "grupo": "estadual", "uf": "PA"},
     "adcc": {"label": "ADCC", "nome": "Abu Dhabi Combat Club", "module": adcc, "grupo": "internacional"},
     "ajp": {"label": "AJP", "nome": "Abu Dhabi Jiu-Jitsu Pro", "module": ajp, "grupo": "internacional"},
+    # "avulsa": plataformas que hospedam vários organizadores independentes,
+    # sem federação nenhuma por trás (ao contrário de todo o resto acima) —
+    # por isso não tem alerta automático (ver static/app.js::selecaoSoAvulsa)
+    # nem entram em connectors/idade.py e connectors/peso.py (cada
+    # organizador usa seu próprio vocabulário de categoria, sem uma tabela
+    # oficial única pra calcular por ano de nascimento).
+    "soucompetidor": {"label": "SouCompetidor", "nome": "SouCompetidor", "module": soucompetidor, "grupo": "avulsa"},
+    "meucombate": {"label": "Meu Combate", "nome": "Meu Combate", "module": meucombate, "grupo": "avulsa"},
 }
 _ORDEM_FEDERACAO = {fid: i for i, fid in enumerate(FEDERACOES)}
 
@@ -659,7 +667,10 @@ _PALAVRAS_ADULTO = re.compile(r"\bmaster\b|\badulto\b|\bjuvenil\b", re.I)
 # Adulto/Master (ver connectors/fcojj.py). FJJPR pelo mesmo motivo: "1ª Etapa
 # 2026" etc não tem kids/adulto no nome, mas cada etapa mistura Pré-Mirim a
 # Master no mesmo evento (ver connectors/fjjpr.py).
-_FEDERACOES_SEM_SEPARACAO_POR_NOME = {"cbjjd", "cbjjo", "cbjje", "ajp", "adcc", "fjjemg", "fjjgo", "fcojj", "fjjpr", "fjjpa"}
+_FEDERACOES_SEM_SEPARACAO_POR_NOME = {
+    "cbjjd", "cbjjo", "cbjje", "ajp", "adcc", "fjjemg", "fjjgo", "fcojj", "fjjpr", "fjjpa",
+    "soucompetidor", "meucombate",
+}
 
 
 def _classificar_publico(nome, fed):

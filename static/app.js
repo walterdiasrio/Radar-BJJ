@@ -63,9 +63,14 @@ const LABEL_FEDERACAO = { cbjj: "CBJJ", fjjrio: "FJJRio", cbjjd: "CBJJD", cbjjo:
 // formato de exibição diferente — ver _linhaCategoriaSmoothcomp abaixo.
 const FEDERACOES_SMOOTHCOMP = ["adcc", "ajp"];
 
+// Guarda a lista cheia (com "grupo" de cada uma) pra decidir se a seleção
+// atual é só de competições avulsas — ver atualizarBotaoAlerta.
+let todasFederacoes = [];
+
 async function carregarFederacoes() {
   const resp = await fetchAutenticado("/api/federacoes");
   const federacoes = await resp.json();
+  todasFederacoes = federacoes;
   construirOpcoesFederacao(elFederacaoOpcoes, federacoes, onFederacaoMudou);
 }
 
@@ -80,6 +85,7 @@ const GRUPOS_FEDERACAO = [
   { id: "nacional", titulo: "Confederações nacionais" },
   { id: "estadual", titulo: "Federações estaduais" },
   { id: "internacional", titulo: "Circuito internacional" },
+  { id: "avulsa", titulo: "Competições avulsas" },
 ];
 
 // Monta os checkboxes de federação: nenhuma marcada por padrão, sem atalho
@@ -317,11 +323,34 @@ function renderizarResultados(atletas) {
   `; }).join("");
 }
 
+// Competições avulsas (SouCompetidor, Meu Combate...) não têm alerta —
+// são plataformas de terceiros com inscrição mudando toda hora, sem uma
+// verificação periódica confiável como as federações de verdade têm.
+// Só bloqueia quando a seleção é 100% avulsa; misturado com uma
+// federação de verdade continua liberado (o alerta segue funcionando
+// pra parte que tem federação — ver alertas.py).
+function selecaoSoAvulsa(selecao) {
+  if (selecao === null || selecao === TODAS) return false;
+  const ids = Array.isArray(selecao) ? selecao : [selecao];
+  return ids.every(id => todasFederacoes.find(f => f.id === id)?.grupo === "avulsa");
+}
+
+function atualizarBotaoAlerta() {
+  const federacao = federacaoSelecionada(elFederacaoOpcoes);
+  const soAvulsa = selecaoSoAvulsa(federacao);
+  elBtnCriarAlerta.disabled = soAvulsa;
+  elStatusAlerta.textContent = soAvulsa
+    ? "Alerta disponível apenas para confederações, federações e circuitos internacionais."
+    : "";
+  elStatusAlerta.className = "";
+}
+
 function onFederacaoMudou() {
   elResultados.innerHTML = "";
   mostrarStatus("");
   carregarEventos(federacaoSelecionada(elFederacaoOpcoes));
   atualizarCategoriaCalculada();
+  atualizarBotaoAlerta();
 }
 
 elGenero.addEventListener("change", atualizarCategoriaCalculada);
@@ -487,6 +516,7 @@ async function carregarFiltroPadrao() {
     if (dados.filtro) {
       aplicarFiltroAosCampos(dados.filtro);
       mostrarLinkRemoverFiltroPadrao();
+      atualizarBotaoAlerta();
     }
   } catch (err) {
     // sem filtro padrão salvo, ou erro ao buscar — segue com o formulário vazio
