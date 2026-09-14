@@ -139,5 +139,49 @@ async function removerCompeticao(id) {
   }
 }
 
+const elCheckPrazo = document.getElementById("alerta-prazo-inscricao-check");
+const elRotuloPrazo = document.getElementById("alerta-prazo-inscricao-rotulo");
+const elStatusPrazo = document.getElementById("status-prazo-inscricao");
+
+// Mesmo motivo do carregar() de alertas de atleta: exclusivo de assinante,
+// então usa fetch puro pra um 402 só avisar, não expulsar da página.
+async function carregarAlertaPrazo() {
+  try {
+    const resp = await fetch("/api/alerta-prazo-inscricao");
+    if (resp.status === 402) {
+      elStatusPrazo.textContent = 'Exclusivo do Plano PRO — veja os planos em "Minha Assinatura".';
+      elCheckPrazo.closest(".interruptor-linha").style.display = "none";
+      return;
+    }
+    const dados = await resp.json();
+    if (!resp.ok) throw new Error(dados.erro || "erro ao carregar");
+    elCheckPrazo.checked = dados.ativo;
+    elRotuloPrazo.textContent = dados.ativo ? "Ativado" : "Desativado";
+  } catch (err) {
+    elStatusPrazo.textContent = `Erro: ${err.message}`;
+    elStatusPrazo.className = "erro";
+  }
+}
+
+elCheckPrazo.addEventListener("change", async () => {
+  const ativo = elCheckPrazo.checked;
+  elRotuloPrazo.textContent = ativo ? "Ativado" : "Desativado";
+  try {
+    const resp = await fetchAutenticado("/api/alerta-prazo-inscricao", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ativo }),
+    });
+    const dados = await resp.json();
+    if (!resp.ok) throw new Error(dados.erro || "erro ao salvar");
+  } catch (err) {
+    elCheckPrazo.checked = !ativo;
+    elRotuloPrazo.textContent = !ativo ? "Ativado" : "Desativado";
+    elStatusPrazo.textContent = `Erro ao salvar: ${err.message}`;
+    elStatusPrazo.className = "erro";
+  }
+});
+
 carregar();
 carregarCompeticao();
+carregarAlertaPrazo();

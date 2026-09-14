@@ -113,11 +113,26 @@ src="https://www.facebook.com/tr?id=28254694314126516&ev=PageView&noscript=1"
   <div id="status-competicao"></div>
 
   <div id="lista-alertas-competicao"></div>
+
+  <h3 style="color: var(--azul); margin-bottom: 4px; margin-top:32px;">Alertas de Prazo de Inscrição</h3>
+  <p style="color: var(--azul-claro); font-size: 0.85rem; margin-top:0;">
+    Disponível no Plano PRO: alertas automáticos por e-mail 7 dias e 1 dia antes do término da
+    inscrição das competições marcadas como "Tenho Interesse" na sua <a href="/agenda">Agenda</a>.
+  </p>
+
+  <label class="interruptor-linha" for="alerta-prazo-inscricao-check">
+    <span class="interruptor">
+      <input type="checkbox" id="alerta-prazo-inscricao-check">
+      <span class="interruptor-trilho"></span>
+    </span>
+    <span id="alerta-prazo-inscricao-rotulo">Ativado</span>
+  </label>
+  <div id="status-prazo-inscricao"></div>
   </main>
 </div>
 
 <script src="auth-nav.js?v=14"></script>
-<script src="alertas.js"></script>
+<script src="alertas.js?v=1"></script>
 <nav class="menu-lateral menu-lateral-rodape" id="menu-rodape"></nav>
 </body>
 </html>

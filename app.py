@@ -1427,6 +1427,20 @@ def pagina_alertas():
     return send_from_directory("static", "alertas.html")
 
 
+@app.get("/api/alerta-prazo-inscricao")
+@api_assinatura_necessaria
+def api_obter_alerta_prazo_inscricao():
+    return jsonify({"ativo": auth.alerta_prazo_inscricao_ativo(session["usuario_id"])})
+
+
+@app.post("/api/alerta-prazo-inscricao")
+@api_assinatura_necessaria
+def api_definir_alerta_prazo_inscricao():
+    dados = request.get_json(silent=True) or {}
+    auth.definir_alerta_prazo_inscricao(session["usuario_id"], bool(dados.get("ativo")))
+    return jsonify({"ok": True})
+
+
 @app.get("/api/alertas")
 @api_assinatura_necessaria
 def api_listar_alertas():

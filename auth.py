@@ -43,7 +43,8 @@ def init_db():
                 email_verificado INTEGER NOT NULL DEFAULT 0,
                 tipo_perfil TEXT NOT NULL DEFAULT 'atleta',
                 nome_usuario TEXT UNIQUE,
-                criado_em TEXT NOT NULL DEFAULT (datetime('now'))
+                criado_em TEXT NOT NULL DEFAULT (datetime('now')),
+                alerta_prazo_inscricao_ativo INTEGER NOT NULL DEFAULT 1
             )
         """)
         # Migração pra bancos criados antes do perfil Mestre/Atleta existir.
@@ -61,6 +62,11 @@ def init_db():
         # Atletas existir — guardado como JSON (ver salvar_filtro_padrao).
         if "filtro_padrao_busca" not in colunas:
             conn.execute("ALTER TABLE usuarios ADD COLUMN filtro_padrao_busca TEXT")
+        # Migração pra bancos criados antes do alerta de prazo de inscrição
+        # existir — DEFAULT 1 pra já nascer ativado pra quem já tem conta
+        # (o pedido era "começar ativado pra todos", não só pra conta nova).
+        if "alerta_prazo_inscricao_ativo" not in colunas:
+            conn.execute("ALTER TABLE usuarios ADD COLUMN alerta_prazo_inscricao_ativo INTEGER NOT NULL DEFAULT 1")
 
         conn.execute("""
             CREATE TABLE IF NOT EXISTS reset_senha (
@@ -389,3 +395,25 @@ def obter_filtro_padrao(usuario_id):
         return json.loads(linha["filtro_padrao_busca"])
     except (TypeError, ValueError):
         return None
+
+
+def alerta_prazo_inscricao_ativo(usuario_id):
+    """True/False — se o usuário quer receber o e-mail de prazo de
+    inscrição (7 e 1 dia antes) pras competições "Tenho Interesse" da
+    Agenda. Começa ativado pra todo mundo (ver DEFAULT 1 no schema); só
+    é checado de verdade pra quem já tem Plano PRO (ver
+    alertas.py::verificar_prazos_agenda — desativado aqui não faz
+    diferença pra quem não tem acesso mesmo)."""
+    with _conn() as conn:
+        linha = conn.execute(
+            "SELECT alerta_prazo_inscricao_ativo FROM usuarios WHERE id = ?", (usuario_id,)
+        ).fetchone()
+    return bool(linha["alerta_prazo_inscricao_ativo"]) if linha else True
+
+
+def definir_alerta_prazo_inscricao(usuario_id, ativo):
+    with _conn() as conn:
+        conn.execute(
+            "UPDATE usuarios SET alerta_prazo_inscricao_ativo = ? WHERE id = ?",
+            (1 if ativo else 0, usuario_id),
+        )

@@ -514,6 +514,8 @@ def verificar_prazos_agenda():
             continue
         if not pagamentos.usuario_tem_acesso(item["usuario_id"]):
             continue
+        if not auth.alerta_prazo_inscricao_ativo(item["usuario_id"]):
+            continue
 
         usuario = auth.buscar_por_id(item["usuario_id"])
         if not usuario:

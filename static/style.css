@@ -2294,3 +2294,53 @@ tr:hover td { background: #f8fafc; }
   .stat-box { background: #1b2127; }
   .tab-carreira-btn { background: #14181d; }
 }
+
+.interruptor-linha {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+.interruptor {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.interruptor input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.interruptor-trilho {
+  position: absolute;
+  inset: 0;
+  background: #c7ccd4;
+  border-radius: 999px;
+  transition: background 0.2s;
+}
+
+.interruptor-trilho::before {
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  left: 3px;
+  top: 3px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.2s;
+}
+
+.interruptor input:checked + .interruptor-trilho {
+  background: var(--azul-claro);
+}
+
+.interruptor input:checked + .interruptor-trilho::before {
+  transform: translateX(20px);
+}
