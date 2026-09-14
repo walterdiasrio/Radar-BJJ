@@ -1966,18 +1966,15 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
   color: var(--azul);
 }
 
+/* Sempre 100% do card (nunca invade o card vizinho — a grade já tem gap
+   entre as colunas, ver .grade-planos) — as artes novas (14/09/2026) têm
+   bem mais informação desenhada dentro (preço, vantagens) do que o banner
+   pequeno de antes, então precisam do espaço máximo pra continuar legível. */
 .plano-logo {
   display: block;
-  max-width: 50%;
+  max-width: 100%;
   height: auto;
   margin: 0 0 10px;
-}
-
-/* No mobile o card já é de uma coluna só (ver .grade-planos-full) — 50%
-   da largura do card deixava a arte (e o texto desenhado nela) minúscula.
-   Sem limite de largura própria: acompanha o card inteiro. */
-@media (max-width: 900px) {
-  .plano-logo { max-width: 100%; margin-bottom: 16px; }
 }
 
 .plano-vantagens {
