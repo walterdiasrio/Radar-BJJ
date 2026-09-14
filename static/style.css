@@ -954,6 +954,15 @@ button {
   margin-bottom: 14px;
 }
 
+/* Moldura mais forte que o .card-carreira padrão (borda 1px quase
+   imperceptível) — esse card fica dentro do hero, que já é branco com
+   borda própria, então precisa de uma borda mais grossa e colorida pra
+   ler como um campo separado em vez de se misturar no fundo do hero. */
+.card-carreira.card-carreira-moldura {
+  border: 2px solid var(--azul-claro);
+  box-shadow: 0 8px 28px rgba(0, 30, 120, 0.12);
+}
+
 .botao-registre-medalha-link {
   display: block;
   width: 260px;
@@ -962,6 +971,13 @@ button {
   border-radius: 999px;
   overflow: hidden;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Abaixo da lista de medalhistas (não mais ao lado do título) — centralizado
+   em vez de encostado na direita, com respiro acima pra separar da lista. */
+.botao-registre-medalha-abaixo {
+  width: 300px;
+  margin: 18px auto 0;
 }
 
 .botao-registre-medalha-link:hover {
