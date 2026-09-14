@@ -295,6 +295,11 @@ TABELAS = {
     # ANOS)") — conferido ao vivo, bate exatamente com as faixas da
     # _CBJJE, sem precisar supor nada.
     "fbjjmma": _CBJJE,
+    # FSMJJ: a própria checagem real mostra o intervalo de idade entre
+    # parênteses (ex: "MIRIM (6/7 ANOS)", "MASTER 3 (41 A 45 ANOS)") —
+    # conferido ao vivo em dois eventos, bate exatamente com as faixas da
+    # _CBJJE do Mirim ao Master 3, sem precisar supor nada.
+    "fsmjj": _CBJJE,
 }
 
 

@@ -5,7 +5,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, timedelta
 
-from . import cbjj, fjjrio, cbjjd, cbjjo, cbjje, fpjj, cbjjc, fjjpe, fjjemg, fjjgo, fcojj, fjjpr, fjjpa, fjjrs, fbjjmma, adcc, ajp, soucompetidor, meucombate, idade as idade_mod, peso as peso_mod, datas as datas_mod
+from . import cbjj, fjjrio, cbjjd, cbjjo, cbjje, fpjj, cbjjc, fjjpe, fjjemg, fjjgo, fcojj, fjjpr, fjjpa, fjjrs, fbjjmma, fsmjj, adcc, ajp, soucompetidor, meucombate, idade as idade_mod, peso as peso_mod, datas as datas_mod
 
 # Quantas buscas em paralelo por vez. Já foi reduzido de 8 pra 4 quando o
 # Render Starter (512MB de RAM) derrubou o serviço por estouro de memória
@@ -44,6 +44,7 @@ FEDERACOES = {
     "fjjpa": {"label": "FJJPA", "nome": "Federação de Jiu-Jitsu do Pará", "module": fjjpa, "grupo": "estadual", "uf": "PA"},
     "fjjrs": {"label": "FJJ-RS", "nome": "Federação de Jiu-Jitsu do Estado do Rio Grande do Sul", "module": fjjrs, "grupo": "estadual", "uf": "RS"},
     "fbjjmma": {"label": "FBJJMMA", "nome": "Federação Baiana de Jiu-Jitsu e MMA", "module": fbjjmma, "grupo": "estadual", "uf": "BA"},
+    "fsmjj": {"label": "FSMJJ", "nome": "Federação Sul-Mato-Grossense de Jiu-Jitsu", "module": fsmjj, "grupo": "estadual", "uf": "MS"},
     "adcc": {"label": "ADCC", "nome": "Abu Dhabi Combat Club", "module": adcc, "grupo": "internacional"},
     "ajp": {"label": "AJP", "nome": "Abu Dhabi Jiu-Jitsu Pro", "module": ajp, "grupo": "internacional"},
     # "avulsa": plataformas que hospedam vários organizadores independentes,
@@ -673,10 +674,13 @@ _PALAVRAS_ADULTO = re.compile(r"\bmaster\b|\badulto\b|\bjuvenil\b", re.I)
 # BRASILIENSE DE JIU-JITSU" mistura Kids/Infantil/Júnior/Adolescente/Juvenil/
 # Adulto/Master (ver connectors/fcojj.py). FJJPR pelo mesmo motivo: "1ª Etapa
 # 2026" etc não tem kids/adulto no nome, mas cada etapa mistura Pré-Mirim a
-# Master no mesmo evento (ver connectors/fjjpr.py).
+# Master no mesmo evento (ver connectors/fjjpr.py). FSMJJ pelo mesmo
+# motivo: "Internacional Open", "Sul Americano" etc não tem kids/adulto no
+# nome, mas cada etapa mistura Mirim a Master 3 no mesmo evento (conferido
+# ao vivo, ver connectors/fsmjj.py).
 _FEDERACOES_SEM_SEPARACAO_POR_NOME = {
     "cbjjd", "cbjjo", "cbjje", "ajp", "adcc", "fjjemg", "fjjgo", "fcojj", "fjjpr", "fjjpa", "fjjrs", "fbjjmma",
-    "soucompetidor", "meucombate",
+    "fsmjj", "soucompetidor", "meucombate",
 }
 
 

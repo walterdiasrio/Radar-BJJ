@@ -608,6 +608,18 @@ _FUNCOES = {
     # FJJPR/FJJ-RS acima, que só bateram nomes ou uma declaração no
     # edital — aqui os números em si já vieram batendo).
     "fbjjmma": _cbjj_fjjrio,
+    # FSMJJ: a própria checagem real do Adulto/Juvenil/Master mostra os
+    # limites em kg batendo exatos, número inteiro (76/82/88/94/102 Adulto
+    # Masc; 58/64/69/74/79/84 Adulto Fem; 58/64/69/74/79/84 Juvenil Masc) —
+    # bate com a tabela oficial CBJJD já cadastrada aqui (não com a
+    # CBJJ/FJJRio, que usa casas decimais tipo 82,3/88,3/94,3) — o próprio
+    # edital também cita "livro de regras CBJJD como referência". Kids
+    # (6 a 15 anos) usam bandas de 2 anos fundidas da própria CBJJD com os
+    # limites arredondados — não é um match perfeito (achado 1 valor
+    # divergente numa checagem real, 40kg onde a CBJJD teria 39,3kg), mas é
+    # a aproximação mais próxima disponível sem OCR da tabela de peso da
+    # FSMJJ (só existe como imagem, sem texto pra extrair).
+    "fsmjj": _cbjjd,
 }
 
 # Federações onde já confirmamos que a competição Sem Kimono usa uma tabela
