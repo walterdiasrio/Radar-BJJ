@@ -3,7 +3,7 @@ import re
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import date
+from datetime import date, timedelta
 
 from . import cbjj, fjjrio, cbjjd, cbjjo, cbjje, fpjj, cbjjc, fjjpe, fjjemg, fjjgo, fcojj, fjjpr, fjjpa, fjjrs, fbjjmma, adcc, ajp, soucompetidor, meucombate, idade as idade_mod, peso as peso_mod, datas as datas_mod
 
@@ -722,6 +722,18 @@ def listar_competicoes(federacao):
             except Exception:
                 inscricoes_abertas, prazo_inscricao = None, None
             data_ordenacao = datas_mod.extrair_data(evento.get("data", ""))
+            # Descarta evento claramente do passado (folga de 10 dias, cobre
+            # até campeonato nacional de vários dias) — algumas federações
+            # (visto ao vivo na CBJJ) deixam evento listado como "próximo"
+            # por dias depois de já ter acontecido. Isso é sobre limpar a
+            # busca/listagem em si (não é o fix do alerta duplicado de "nova
+            # competição" — esse é em _chave_competicao, alertas.py, que
+            # ignora o ano da data de propósito pelo mesmo motivo de fundo:
+            # texto de data sem ano, tipo CBJJ "19 set até 20 set", depende
+            # de adivinhar o ano relativo a hoje, ver _ano_inferido em
+            # datas.py).
+            if data_ordenacao and data_ordenacao < date.today() - timedelta(days=10):
+                continue
             nome = evento.get("nome", "")
             resultado.append((
                 _ORDEM_FEDERACAO.get(fed, 99),

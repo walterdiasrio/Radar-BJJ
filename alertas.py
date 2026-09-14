@@ -299,10 +299,26 @@ def cancelar_alertas_de_atleta(usuario_id):
 PUBLICOS_ALERTA_COMPETICAO = ("todos", "kids", "adulto")
 
 
+_ANO_NA_DATA_RE = re.compile(r"\s*\bde\s+20\d{2}\b", re.I)
+
+
 def _chave_competicao(c):
     """Identifica uma competição de forma estável entre buscas (os
-    conectores não expõem um ID único de evento)."""
-    partes = [c.get("federacao", ""), c.get("nome", ""), c.get("data", "")]
+    conectores não expõem um ID único de evento).
+
+    Ignora o ANO dentro do texto de data de propósito: federações que não
+    publicam ano no texto bruto (ex: CBJJ, "19 set até 20 set") dependem de
+    uma ADIVINHA relativa a hoje pra decidir o ano (ver _ano_inferido em
+    connectors/datas.py) — um evento que a federação ainda deixa listado
+    bem depois de acontecer muda de ano nessa adivinha assim que passa da
+    janela de 30 dias, e o MESMO evento passava a contar como "nova
+    competição" de novo, disparando alerta duplicado do nada (relatado pelo
+    usuário 14/09/2026: "Manaus da CBJJ" avisado 2x). Federação + nome já
+    identificam o evento (o nome de eventos anuais normalmente já inclui o
+    ano da edição, ex: "...Championship 2026") — dia/mês continuam na chave
+    pra federações cujo nome se repete ano a ano sem essa distinção."""
+    data_sem_ano = _ANO_NA_DATA_RE.sub("", c.get("data", ""))
+    partes = [c.get("federacao", ""), c.get("nome", ""), data_sem_ano]
     bruto = "|".join((p or "").strip().lower() for p in partes)
     return hashlib.sha256(bruto.encode("utf-8")).hexdigest()
 
@@ -325,6 +341,39 @@ def _marcar_competicoes_vistas(alerta_id, competicoes):
             "INSERT OR IGNORE INTO alertas_competicao_vistas (alerta_id, chave) VALUES (?, ?)",
             [(alerta_id, _chave_competicao(c)) for c in competicoes],
         )
+
+
+def migrar_chave_competicao_sem_ano():
+    """Script avulso — rodar UMA VEZ em produção, manualmente (python3 -c
+    "import alertas; alertas.migrar_chave_competicao_sem_ano()"), logo depois
+    de fazer deploy do fix de 14/09/2026 acima (_chave_competicao ignorando o
+    ano na data).
+
+    Toda linha já gravada em alertas_competicao_vistas foi calculada com a
+    fórmula ANTIGA (data COM ano) — a partir do deploy, o código passa a
+    calcular a chave com a fórmula NOVA (sem ano), que dá um hash DIFERENTE
+    pra toda competição de toda federação (não só CBJJ: datas.formatar()
+    sempre inclui o ano no texto formatado, então a chave muda pra todo
+    mundo). Sem rodar isso, o próximo verificar_todas_competicoes() acharia
+    TUDO que já tinha sido visto como "novo" de novo — um e-mail de spam de
+    "nova competição" pra cada competição de cada alerta ativo, o oposto do
+    que o fix quer resolver.
+
+    Idempotente e seguro de rodar mais de uma vez (INSERT OR IGNORE) — só
+    ACRESCENTA a chave nova ao lado da antiga, nunca apaga nada. Depois
+    dessa migração, a antiga fica órfã (nunca mais bate com nada, mas também
+    não atrapalha) — sem necessidade de limpar."""
+    with _conn() as conn:
+        alertas = [
+            dict(linha) for linha in
+            conn.execute("SELECT * FROM alertas_competicao WHERE ativo = 1")
+        ]
+
+    for alerta in alertas:
+        try:
+            _marcar_competicoes_vistas(alerta["id"], _rodar_busca_competicoes(alerta))
+        except Exception:
+            traceback.print_exc()
 
 
 def criar_alerta_competicao(usuario_id, titulo, federacao, publico):
