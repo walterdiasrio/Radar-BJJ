@@ -430,18 +430,18 @@ header {
      "Menu Atleta" (.painel-menu-atleta), que só existe aqui. */
   .menu-lateral .nav-item-atleta { display: none; }
 
-  /* "Turmas" e "Admin" (dropdown clássico, com posição calculada via JS no
-     clique) tinham o mesmo problema do antigo "Menu Atleta": funcionava no
-     preview mas falhava em dispositivo real. No mobile eles somem — viram
-     os botões .turmas-toggle-mobile/.admin-toggle-mobile (mesmo padrão sem
-     JS do "Menu Atleta", ver .painel-menu-atleta acima e auth-nav.js).
-     !important só pra garantir mesmo se algum dia um style inline setar
-     display aqui — no desktop esse bloco nem existe (fora do media query).
-     "Minha Conta" (dentro de #nav-usuario) tinha esse MESMO problema
-     (relatado ao vivo em celular real 11/09/2026, depois de virar visível
-     no menu rolante do mobile também) — mesma correção: some aqui, vira
-     .conta-toggle-mobile + #painel-nav-conta. */
-  #nav-turmas, #nav-admin, #nav-usuario .nav-admin-dropdown { display: none !important; }
+  /* "Menu Mestre" e "Admin" (dropdown clássico, com posição calculada via JS
+     no clique) tinham o mesmo problema do antigo "Menu Atleta": funcionava
+     no preview mas falhava em dispositivo real. No mobile eles somem —
+     viram os botões .mestre-toggle-mobile/.admin-toggle-mobile (mesmo
+     padrão sem JS do "Menu Atleta", ver .painel-menu-atleta acima e
+     auth-nav.js). !important só pra garantir mesmo se algum dia um style
+     inline setar display aqui — no desktop esse bloco nem existe (fora do
+     media query). "Minha Conta" (dentro de #nav-usuario) tinha esse MESMO
+     problema (relatado ao vivo em celular real 11/09/2026, depois de virar
+     visível no menu rolante do mobile também) — mesma correção: some aqui,
+     vira .conta-toggle-mobile + #painel-nav-conta. */
+  #nav-mestre, #nav-admin, #nav-usuario .nav-admin-dropdown { display: none !important; }
 
   /* Painel do "Menu Atleta": ao contrário do .nav-admin-submenu (Admin/
      Turmas), aqui NÃO tem cálculo de posição via JS. position:fixed com

@@ -35,11 +35,12 @@ async function bloquearSePlanoFree(seletorConteudo, resumo, nivelExigido = "atle
   const elConteudo = typeof seletorConteudo === "string" ? document.querySelector(seletorConteudo) : seletorConteudo;
   if (!elConteudo) return true;
 
+  const nomePlano = nivelExigido === "mestre" ? "Plano MESTRE PRO" : "Plano PRO";
   const aviso = document.createElement("div");
   aviso.className = "aviso-plano-pro";
   aviso.innerHTML = `
-    <div class="aviso-plano-pro-selo">🔒 Exclusivo do Plano PRO</div>
-    <p class="aviso-plano-pro-resumo">${resumo || "Essa ferramenta faz parte do Plano PRO."}</p>
+    <div class="aviso-plano-pro-selo">🔒 Exclusivo do ${nomePlano}</div>
+    <p class="aviso-plano-pro-resumo">${resumo || `Essa ferramenta faz parte do ${nomePlano}.`}</p>
     <a href="/assinatura" class="aviso-plano-pro-botao">Testar grátis por 7 dias</a>
   `;
   elConteudo.parentNode.insertBefore(aviso, elConteudo);
@@ -96,9 +97,8 @@ async function carregarSessaoNoMenu() {
   const elNavAdminMobile = document.getElementById("nav-admin-toggle-mobile");
   const elContaToggleMobile = document.getElementById("nav-conta-toggle-mobile");
   const elPainelConta = document.getElementById("painel-nav-conta");
-  const elMeusAlunos = document.getElementById("nav-meus-alunos");
-  const elTurmas = document.getElementById("nav-turmas");
-  const elTurmasMobile = document.getElementById("nav-turmas-toggle-mobile");
+  const elMestre = document.getElementById("nav-mestre");
+  const elMestreMobile = document.getElementById("nav-mestre-toggle-mobile");
   const elPlanos = document.getElementById("nav-planos");
 
   // Pra quem ainda não tem login, "Planos" é o link mais importante do menu
@@ -184,17 +184,16 @@ async function carregarSessaoNoMenu() {
       });
       if (elNavAdmin) elNavAdmin.style.display = dados.admin ? "" : "none";
       if (elNavAdminMobile) elNavAdminMobile.style.display = dados.admin ? "" : "none";
-      // Meus Alunos/Turmas ficam visíveis pra qualquer conta logada agora
-      // (pedido do usuário 11/09/2026: "todas as opções habilitadas no
-      // menu") — não existe mais um "papel" que esconda ferramenta do
-      // menu; quem não tem o Plano Mestre PRO ativo só esbarra no aviso
-      // de conteúdo bloqueado ao abrir (bloquearSePlanoFree nível
-      // "mestre", ver meus-alunos.js/turmas.js/aluno-detalhe.js).
-      if (elMeusAlunos) elMeusAlunos.style.display = "";
-      if (elTurmas) elTurmas.style.display = "";
-      if (elTurmasMobile) elTurmasMobile.style.display = "";
+      // Menu Mestre (Meus Alunos + Turmas) fica visível pra qualquer conta
+      // logada agora (pedido do usuário 11/09/2026: "todas as opções
+      // habilitadas no menu") — não existe mais um "papel" que esconda
+      // ferramenta do menu; quem não tem o Plano Mestre PRO ativo só
+      // esbarra no aviso de conteúdo bloqueado ao abrir (bloquearSePlanoFree
+      // nível "mestre", ver meus-alunos.js/turmas.js/aluno-detalhe.js).
+      if (elMestre) elMestre.style.display = "";
+      if (elMestreMobile) elMestreMobile.style.display = "";
       if (elPlanos) elPlanos.style.display = "none";
-      await carregarSubmenuTurmas();
+      await carregarSubmenuMestre();
       aplicarSessao({ logado: true, mestre: !!dados.mestre, admin: !!dados.admin, email: dados.email });
     } else {
       // Entrar/Cadastrar continuam dentro do menu rolante (CSS manda pro
@@ -208,9 +207,8 @@ async function carregarSessaoNoMenu() {
       if (elNavAdminMobile) elNavAdminMobile.style.display = "none";
       if (elContaToggleMobile) elContaToggleMobile.style.display = "none";
       if (elPainelConta) elPainelConta.innerHTML = "";
-      if (elMeusAlunos) elMeusAlunos.style.display = "none";
-      if (elTurmas) elTurmas.style.display = "none";
-      if (elTurmasMobile) elTurmasMobile.style.display = "none";
+      if (elMestre) elMestre.style.display = "none";
+      if (elMestreMobile) elMestreMobile.style.display = "none";
       if (elPlanos) elPlanos.style.display = "";
       reordenarPlanosAntesDoRadar();
       aplicarSessao({ logado: false, mestre: false, admin: false });
@@ -224,28 +222,28 @@ async function carregarSessaoNoMenu() {
     if (elNavAdminMobile) elNavAdminMobile.style.display = "none";
     if (elContaToggleMobile) elContaToggleMobile.style.display = "none";
     if (elPainelConta) elPainelConta.innerHTML = "";
-    if (elMeusAlunos) elMeusAlunos.style.display = "none";
-    if (elTurmas) elTurmas.style.display = "none";
-    if (elTurmasMobile) elTurmasMobile.style.display = "none";
+    if (elMestre) elMestre.style.display = "none";
+    if (elMestreMobile) elMestreMobile.style.display = "none";
     if (elPlanos) elPlanos.style.display = "";
     reordenarPlanosAntesDoRadar();
     aplicarSessao({ logado: false, mestre: false, admin: false });
   }
 }
 
-// Submenu "Turmas": lista as turmas já criadas pelo Mestre, com link direto
-// pra cada uma dentro de /turmas.
-async function carregarSubmenuTurmas() {
-  const elSubmenu = document.getElementById("nav-turmas-submenu");
-  const elPainelMobile = document.getElementById("painel-nav-turmas");
+// Submenu "Menu Mestre": Meus Alunos + turmas já criadas pelo Mestre, com
+// link direto pra cada uma dentro de /turmas.
+async function carregarSubmenuMestre() {
+  const elSubmenu = document.getElementById("nav-mestre-submenu");
+  const elPainelMobile = document.getElementById("painel-nav-mestre");
   if (!elSubmenu && !elPainelMobile) return;
 
-  // "+ Nova turma" sempre aparece, mesmo se a lista de turmas não vier —
-  // sem isso, um erro na API (ex: 402 de Mestre no plano Free, que ainda
-  // não tem assinatura) deixava o submenu inteiro vazio, parecendo que o
-  // clique em "Turmas" simplesmente não fazia nada.
+  // "Meus Alunos" e "+ Nova turma" sempre aparecem, mesmo se a lista de
+  // turmas não vier — sem isso, um erro na API (ex: 402 de Mestre no plano
+  // Free, que ainda não tem assinatura) deixava o submenu inteiro vazio,
+  // parecendo que o clique em "Menu Mestre" simplesmente não fazia nada.
+  const itemAlunos = `<a href="/meus-alunos"><strong>Meus Alunos</strong></a>`;
   const itemNova = `<a href="/turmas?nova=1"><strong>+ Nova turma</strong></a>`;
-  let html = itemNova;
+  let html = itemAlunos + itemNova;
   try {
     const resp = await fetch("/api/turmas");
     if (resp.ok) {
@@ -393,7 +391,7 @@ window.addEventListener("resize", ajustarDegradeMenu);
 // tudo ao clicar fora.
 const MAPA_TOGGLE_PAINEL_MOBILE = [
   [".menu-atleta-toggle", "painel-menu-atleta"],
-  [".turmas-toggle-mobile", "painel-nav-turmas"],
+  [".mestre-toggle-mobile", "painel-nav-mestre"],
   [".admin-toggle-mobile", "painel-nav-admin"],
   [".conta-toggle-mobile", "painel-nav-conta"],
 ];
