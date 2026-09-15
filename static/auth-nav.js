@@ -149,7 +149,7 @@ async function carregarSessaoNoMenu() {
           <a href="#" class="nav-admin-toggle">${ICONE_PERFIL}<span>Minha Conta</span><span class="nav-admin-seta">▾</span></a>
           <div class="nav-admin-submenu">
             <a href="/assinatura">${ICONE_ASSINATURA}<span>Minha Assinatura</span></a>
-            <a href="/perfil">${ICONE_PERFIL}<span>Meu Perfil</span></a>
+            <a href="/perfil">${ICONE_PERFIL}<span>Meus Dados</span></a>
             <a href="${linkPerfilPublico}">${ICONE_GLOBO}<span>Perfil Público</span></a>
             <a href="#" class="nav-sair">${ICONE_LOGOUT}<span>Sair</span></a>
           </div>
@@ -163,7 +163,7 @@ async function carregarSessaoNoMenu() {
       }
       if (elMobile) {
         elMobile.style.display = "";
-        elMobile.innerHTML = `<a href="/assinatura" title="Minha Assinatura">${ICONE_ASSINATURA}</a><a href="/perfil" title="Meu Perfil">${ICONE_PERFIL}</a><a href="${linkPerfilPublico}" title="Perfil Público">${ICONE_GLOBO}</a><a href="#" class="nav-sair" title="Sair">${ICONE_LOGOUT}</a>`;
+        elMobile.innerHTML = `<a href="/assinatura" title="Minha Assinatura">${ICONE_ASSINATURA}</a><a href="/perfil" title="Meus Dados">${ICONE_PERFIL}</a><a href="${linkPerfilPublico}" title="Perfil Público">${ICONE_GLOBO}</a><a href="#" class="nav-sair" title="Sair">${ICONE_LOGOUT}</a>`;
       }
       // "Minha Conta" no menu rolante do mobile usa o MESMO painel sticky
       // de Admin/Turmas (MAPA_TOGGLE_PAINEL_MOBILE abaixo), não o dropdown
@@ -175,7 +175,7 @@ async function carregarSessaoNoMenu() {
       if (elPainelConta) {
         elPainelConta.innerHTML = `
           <a href="/assinatura">${ICONE_ASSINATURA}<span>Minha Assinatura</span></a>
-          <a href="/perfil">${ICONE_PERFIL}<span>Meu Perfil</span></a>
+          <a href="/perfil">${ICONE_PERFIL}<span>Meus Dados</span></a>
           <a href="${linkPerfilPublico}">${ICONE_GLOBO}<span>Perfil Público</span></a>
           <a href="#" class="nav-sair">${ICONE_LOGOUT}<span>Sair</span></a>
         `;
