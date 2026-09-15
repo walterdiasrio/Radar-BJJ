@@ -223,11 +223,22 @@ def _federacoes_da_lista(federacao):
 
 
 def login_necessario(view):
-    """Protege páginas: sem sessão válida, manda pro login."""
+    """Protege páginas: sem sessão válida, manda pro login. Sem nome de
+    usuário definido, manda pra /escolher-usuario antes de liberar o resto
+    do site — cadastro por e-mail já exige isso desde o formulário, mas
+    login via Google cria a conta sem pedir (ver auth.obter_ou_criar_via_
+    google), deixando a pessoa sem perfil público até preencher na mão em
+    /perfil. Fecha essa brecha aqui, de um jeito que vale pra qualquer conta
+    nesse estado, não só quem veio do Google (pedido do usuário 15/09/2026)."""
     @wraps(view)
     def wrapper(*args, **kwargs):
-        if not session.get("usuario_id"):
+        usuario_id = session.get("usuario_id")
+        if not usuario_id:
             return redirect("/login")
+        if request.path != "/escolher-usuario":
+            usuario = auth.buscar_por_id(usuario_id)
+            if usuario and not usuario["nome_usuario"]:
+                return redirect("/escolher-usuario")
         return view(*args, **kwargs)
     return wrapper
 
@@ -396,6 +407,12 @@ def pagina_cadastro():
 @app.get("/login")
 def pagina_login():
     return send_from_directory("static", "login.html")
+
+
+@app.get("/escolher-usuario")
+@login_necessario
+def pagina_escolher_usuario():
+    return send_from_directory("static", "escolher-usuario.html")
 
 
 @app.get("/planos")
