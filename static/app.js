@@ -1,3 +1,17 @@
+// Tutorial fica FORA de #conteudo-plano-pro no HTML de propósito — assim
+// continua visível mesmo pra quem é Free e esbarra no aviso de "exclusivo
+// PRO" (bloquearSePlanoFree só esconde o formulário/resultados).
+(function tutorialRadar() {
+  const elModal = document.getElementById("modal-tutorial");
+  if (!elModal) return;
+  const abrir = () => { elModal.style.display = "flex"; };
+  const fechar = () => { elModal.style.display = "none"; };
+  document.getElementById("btn-tutorial").addEventListener("click", abrir);
+  document.getElementById("btn-fechar-tutorial").addEventListener("click", fechar);
+  document.getElementById("btn-entendi-tutorial").addEventListener("click", fechar);
+  elModal.addEventListener("click", (ev) => { if (ev.target === elModal) fechar(); });
+})();
+
 const TODAS = "todas";
 
 const MESES_ABREV_DATA_COMPACTA = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];

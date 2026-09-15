@@ -32,7 +32,7 @@ src="https://www.facebook.com/tr?id=28254694314126516&ev=PageView&noscript=1"
 <link rel="icon" type="image/png" href="/img/favicon.png?v=3">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Radar BJJ — Radar de Atletas</title>
-<link rel="stylesheet" href="style.css?v=63">
+<link rel="stylesheet" href="style.css?v=64">
 </head>
 <body>
 <header>
@@ -96,6 +96,40 @@ src="https://www.facebook.com/tr?id=28254694314126516&ev=PageView&noscript=1"
 
 <main>
   <img src="img/banner-radar-atletas.jpg?v=2" alt="Radar de Atletas" class="banner-pagina">
+
+  <button type="button" id="btn-tutorial" class="btn-secundario" style="margin-bottom: 16px;">📖 Como usar o Radar de Atletas</button>
+
+  <div id="modal-tutorial" class="modal-overlay" style="display:none;">
+    <div class="modal-caixa">
+      <button type="button" class="modal-fechar" id="btn-fechar-tutorial" aria-label="Fechar">✕</button>
+      <h2 style="color: var(--azul); margin-top: 0;">Como usar o Radar de Atletas</h2>
+      <p style="color: #55606b;">Encontre atletas já inscritos nas competições das principais federações — antes do dia da luta, sem precisar entrar no site de cada uma.</p>
+
+      <h3 style="color: var(--azul); font-size: 1rem; margin-bottom: 4px;">1. Escolha a federação</h3>
+      <p style="color: #55606b; margin-top: 0;">Marque uma ou mais federações na lista. Dá pra marcar várias de uma vez — o Radar busca em todas ao mesmo tempo.</p>
+
+      <h3 style="color: var(--azul); font-size: 1rem; margin-bottom: 4px;">2. Escolha a competição</h3>
+      <p style="color: #55606b; margin-top: 0;">Assim que marcar a federação, a lista de competições dela aparece pra você selecionar.</p>
+
+      <h3 style="color: var(--azul); font-size: 1rem; margin-bottom: 4px;">3. Refine a busca (opcional)</h3>
+      <p style="color: #55606b; margin-top: 0;">
+        Filtre por gênero, faixa, nome do atleta ou da equipe. Preenchendo a <strong>data de nascimento</strong>, a categoria de idade é calculada sozinha.
+        No peso, preencha só um dos dois campos (com ou sem kimono) — o outro é estimado automaticamente.
+      </p>
+
+      <h3 style="color: var(--azul); font-size: 1rem; margin-bottom: 4px;">4. Buscar</h3>
+      <p style="color: #55606b; margin-top: 0;">Clique em <strong>Buscar</strong> e veja a lista de atletas inscritos que batem com os filtros escolhidos.</p>
+
+      <h3 style="color: var(--azul); font-size: 1rem; margin-bottom: 4px;">Depois de buscar</h3>
+      <p style="color: #55606b; margin-top: 0;">
+        <strong>Criar alerta com esses filtros</strong> avisa por e-mail sempre que um atleta novo entrar nessa categoria (Plano PRO).
+        <strong>Salvar filtro atual como padrão</strong> deixa esses mesmos filtros já preenchidos na sua próxima visita.
+      </p>
+
+      <button type="button" id="btn-entendi-tutorial" style="width: 100%; margin-top: 12px;">Entendi</button>
+    </div>
+  </div>
+
   <div id="conteudo-plano-pro">
   <form id="form-busca">
     <div class="campo">
@@ -175,7 +209,7 @@ src="https://www.facebook.com/tr?id=28254694314126516&ev=PageView&noscript=1"
 </div>
 
 <script src="auth-nav.js?v=21"></script>
-<script src="app.js?v=4"></script>
+<script src="app.js?v=5"></script>
 <nav class="menu-lateral menu-lateral-rodape" id="menu-rodape"></nav>
 </body>
 </html>

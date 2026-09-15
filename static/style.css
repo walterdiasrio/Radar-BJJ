@@ -1494,6 +1494,56 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
   .popup-trial-fechar:hover { color: #e8edf3; }
 }
 
+/* Modal genérico (overlay + caixa central) — pensado pro tutorial do Radar
+   de Atletas, mas sem nome específico de propósito: dá pra reaproveitar em
+   qualquer outro conteúdo que precise de um popup central (mesma mecânica
+   de position:fixed/flex do .popup-trial-overlay, só sem o estilo de venda
+   dele). max-height + overflow-y porque conteúdo de tutorial tende a ser
+   mais longo que caberia numa tela de celular. */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(9, 20, 40, 0.55);
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: popup-trial-fade 0.25s ease;
+}
+
+.modal-caixa {
+  position: relative;
+  background: white;
+  border-radius: 16px;
+  max-width: 620px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 32px 28px 28px;
+  box-shadow: 0 20px 60px rgba(9, 20, 40, 0.35);
+}
+
+.modal-fechar {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  background: none;
+  border: none;
+  font-size: 1.6rem;
+  line-height: 1;
+  color: #8a94a3;
+  cursor: pointer;
+  padding: 4px;
+}
+.modal-fechar:hover { color: var(--texto); }
+
+@media (prefers-color-scheme: dark) {
+  .modal-caixa { background: #1a2230; color: #eaf2f9; }
+  .modal-fechar { color: #6a7686; }
+  .modal-fechar:hover { color: #e8edf3; }
+}
+
 /* Versão com a arte pronta (imagem única com todo o texto/botão já
    desenhados) — o container perde o padding/texto próprio, a imagem
    preenche tudo e é ela mesma o link pro cadastro. O "X" de fechar já
