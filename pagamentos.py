@@ -1,22 +1,19 @@
-"""Assinaturas pagas via Stripe Checkout (mode=subscription para cartão,
-mode=payment para PIX).
+"""Assinaturas pagas via Stripe Checkout (mode=subscription, cartão/boleto).
 
 Dois planos (atleta/mestre), cada um mensal ou anual, com 7 dias de teste
-grátis (só no cartão — PIX não tem teste grátis, ver criar_sessao_checkout_
-pix). O Stripe é a fonte da verdade sobre cobrança de cartão — aqui a
-gente só guarda um espelho local (assinaturas.db) atualizado pelos
-webhooks, pra não precisar bater na API do Stripe a cada requisição só
-pra saber se o usuário tem acesso.
+grátis. O Stripe é a fonte da verdade sobre cobrança — aqui a gente só
+guarda um espelho local (assinaturas.db) atualizado pelos webhooks, pra
+não precisar bater na API do Stripe a cada requisição só pra saber se o
+usuário tem acesso.
 
-PIX é diferente: não existe "assinatura PIX" de verdade — PIX é uma
-transferência instantânea sem cartão salvo, então o Stripe não permite
-cobrança recorrente automática por PIX (só mode=payment, pagamento
-avulso). Por isso quem paga por PIX compra o PERÍODO (mês ou ano) de uma
-vez, e a gente mesmo controla localmente quando isso vence
-(forma_pagamento="pix" + periodo_atual_fim calculado aqui, não vindo do
-Stripe) — sem renovação automática, com lembrete por e-mail perto do
-vencimento (ver verificar_pix() e app.py, chamado no loop periódico já
-existente pros alertas)."""
+PIX chegou a ser implementado (checkout avulso, sem renovação automática)
+mas nunca foi ativado de verdade — o Stripe exige 60 dias de conta antes
+de liberar PIX como forma de pagamento, e o botão ficou escondido até ser
+removido (pedido do usuário, 15/09/2026). Ainda sobra tratamento de
+forma_pagamento="pix" no webhook e no lembrete de renovação (ver
+_refletir_pagamento_pix/listar_pix_a_lembrar) — inofensivo hoje (não tem
+mais como criar um checkout PIX novo), mas pode ser removido também se um
+dia quiser limpar de vez."""
 import os
 import sqlite3
 import time
@@ -40,16 +37,6 @@ PRECOS = {
     ("atleta", "anual"): os.environ.get("STRIPE_PRICE_ATLETA_ANUAL", ""),
     ("mestre", "mensal"): os.environ.get("STRIPE_PRICE_MESTRE_MENSAL", ""),
     ("mestre", "anual"): os.environ.get("STRIPE_PRICE_MESTRE_ANUAL", ""),
-}
-
-# Preços AVULSOS (não recorrentes) pro checkout com PIX — precisam ser
-# Prices diferentes dos de cima no Stripe (esses são "one time", os de
-# cima são "recurring"), mesmo cobrando o mesmo valor.
-PRECOS_PIX = {
-    ("atleta", "mensal"): os.environ.get("STRIPE_PRICE_PIX_ATLETA_MENSAL", ""),
-    ("atleta", "anual"): os.environ.get("STRIPE_PRICE_PIX_ATLETA_ANUAL", ""),
-    ("mestre", "mensal"): os.environ.get("STRIPE_PRICE_PIX_MESTRE_MENSAL", ""),
-    ("mestre", "anual"): os.environ.get("STRIPE_PRICE_PIX_MESTRE_ANUAL", ""),
 }
 
 # Quantos dias um período pago por PIX dura, por periodicidade — usado
@@ -99,10 +86,6 @@ def init_db():
 
 def plano_valido(plano, periodicidade):
     return (plano, periodicidade) in PRECOS and bool(PRECOS[(plano, periodicidade)])
-
-
-def plano_valido_pix(plano, periodicidade):
-    return (plano, periodicidade) in PRECOS_PIX and bool(PRECOS_PIX[(plano, periodicidade)])
 
 
 def obter_assinatura(usuario_id):
@@ -183,40 +166,6 @@ def criar_sessao_checkout(usuario, plano, periodicidade):
         parametros["customer"] = customer_id
     else:
         parametros["customer_email"] = usuario["email"]
-
-    try:
-        sessao = stripe.checkout.Session.create(**parametros)
-    except stripe.error.StripeError as exc:
-        return None, str(exc)
-    return sessao.url, None
-
-
-def criar_sessao_checkout_pix(usuario, plano, periodicidade):
-    """Retorna (url, erro). Igual criar_sessao_checkout, mas mode=payment
-    (avulso) com PIX — sem teste grátis (não faz sentido cobrar de novo
-    "manualmente" 7 dias depois) e sem tokenizar cliente pra cobrança
-    futura (PIX não permite). A liberação do acesso acontece no webhook
-    (ver processar_evento_webhook), calculando periodo_atual_fim aqui —
-    não vem do Stripe porque pra ele isso não é uma assinatura."""
-    if not plano_valido_pix(plano, periodicidade):
-        return None, "plano inválido"
-
-    price_id = PRECOS_PIX[(plano, periodicidade)]
-    parametros = {
-        "mode": "payment",
-        "payment_method_types": ["pix"],
-        "line_items": [{"price": price_id, "quantity": 1}],
-        "client_reference_id": str(usuario["id"]),
-        "customer_email": usuario["email"],
-        "metadata": {
-            "usuario_id": str(usuario["id"]),
-            "plano": plano,
-            "periodicidade": periodicidade,
-            "forma_pagamento": "pix",
-        },
-        "success_url": f"{URL_SITE}/assinatura/sucesso?plano={plano}&periodicidade={periodicidade}",
-        "cancel_url": f"{URL_SITE}/assinatura",
-    }
 
     try:
         sessao = stripe.checkout.Session.create(**parametros)

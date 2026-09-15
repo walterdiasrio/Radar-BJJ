@@ -2230,20 +2230,6 @@ def api_checkout():
     return jsonify({"ok": True, "url": url})
 
 
-@app.post("/api/checkout-pix")
-@api_login_necessario
-def api_checkout_pix():
-    dados = request.get_json(silent=True) or {}
-    plano = dados.get("plano", "")
-    periodicidade = dados.get("periodicidade", "")
-
-    usuario = auth.buscar_por_id(session["usuario_id"])
-    url, erro = pagamentos.criar_sessao_checkout_pix(usuario, plano, periodicidade)
-    if erro:
-        return jsonify({"erro": erro}), 400
-    return jsonify({"ok": True, "url": url})
-
-
 @app.post("/api/portal")
 @api_login_necessario
 def api_portal():
