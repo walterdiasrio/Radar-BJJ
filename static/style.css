@@ -2262,12 +2262,41 @@ tr:hover td { background: #f8fafc; }
 /* Cada tipo de alerta (Radar de Atletas / Novas Competições / Prazo de
    Inscrição) num card separado — antes era só <h3>/<p> soltos direto no
    <main>, sem nenhuma fronteira visual entre um tipo e outro (relatado
-   pelo usuário: "muito textual, sem separação"). max-width mais largo que
-   o padrão do .card-carreira (480px) porque aqui dentro cabe uma lista
-   inteira de cartões de alerta, não só texto/formulário. */
+   pelo usuário: "muito textual, sem separação"). Lado a lado em vez de
+   empilhado (pedido do usuário: "tudo na mesma tela, sem rolar") — ver
+   .grade-alertas logo abaixo, que também zera esse max-width/margin
+   pra cada card ocupar sua coluna inteira. */
 .secao-alerta {
   max-width: 620px;
   margin: 0 0 24px;
+}
+
+.grade-alertas {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.grade-alertas .secao-alerta {
+  max-width: none;
+  margin: 0;
+  padding: 14px;
+}
+
+.grade-alertas .secao-alerta .banner-secao-card { margin-bottom: 8px; }
+
+.secao-alerta-texto {
+  color: #55606b;
+  font-size: 0.78rem;
+  margin: 0 0 10px;
+  line-height: 1.4;
+}
+
+.secao-alerta-texto a { font-weight: 700; white-space: nowrap; }
+
+@media (max-width: 900px) {
+  .grade-alertas { grid-template-columns: 1fr; }
 }
 
 .luta-row {

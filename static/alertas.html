@@ -32,7 +32,7 @@ src="https://www.facebook.com/tr?id=28254694314126516&ev=PageView&noscript=1"
 <link rel="icon" type="image/png" href="/img/favicon.png?v=3">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Radar BJJ — Meus Alertas</title>
-<link rel="stylesheet" href="style.css?v=59">
+<link rel="stylesheet" href="style.css?v=60">
 </head>
 <body>
 <header>
@@ -95,14 +95,11 @@ src="https://www.facebook.com/tr?id=28254694314126516&ev=PageView&noscript=1"
 
 
 <main>
-  <img src="img/banner-meus-alertas.jpg?v=2" alt="Meus Alertas" class="banner-pagina">
+  <div class="grade-alertas">
 
   <div class="card-carreira secao-alerta">
     <img src="img/alerta-competicao-free.jpg?v=1" alt="Alertas de Novas Competições — Plano Free" class="banner-secao-card">
-    <p style="color: var(--azul-claro); font-size: 0.85rem; margin-top:0;">
-      Disponível no Plano Free: receba um alerta por e-mail sempre que uma das suas federações preferidas
-      anunciar uma nova competição. Crie um alerta personalizado em <a href="/competicoes">Competições</a>.
-    </p>
+    <p class="secao-alerta-texto">Aviso quando sua federação favorita anunciar competição nova. <a href="/competicoes">Criar em Competições →</a></p>
 
     <div id="status-competicao"></div>
 
@@ -111,11 +108,7 @@ src="https://www.facebook.com/tr?id=28254694314126516&ev=PageView&noscript=1"
 
   <div class="card-carreira secao-alerta">
     <img src="img/alerta-radar-atletas-pro.jpg?v=1" alt="Alertas do Radar de Atletas — Plano PRO" class="banner-secao-card">
-    <p style="color: var(--azul-claro); font-size: 0.85rem; margin-top:0;">
-      Disponível no Plano PRO: receba alertas automáticos sempre que um atleta se inscrever na categoria
-      e federações desejadas. Crie seu alerta personalizado em <a href="/buscador" style="display:inline-flex; align-items:center; gap:4px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" style="flex-shrink:0;"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16" y2="16"/></svg><span>Radar de Atletas</span></a>,
-      preenchendo os filtros desejados e clicando em "Criar alerta com esses filtros".
-    </p>
+    <p class="secao-alerta-texto">Aviso quando um atleta se inscrever na categoria/federação escolhida. <a href="/buscador">Criar no Radar de Atletas →</a></p>
 
     <div id="status"></div>
 
@@ -124,10 +117,7 @@ src="https://www.facebook.com/tr?id=28254694314126516&ev=PageView&noscript=1"
 
   <div class="card-carreira secao-alerta">
     <img src="img/alerta-prazo-inscricao-pro.jpg?v=1" alt="Alertas de Prazo de Inscrição — Plano PRO" class="banner-secao-card">
-    <p style="color: var(--azul-claro); font-size: 0.85rem; margin-top:0;">
-      Disponível no Plano PRO: alertas automáticos por e-mail 7 dias e 1 dia antes do término da
-      inscrição das competições marcadas como "Tenho Interesse" na sua <a href="/agenda">Agenda</a>.
-    </p>
+    <p class="secao-alerta-texto">Aviso 7 e 1 dia antes do fim da inscrição do que tem "Tenho Interesse" na <a href="/agenda">Agenda →</a></p>
 
     <label class="interruptor-linha" for="alerta-prazo-inscricao-check">
       <span class="interruptor">
@@ -137,6 +127,8 @@ src="https://www.facebook.com/tr?id=28254694314126516&ev=PageView&noscript=1"
       <span id="alerta-prazo-inscricao-rotulo">Ativado</span>
     </label>
     <div id="status-prazo-inscricao"></div>
+  </div>
+
   </div>
   </main>
 </div>
