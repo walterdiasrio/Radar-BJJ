@@ -679,6 +679,54 @@ nav.menu-lateral.menu-lateral-rodape {
 
 .aviso-alerta strong { display: block; font-size: 1rem; margin-bottom: 2px; }
 
+.aviso-confirmar-email {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background: linear-gradient(135deg, var(--azul) 0%, var(--azul-claro) 100%);
+  color: white;
+  border-radius: 14px;
+  padding: 20px;
+  margin: 0 0 20px;
+  box-shadow: 0 10px 30px rgba(0, 30, 120, 0.3);
+}
+
+.aviso-confirmar-email-icone { font-size: 2rem; line-height: 1; flex-shrink: 0; }
+.aviso-confirmar-email-titulo { display: block; font-size: 1.1rem; margin-bottom: 4px; }
+.aviso-confirmar-email p { margin: 6px 0; font-size: 0.9rem; line-height: 1.5; }
+
+.aviso-confirmar-email-checklist {
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+.aviso-confirmar-email-acoes {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.aviso-confirmar-email-acoes button,
+.aviso-confirmar-email-acoes a {
+  background: white;
+  color: var(--azul);
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  font-size: 0.85rem;
+}
+
+.aviso-confirmar-email-acoes a.btn-secundario {
+  background: transparent;
+  color: white;
+  border: 1.5px solid rgba(255, 255, 255, 0.7);
+}
+
 .aviso-plano-pro {
   background: linear-gradient(180deg, #fdf3e3 0%, #fbe9cc 100%);
   border: 1px solid #e8c27a;

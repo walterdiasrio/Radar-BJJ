@@ -78,14 +78,9 @@ elForm.addEventListener("submit", async (ev) => {
       elStatus.scrollIntoView({ behavior: "smooth", block: "start" });
       return;
     }
-    elStatus.className = "aviso-sucesso";
-    elStatus.innerHTML = `
-      <span style="font-size:1.4rem; line-height:1;">📩</span>
-      <span>
-        <strong>Falta pouco!</strong>
-        Enviamos um link de confirmação para <strong>${escapeHtml(dados.email)}</strong>. Clique nele pra ativar sua conta.
-      </span>
-    `;
+    elStatus.className = "";
+    elStatus.innerHTML = "";
+    elStatus.appendChild(montarAvisoConfirmarEmail(dados.email));
     elStatus.scrollIntoView({ behavior: "smooth", block: "start" });
   } catch (err) {
     mostrarStatus(err.message, true);

@@ -1,5 +1,6 @@
 const elForm = document.getElementById("form-login");
 const elStatus = document.getElementById("status");
+const elAvisoTopo = document.getElementById("aviso-topo");
 
 function mostrarStatus(texto, ehErro = false) {
   elStatus.textContent = texto;
@@ -9,39 +10,14 @@ function mostrarStatus(texto, ehErro = false) {
 // Muita gente cadastrada nunca confirma o e-mail e fica sem conseguir
 // entrar (o login é bloqueado até confirmar) — esse aviso precisa chamar
 // mais atenção do que o texto de erro padrão, senão passa despercebido e a
-// pessoa desiste sem entender por quê.
+// pessoa desiste sem entender por quê. Fica no topo da página (pedido do
+// usuário 15/09/2026: a versão anterior ficava embaixo do formulário todo,
+// fácil de não ver), reaproveitando o mesmo aviso do cadastro (ver
+// montarAvisoConfirmarEmail em auth-nav.js).
 function mostrarAvisoEmailNaoConfirmado(email) {
-  elStatus.className = "";
-  elStatus.innerHTML = "";
-
-  const caixa = document.createElement("div");
-  caixa.className = "aviso-alerta";
-  caixa.innerHTML = `
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0; margin-top:1px;"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>
-    <div>
-      <strong>Confirme seu e-mail antes de entrar</strong>
-      Enviamos um link de confirmação pra ${email} quando você se cadastrou. Não achou? Confira o spam ou clique abaixo pra reenviar.
-    </div>
-  `;
-
-  const btnReenviar = document.createElement("button");
-  btnReenviar.type = "button";
-  btnReenviar.textContent = "Reenviar e-mail de confirmação";
-  btnReenviar.style.marginTop = "12px";
-  btnReenviar.addEventListener("click", async () => {
-    btnReenviar.disabled = true;
-    btnReenviar.textContent = "Enviando...";
-    await fetch("/api/reenviar-confirmacao", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
-    });
-    btnReenviar.textContent = "E-mail reenviado ✓";
-  });
-  caixa.querySelector("div").appendChild(document.createElement("br"));
-  caixa.querySelector("div").appendChild(btnReenviar);
-
-  elStatus.appendChild(caixa);
+  elAvisoTopo.innerHTML = "";
+  elAvisoTopo.appendChild(montarAvisoConfirmarEmail(email));
+  elAvisoTopo.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 (function mostrarErroGoogle() {

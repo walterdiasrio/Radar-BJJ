@@ -489,6 +489,49 @@ async function fetchAutenticado(url, opts) {
   return resp;
 }
 
+// Aviso grande/chamativo de "falta confirmar seu e-mail" — reaproveitado no
+// cadastro (assim que a conta é criada) e no login (quem tenta entrar sem
+// ter confirmado ainda). Cor forte de propósito (pedido do usuário
+// 15/09/2026: a versão antiga, discreta, passava despercebido — muita gente
+// só via o alerta pequeno lá embaixo da página, sem entender por que não
+// conseguia entrar) — checklist de Spam/Promoções porque é onde esse tipo
+// de e-mail mais costuma parar, botão de reenviar direto ali (sem precisar
+// digitar o e-mail de novo, já vem pronto), e um atalho pra Fale Conosco
+// pra quem já tentou de tudo e continua sem receber.
+function montarAvisoConfirmarEmail(email) {
+  const elEscapador = document.createElement("span");
+  elEscapador.textContent = email;
+  const emailSeguro = elEscapador.innerHTML;
+  const div = document.createElement("div");
+  div.className = "aviso-confirmar-email";
+  div.innerHTML = `
+    <div class="aviso-confirmar-email-icone">📧</div>
+    <div>
+      <strong class="aviso-confirmar-email-titulo">Falta confirmar seu e-mail!</strong>
+      <p>Enviamos um link de confirmação pra <strong>${emailSeguro}</strong>. Clique nele pra ativar sua conta.</p>
+      <p class="aviso-confirmar-email-checklist">⚠️ Não achou? Verifique <strong>todas</strong> as caixas: Entrada, <strong>Spam</strong> e <strong>Promoções</strong>.</p>
+      <div class="aviso-confirmar-email-acoes">
+        <button type="button" class="btn-reenviar-confirmacao">Reenviar e-mail</button>
+        <a href="/fale-conosco" class="btn-secundario">Problemas? Fale conosco</a>
+      </div>
+    </div>
+  `;
+  div.querySelector(".btn-reenviar-confirmacao").addEventListener("click", async (ev) => {
+    const btn = ev.currentTarget;
+    const textoOriginal = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "Enviando...";
+    await fetch("/api/reenviar-confirmacao", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    btn.textContent = "E-mail reenviado ✓";
+    setTimeout(() => { btn.disabled = false; btn.textContent = textoOriginal; }, 4000);
+  });
+  return div;
+}
+
 // Copia um texto (link do perfil público, etc.) e dá feedback visual no
 // próprio botão clicado, sem depender de um elemento de status separado.
 async function copiarParaClipboard(texto, elBotao) {
