@@ -35,7 +35,15 @@ DATA_DIR = Path(os.environ.get("DATA_DIR", Path(__file__).parent))
 DB_PATH = DATA_DIR / "alertas.db"
 
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY")
-REMETENTE = os.environ.get("ALERTA_REMETENTE", "Radar BJJ <no-reply@radarbjj.com>")
+# Trocado de no-reply@ pra verificacao@ em 15/09/2026 — o endereço antigo
+# provavelmente teve a reputação manchada por um disparo em massa feito pela
+# mesma caixa (ver REMETENTE_CAMPANHA abaixo), então em vez de esperar a
+# reputação dele se recuperar sozinha, troca por um endereço nunca usado
+# antes (mesmo domínio já verificado no Resend, não precisa configurar nada
+# novo). Se ALERTA_REMETENTE estiver definida à mão nas env vars do Render,
+# precisa atualizar lá também — esse valor aqui só vale quando a env var não
+# está setada.
+REMETENTE = os.environ.get("ALERTA_REMETENTE", "Radar BJJ <verificacao@radarbjj.com>")
 # Remetente separado pra campanha/divulgação em massa — NUNCA usar REMETENTE
 # (transacional: confirmação de cadastro, redefinição de senha) pra isso.
 # Mandar promocional pelo mesmo endereço que carrega e-mail crítico arrisca
