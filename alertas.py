@@ -36,16 +36,14 @@ DB_PATH = DATA_DIR / "alertas.db"
 
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY")
 REMETENTE = os.environ.get("ALERTA_REMETENTE", "Radar BJJ <no-reply@radarbjj.com>")
-# Remetente separado pra campanha/divulgação (ex: e-mail avisando sobre
-# alertas pros Free) — NUNCA usar REMETENTE (transacional: confirmação de
-# cadastro, redefinição de senha) pra isso. Mandar promocional pelo mesmo
-# endereço que carrega e-mail crítico arrisca manchar a reputação dele e
-# derrubar a entrega do que realmente importa (relatado pelo usuário
-# 15/09/2026: 3 confirmações de cadastro caíram em spam bem depois de um
-# disparo manual de 17 e-mails pelo Resend usando o remetente errado). Hoje
-# esse remetente só é usado manualmente, direto no Resend (fora do site) —
-# a constante aqui é só documentação/preparo pra um dia isso ser
-# automatizado por código.
+# Remetente separado pra campanha/divulgação em massa — NUNCA usar REMETENTE
+# (transacional: confirmação de cadastro, redefinição de senha) pra isso.
+# Mandar promocional pelo mesmo endereço que carrega e-mail crítico arrisca
+# manchar a reputação dele e derrubar a entrega do que realmente importa
+# (relatado pelo usuário 15/09/2026: 3 confirmações de cadastro caíram em
+# spam bem depois de um disparo de 17 e-mails via "Enviar e-mail avulso" em
+# Gerenciar Usuários, que até então usava o remetente transacional — ver
+# api_enviar_email_avulso em app.py, já corrigido pra passar este aqui).
 REMETENTE_CAMPANHA = os.environ.get("CAMPANHA_REMETENTE", "Equipe Radar BJJ <contato@radarbjj.com>")
 URL_SITE = os.environ.get("URL_SITE", "http://localhost:5050")
 
@@ -650,15 +648,18 @@ def _html_para_texto_simples(html_str):
     return texto.strip()
 
 
-def enviar_email(destinatario, assunto, corpo_html, anexos=None):
+def enviar_email(destinatario, assunto, corpo_html, anexos=None, remetente=None):
     """anexos, se informado: lista de {"filename": ..., "content_base64": ...}
-    (ver turmas/planner_pdf — usado pra mandar o Planner de Aulas em PDF)."""
+    (ver turmas/planner_pdf — usado pra mandar o Planner de Aulas em PDF).
+    remetente, se informado, troca o REMETENTE transacional padrão — usar
+    REMETENTE_CAMPANHA pra qualquer envio em massa/divulgação (ver
+    api_enviar_email_avulso em app.py), nunca o padrão."""
     if not RESEND_API_KEY:
         print(f"[alertas] RESEND_API_KEY não configurada — e-mail não enviado "
               f"(para={destinatario}, assunto={assunto!r})")
         return False
     corpo = {
-        "from": REMETENTE, "to": [destinatario], "subject": assunto,
+        "from": remetente or REMETENTE, "to": [destinatario], "subject": assunto,
         "html": corpo_html, "text": _html_para_texto_simples(corpo_html),
     }
     if anexos:

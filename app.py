@@ -839,7 +839,10 @@ def api_enviar_email_avulso():
     """E-mail avulso pra uma ou mais contas escolhidas em Gerenciar
     Usuários — assunto/corpo digitados na hora, com placeholders
     substituídos por conta ([Nome], [LINK] = confirmar e-mail se ainda não
-    confirmado (senão a home), [LINK PRICING] = /planos)."""
+    confirmado (senão a home), [LINK PRICING] = /planos). Sempre manda pelo
+    REMETENTE_CAMPANHA (nunca o transacional) — essa é a ferramenta de
+    disparo em massa do site, e mandar por aqui usando o remetente errado já
+    manchou a entrega da confirmação de cadastro uma vez (ver alertas.py)."""
     dados = request.get_json(silent=True) or {}
     usuario_ids = dados.get("usuario_ids") or []
     assunto = (dados.get("assunto") or "").strip()
@@ -876,7 +879,7 @@ def api_enviar_email_avulso():
             .replace("[LINK]", f'<a href="{link_principal}">{link_principal}</a>')
         )
 
-        ok = alertas.enviar_email(usuario["email"], assunto_pessoal, corpo_pessoal)
+        ok = alertas.enviar_email(usuario["email"], assunto_pessoal, corpo_pessoal, remetente=alertas.REMETENTE_CAMPANHA)
         resultados.append({"usuario_id": usuario_id, "email": usuario["email"], "enviado": ok})
 
     return jsonify({"resultados": resultados})
