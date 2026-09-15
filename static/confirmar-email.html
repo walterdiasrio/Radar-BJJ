@@ -99,12 +99,20 @@ src="https://www.facebook.com/tr?id=28254694314126516&ev=PageView&noscript=1"
     <h2>Confirmando seu e-mail...</h2>
     <div id="status"></div>
     <p id="link-login" style="display:none;"><a href="/login"><button type="button">Ir para o login</button></a></p>
+    <div id="bloco-reenviar" style="display:none; margin-top: 16px; text-align: left;">
+      <div class="campo">
+        <label for="reenviar-email">Digite seu e-mail pra receber um novo link</label>
+        <input type="email" id="reenviar-email" placeholder="seu@email.com" autocomplete="email">
+      </div>
+      <button type="button" id="btn-reenviar" style="width: 100%;">Reenviar link de confirmação</button>
+      <p id="status-reenviar" style="text-align: center;"></p>
+    </div>
   </div>
 </main>
 </div>
 
 <script src="auth-nav.js?v=20"></script>
-<script src="confirmar-email.js"></script>
+<script src="confirmar-email.js?v=1"></script>
 <nav class="menu-lateral menu-lateral-rodape" id="menu-rodape"></nav>
 </body>
 </html>
