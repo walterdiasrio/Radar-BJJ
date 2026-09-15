@@ -36,6 +36,17 @@ DB_PATH = DATA_DIR / "alertas.db"
 
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY")
 REMETENTE = os.environ.get("ALERTA_REMETENTE", "Radar BJJ <no-reply@radarbjj.com>")
+# Remetente separado pra campanha/divulgação (ex: e-mail avisando sobre
+# alertas pros Free) — NUNCA usar REMETENTE (transacional: confirmação de
+# cadastro, redefinição de senha) pra isso. Mandar promocional pelo mesmo
+# endereço que carrega e-mail crítico arrisca manchar a reputação dele e
+# derrubar a entrega do que realmente importa (relatado pelo usuário
+# 15/09/2026: 3 confirmações de cadastro caíram em spam bem depois de um
+# disparo manual de 17 e-mails pelo Resend usando o remetente errado). Hoje
+# esse remetente só é usado manualmente, direto no Resend (fora do site) —
+# a constante aqui é só documentação/preparo pra um dia isso ser
+# automatizado por código.
+REMETENTE_CAMPANHA = os.environ.get("CAMPANHA_REMETENTE", "Equipe Radar BJJ <contato@radarbjj.com>")
 URL_SITE = os.environ.get("URL_SITE", "http://localhost:5050")
 
 # Limite por conta — evita que um único login seja usado pra criar alertas
