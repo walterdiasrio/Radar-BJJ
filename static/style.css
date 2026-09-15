@@ -168,6 +168,7 @@ header {
   .menu-lateral a { color: #eaf2f9; }
   .menu-lateral a:hover { background: rgba(255, 255, 255, 0.06); }
   .nav-admin-submenu { background: #1b2127; border-color: rgba(255, 255, 255, 0.12); }
+  .menu-lateral::after { background: linear-gradient(to right, transparent, #1b2127 70%); }
 }
 
 .nav-usuario {
@@ -408,6 +409,25 @@ header {
   }
   .menu-lateral::-webkit-scrollbar { display: none; }
   .menu-lateral a { flex-shrink: 0; }
+  /* Sinaliza que a faixa rola pro lado (relatado pelo usuário: sem
+     scrollbar visível, nada indica isso) — sombra/gradiente colado na
+     borda direita via position:sticky, um truque só-CSS: o pseudo-elemento
+     é mais um item do próprio flex que rola, mas gruda na borda visível
+     do contêiner enquanto ele rola (mesmo eixo do overflow-x acima). A
+     margin-left negativa cancela a largura que ele ocuparia no scroll,
+     senão sobrava um espaço vazio extra depois do último item. */
+  .menu-lateral::after {
+    content: "";
+    position: sticky;
+    right: 0;
+    top: 0;
+    height: 52px;
+    width: 28px;
+    margin-left: -28px;
+    flex-shrink: 0;
+    background: linear-gradient(to right, transparent, var(--azul-menu) 70%);
+    pointer-events: none;
+  }
   /* Sem hover de verdade no toque — e a faixa horizontal tem overflow-x,
      que corta qualquer coisa posicionada fora do fluxo normal. Por isso o
      submenu usa position:fixed aqui também (mesmo truque do desktop, ver
