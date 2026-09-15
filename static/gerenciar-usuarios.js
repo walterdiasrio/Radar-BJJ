@@ -64,6 +64,19 @@ function contaEhFree(u) {
   return !["trialing", "active", "past_due"].includes(u.assinatura_status);
 }
 
+// "Mestre" ou "Atleta" — prioriza o plano REAL (o que a pessoa paga de
+// verdade, assinatura_plano) sobre o que ela escolheu no cadastro
+// (tipo_perfil), que pode estar desatualizado (ex: assinou Mestre PRO sem
+// nunca ter marcado "Mestre" no cadastro, ou o contrário). Sem assinatura
+// nenhuma, cai pro que foi declarado no cadastro mesmo, único dado que
+// sobra pra alguém no Free.
+function badgeTipo(u) {
+  const tipo = u.assinatura_plano || u.tipo_perfil;
+  if (!tipo) return "—";
+  const rotulo = tipo === "mestre" ? "Mestre" : "Atleta";
+  return `<span class="badge-inscricao badge-desconhecida">${rotulo}</span>`;
+}
+
 function badgePlano(plano) {
   const classe = plano === "Atleta PRO" || plano === "Mestre PRO"
     ? "badge-aberta"
@@ -73,7 +86,7 @@ function badgePlano(plano) {
 
 function renderizarTabela(usuarios) {
   if (!usuarios.length) {
-    elCorpoTabela.innerHTML = '<tr><td colspan="8">Nenhum usuário encontrado.</td></tr>';
+    elCorpoTabela.innerHTML = '<tr><td colspan="9">Nenhum usuário encontrado.</td></tr>';
     return;
   }
   elCorpoTabela.innerHTML = usuarios.map(u => `
@@ -81,6 +94,7 @@ function renderizarTabela(usuarios) {
       <td><input type="checkbox" class="chk-usuario" data-id="${u.id}" ${idsSelecionados.has(u.id) ? "checked" : ""}></td>
       <td>${u.email}</td>
       <td>${u.nome_usuario || "—"}</td>
+      <td>${badgeTipo(u)}</td>
       <td>${badgePlano(u.plano)}</td>
       <td>${badgeAssinatura(u)}</td>
       <td>${formatarData(u.criado_em)}</td>

@@ -772,6 +772,7 @@ def api_listar_usuarios():
             "id": usuario["id"],
             "email": usuario["email"],
             "nome_usuario": usuario["nome_usuario"],
+            "tipo_perfil": usuario["tipo_perfil"],
             "criado_em": usuario["criado_em"],
             "email_verificado": bool(usuario["email_verificado"]),
             "plano": plano,
