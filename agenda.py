@@ -90,7 +90,11 @@ def listar(usuario_id):
     "data_iso" (YYYY-MM-DD, ou None) — a data de cada federação vem num
     texto livre bem variado ("8 ago até 9 ago", "sábado, 15 de agosto..."),
     então quem precisa separar dia/mês/ano (ex: o Story de Minha Agenda,
-    ver static/agenda.js) usa data_iso em vez de tentar reparsear "data"."""
+    ver static/agenda.js) usa data_iso em vez de tentar reparsear "data".
+    "data_fim_iso" é o último dia do evento (igual a data_iso quando é um
+    dia só) — competição de vários dias sem distribuição de categoria por
+    dia (ex: CBJJD World Cup, 25 a 27) precisa mostrar o intervalo inteiro
+    no Story, não só o primeiro dia (pedido do usuário 15/09/2026)."""
     with _conn() as conn:
         linhas = [
             dict(linha) for linha in
@@ -103,8 +107,10 @@ def listar(usuario_id):
         data_obj = datas_mod.extrair_data(linha["data"])
         if data_obj and data_obj < hoje:
             continue
+        intervalo = datas_mod.extrair_intervalo(linha["data"])
         linha["mes"] = datas_mod.rotulo_mes(data_obj)
         linha["data_iso"] = data_obj.isoformat() if data_obj else None
+        linha["data_fim_iso"] = intervalo[1].isoformat() if intervalo else linha["data_iso"]
         com_data.append((data_obj or date.max, linha))
 
     com_data.sort(key=lambda par: par[0])

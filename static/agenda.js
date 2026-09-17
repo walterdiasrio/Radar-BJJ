@@ -296,10 +296,33 @@ async function gerarImagemAgendaStory() {
     const xData = margem + 30;
     if (item.data_iso) {
       const [ano, mes, dia] = item.data_iso.split("-");
+      // Competição de vários dias (ex: CBJJD World Cup, 25 a 27) sem
+      // distribuição de categoria por dia — mostra o intervalo inteiro
+      // ("25-27") em vez de só o primeiro dia, senão a pessoa não sabe se
+      // sua categoria é no mesmo dia da imagem (pedido do usuário
+      // 15/09/2026). Só quando o fim cai no mesmo mês/ano do início —
+      // atravessar mês é raro o bastante pra não valer a complexidade de
+      // caber "30 ago-02 set" no mesmo espaço do número grande.
+      const [anoFim, mesFim, diaFim] = (item.data_fim_iso || item.data_iso).split("-");
+      const ehIntervalo = item.data_fim_iso && item.data_fim_iso !== item.data_iso
+        && anoFim === ano && mesFim === mes;
+      const textoDia = ehIntervalo ? `${Number(dia)}-${Number(diaFim)}` : String(Number(dia));
+
       ctx.textAlign = "left";
       ctx.font = `bold ${fonteDia}px -apple-system, Arial, sans-serif`;
+      // Intervalo ("25-27") é bem mais largo que um dia só — encolhe a
+      // fonte até caber na mesma largura reservada pro número de um dia
+      // (a coluna de data não cresce, só o texto dentro dela).
+      let tamanhoDia = fonteDia;
+      if (ehIntervalo) {
+        const larguraMax = 110 * escalaTexto;
+        while (tamanhoDia > 20 && ctx.measureText(textoDia).width > larguraMax) {
+          tamanhoDia -= 2;
+          ctx.font = `bold ${tamanhoDia}px -apple-system, Arial, sans-serif`;
+        }
+      }
       ctx.fillStyle = "#ffffff";
-      ctx.fillText(String(Number(dia)), xData, cy - 16 * escalaTexto);
+      ctx.fillText(textoDia, xData, cy - 16 * escalaTexto);
       ctx.font = `bold ${fonteMes}px -apple-system, Arial, sans-serif`;
       ctx.fillStyle = CIANO;
       ctx.fillText(MESES_ABREV[Number(mes) - 1] || "", xData, cy + 19 * escalaTexto);
