@@ -522,12 +522,79 @@ def categoria_exata_para_idade(evento_id, idade, data_nascimento=None):
 
 _PESO_BRACKET = re.compile(r"^([+-])\s*(\d+(?:[.,]\d+)?)\s*kg$", re.I)
 
+# Tabela oficial de pesos do ADCC pra Kids/Teens (fonte: "WEIGHT CLASSES –
+# KIDS & TEENS", adcc-official.com, revisão 23/03/23) — ao contrário da
+# categoria de IDADE (que muda de rótulo por evento, ver
+# categoria_exata_para_idade), os CORTES de peso oficiais são sempre os
+# mesmos pra cada faixa etária/gênero. Usa essa tabela fixa em vez de só
+# olhar quem já se inscreveu nessa competição: com inscrições ainda
+# abertas é comum uma categoria de peso específica ainda não ter ninguém
+# inscrito — o código antigo (baseado só em quem já tinha peso registrado)
+# empurrava por engano um atleta de 42kg pra "-48kg" só porque ninguém
+# tinha se inscrito ainda em "-44kg" (relatado pelo usuário 15/09/2026,
+# ADCC São José dos Campos, Boys 9-10 anos). Chave: (idade_min, idade_max,
+# genero) -> cortes "-Xkg" em ordem crescente (o próximo acima do maior
+# vira "+Xkg" automaticamente).
+_PESO_KIDS_TEENS_OFICIAL = {
+    (0, 6, "feminino"): [20, 24, 28, 32, 36, 40],
+    (7, 8, "feminino"): [24, 28, 32, 36, 40, 44],
+    (9, 10, "feminino"): [28, 32, 36, 40, 44, 48],
+    (11, 12, "feminino"): [32, 36, 40, 44, 48, 52],
+    (13, 14, "feminino"): [36, 40, 45, 50, 55, 60],
+    (15, 17, "feminino"): [40, 45, 50, 55, 60, 65],
+    (0, 6, "masculino"): [20, 24, 28, 32, 36, 40],
+    (7, 8, "masculino"): [24, 28, 32, 36, 40, 44],
+    (9, 10, "masculino"): [28, 32, 36, 40, 44, 48],
+    (11, 12, "masculino"): [32, 36, 40, 44, 48, 52],
+    (13, 14, "masculino"): [40, 45, 50, 55, 60, 65],
+    (15, 17, "masculino"): [50, 55, 60, 65, 70, 75, 80],
+}
+
+# Idem pra Adult/Masters — mesmos cortes pra 18-35 e qualquer Masters (a
+# tabela oficial não varia por idade exata do Masters, só por gênero, daí
+# não precisar saber o número do Masters aqui). Absoluto fica de fora de
+# propósito ("ALL WEIGHT CLASSES COMBINED" na tabela oficial — sem corte).
+_PESO_ADULTO_OFICIAL = {
+    "masculino": [60, 65, 70, 76, 83, 91, 100],
+    "feminino": [50, 55, 60, 65, 70],
+}
+
+
+def _peso_oficial_para_categoria(categoria_idade, genero):
+    """Cortes de peso oficiais (lista "-Xkg" crescente) pra essa categoria
+    de idade + gênero, ou None se a categoria não é uma das cobertas pela
+    tabela fixa (rótulo fora do padrão esperado — cai pro fallback
+    dinâmico em categoria_peso_exata)."""
+    if not categoria_idade or genero not in ("masculino", "feminino"):
+        return None
+    rotulo = categoria_idade.strip()
+    m_intervalo = _KIDS_INTERVALO.match(rotulo)
+    if m_intervalo:
+        chave = (int(m_intervalo.group(1)), int(m_intervalo.group(2)), genero)
+        return _PESO_KIDS_TEENS_OFICIAL.get(chave)
+    m_ate = _KIDS_ATE.match(rotulo)
+    if m_ate:
+        return _PESO_KIDS_TEENS_OFICIAL.get((0, int(m_ate.group(1)), genero))
+    if _MASTERS.match(rotulo) or rotulo.lower() == "adult":
+        return _PESO_ADULTO_OFICIAL.get(genero)
+    return None
+
 
 def categoria_peso_exata(evento_id, categoria_idade, genero, peso_kg):
-    """Mesma lógica de categoria_exata_para_idade, só que pro peso: acha a
-    faixa certa comparando com os pesos que já existem nessa competição
-    pra esse gênero+categoria etária específicos (o ADCC é NO-GI, então o
-    peso considerado é o peso real do atleta, sem kimono)."""
+    """Mesma lógica de categoria_exata_para_idade, só que pro peso (o ADCC
+    é NO-GI, então o peso considerado é o peso real do atleta, sem
+    kimono). Prioriza a tabela oficial fixa (_peso_oficial_para_categoria)
+    sempre que a categoria de idade é reconhecida — não depende de quem já
+    se inscreveu. Só cai pra olhar os pesos já inscritos nessa competição
+    quando a categoria não bate com o padrão oficial (rótulo fora do
+    comum)."""
+    cortes_oficiais = _peso_oficial_para_categoria(categoria_idade, genero)
+    if cortes_oficiais:
+        for limite in cortes_oficiais:
+            if peso_kg <= limite:
+                return f"-{limite}KG"
+        return f"+{cortes_oficiais[-1]}KG"
+
     faixas = set()
     for atleta in buscar_atletas(evento_id, {}):
         if atleta.get("categoria_idade") != categoria_idade:
