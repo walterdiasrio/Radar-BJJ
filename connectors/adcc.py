@@ -585,16 +585,18 @@ def categoria_peso_exata(evento_id, categoria_idade, genero, peso_kg):
     é NO-GI, então o peso considerado é o peso real do atleta, sem
     kimono). Prioriza a tabela oficial fixa (_peso_oficial_para_categoria)
     sempre que a categoria de idade é reconhecida — não depende de quem já
-    se inscreveu. Só cai pra olhar os pesos já inscritos nessa competição
-    quando a categoria não bate com o padrão oficial (rótulo fora do
-    comum)."""
-    cortes_oficiais = _peso_oficial_para_categoria(categoria_idade, genero)
-    if cortes_oficiais:
-        for limite in cortes_oficiais:
-            if peso_kg <= limite:
-                return f"-{limite}KG"
-        return f"+{cortes_oficiais[-1]}KG"
-
+    se inscreveu — mas usa o CORTE OFICIAL só pra decidir QUAL faixa é a
+    certa, não pra inventar o texto do rótulo: o rótulo de verdade,
+    procurado entre quem já se inscreveu nesse evento, é sempre usado
+    quando existe. Bug corrigido 07/10/2026 (relatado pelo usuário: busca
+    por peso não achava ninguém, mesmo com gente cadastrada na faixa
+    certa) — o rótulo construído na mão (ex: "-44KG") não batia com o
+    formato real que o Smoothcomp usa pra esse peso (ex: "-44,0 kg", com
+    vírgula decimal e "kg" minúsculo — formato que varia por evento, ver
+    _PESO_BRACKET), então a comparação de texto falhava e a busca não
+    encontrava ninguém mesmo a faixa estando correta. Só cai pro rótulo
+    construído na mão quando literalmente ninguém está cadastrado ainda
+    nessa faixa oficial (não tem com o que comparar de qualquer jeito)."""
     faixas = set()
     for atleta in buscar_atletas(evento_id, {}):
         if atleta.get("categoria_idade") != categoria_idade:
@@ -605,6 +607,16 @@ def categoria_peso_exata(evento_id, categoria_idade, genero, peso_kg):
         if m:
             sinal, numero = m.groups()
             faixas.add((float(numero.replace(",", ".")), sinal, atleta["peso"]))
+
+    cortes_oficiais = _peso_oficial_para_categoria(categoria_idade, genero)
+    if cortes_oficiais:
+        for limite in cortes_oficiais:
+            if peso_kg <= limite:
+                rotulo_real = next((r for v, s, r in faixas if s == "-" and v == limite), None)
+                return rotulo_real or f"-{limite}KG"
+        maior = cortes_oficiais[-1]
+        rotulo_real = next((r for v, s, r in faixas if s == "+" and v == maior), None)
+        return rotulo_real or f"+{maior}KG"
 
     if not faixas:
         return None
