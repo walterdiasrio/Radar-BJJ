@@ -489,17 +489,17 @@ function valoresFiltroAtual() {
 function aplicarFiltroAosCampos(filtro) {
   if (!filtro) return;
 
+  // Bug corrigido 07/10/2026 (relatado pelo usuário: filtro padrão "não
+  // consegue ser alterado"): este código ainda tratava o PRIMEIRO checkbox
+  // como um atalho "Todas as federações" que foi removido em 26/08/2026
+  // (ver construirOpcoesFederacao) — na prática, a primeira federação da
+  // lista (CBJJ) nunca era marcada certo ao restaurar um filtro salvo que
+  // a incluía junto de outras, porque ficava de fora do grupo comparado
+  // contra o valor salvo. Agora cada checkbox é comparado direto com o que
+  // foi salvo, sem tratamento especial pra nenhum deles.
   const checkboxes = Array.from(elFederacaoOpcoes.querySelectorAll('input[type="checkbox"]'));
-  const todasCheckbox = checkboxes[0];
-  const individuais = checkboxes.slice(1);
-  if (filtro.federacao === TODAS || !filtro.federacao) {
-    todasCheckbox.checked = true;
-    individuais.forEach(c => { c.checked = false; });
-  } else {
-    const valores = filtro.federacao.split(",");
-    individuais.forEach(c => { c.checked = valores.includes(c.value); });
-    todasCheckbox.checked = !individuais.some(c => c.checked);
-  }
+  const valores = (filtro.federacao && filtro.federacao !== TODAS) ? filtro.federacao.split(",") : [];
+  checkboxes.forEach(c => { c.checked = valores.includes(c.value); });
 
   elGenero.value = filtro.genero || "";
   elDataNascimento.value = filtro.data_nascimento || "";
@@ -530,6 +530,11 @@ async function carregarFiltroPadrao() {
     if (dados.filtro) {
       aplicarFiltroAosCampos(dados.filtro);
       mostrarLinkRemoverFiltroPadrao();
+      // Marcar os checkboxes direto via JS não dispara "change" sozinho —
+      // sem isso, a lista de Competição ficava em "Selecione uma federação
+      // primeiro" mesmo com a federação do filtro salvo já marcada.
+      await carregarEventos(federacaoSelecionada(elFederacaoOpcoes));
+      atualizarCategoriaCalculada();
       atualizarBotaoAlerta();
     }
   } catch (err) {
