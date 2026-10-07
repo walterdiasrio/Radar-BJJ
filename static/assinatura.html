@@ -32,7 +32,7 @@ src="https://www.facebook.com/tr?id=28254694314126516&ev=PageView&noscript=1"
 <link rel="icon" type="image/png" href="/img/favicon.png?v=3">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Radar BJJ — Assinatura</title>
-<link rel="stylesheet" href="style.css?v=65">
+<link rel="stylesheet" href="style.css?v=66">
 </head>
 <body>
 <header>
@@ -133,10 +133,17 @@ src="https://www.facebook.com/tr?id=28254694314126516&ev=PageView&noscript=1"
           <span>ou R$ 99,90/ano</span>
           <button type="button" class="btn-secundario btn-assinar" data-plano="atleta" data-periodicidade="anual">Assinar anual</button>
         </div>
-        <div class="plano-pix">
-          <button type="button" class="btn-link btn-teste-gratis-pix" data-plano="atleta">Comece grátis sem cartão (PIX)</button>
-          <button type="button" class="btn-link btn-pagar-pix" data-plano="atleta" data-periodicidade="mensal">ou pague mensal no PIX</button>
-          <button type="button" class="btn-link btn-pagar-pix" data-plano="atleta" data-periodicidade="anual">ou pague anual no PIX</button>
+        <div class="plano-pix-destaque">
+          <div class="plano-pix-selo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 12l10 10 10-10Z"/><path d="M12 7v10M7 12h10"/></svg>
+            Pague com PIX
+          </div>
+          <button type="button" class="btn-pix btn-pagar-pix" data-plano="atleta" data-periodicidade="mensal">Pagar mensal no PIX</button>
+          <div class="plano-pix-anual">
+            <span>ou R$ 99,90/ano</span>
+            <button type="button" class="btn-pix btn-pix-secundario btn-pagar-pix" data-plano="atleta" data-periodicidade="anual">Pagar anual</button>
+          </div>
+          <button type="button" class="btn-link btn-teste-gratis-pix" data-plano="atleta">Comece grátis sem cartão</button>
         </div>
       </div>
 
@@ -158,10 +165,17 @@ src="https://www.facebook.com/tr?id=28254694314126516&ev=PageView&noscript=1"
           <span>ou R$ 199,90/ano</span>
           <button type="button" class="btn-secundario btn-assinar" data-plano="mestre" data-periodicidade="anual">Assinar anual</button>
         </div>
-        <div class="plano-pix">
-          <button type="button" class="btn-link btn-teste-gratis-pix" data-plano="mestre">Comece grátis sem cartão (PIX)</button>
-          <button type="button" class="btn-link btn-pagar-pix" data-plano="mestre" data-periodicidade="mensal">ou pague mensal no PIX</button>
-          <button type="button" class="btn-link btn-pagar-pix" data-plano="mestre" data-periodicidade="anual">ou pague anual no PIX</button>
+        <div class="plano-pix-destaque">
+          <div class="plano-pix-selo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 12l10 10 10-10Z"/><path d="M12 7v10M7 12h10"/></svg>
+            Pague com PIX
+          </div>
+          <button type="button" class="btn-pix btn-pagar-pix" data-plano="mestre" data-periodicidade="mensal">Pagar mensal no PIX</button>
+          <div class="plano-pix-anual">
+            <span>ou R$ 199,90/ano</span>
+            <button type="button" class="btn-pix btn-pix-secundario btn-pagar-pix" data-plano="mestre" data-periodicidade="anual">Pagar anual</button>
+          </div>
+          <button type="button" class="btn-link btn-teste-gratis-pix" data-plano="mestre">Comece grátis sem cartão</button>
         </div>
       </div>
     </div>
@@ -181,7 +195,7 @@ src="https://www.facebook.com/tr?id=28254694314126516&ev=PageView&noscript=1"
       <input type="text" id="pix-nome" placeholder="Seu nome completo">
       <label for="pix-cpf" style="margin-top: 10px; display: block;">CPF</label>
       <input type="text" id="pix-cpf" placeholder="Somente números" inputmode="numeric" maxlength="14">
-      <button type="button" id="btn-gerar-pix" style="margin-top: 16px;">Gerar cobrança PIX</button>
+      <button type="button" id="btn-gerar-pix" class="btn-pix" style="margin-top: 16px;">Gerar cobrança PIX</button>
       <div id="status-pix" class="status-importacao"></div>
     </div>
   </div>

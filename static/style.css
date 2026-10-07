@@ -2209,14 +2209,70 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
 
 .plano-anual button { margin-top: 0; }
 
-.plano-pix {
-  display: flex;
-  flex-direction: column;
+.plano-pix-destaque {
+  margin-top: 14px;
+  padding: 14px;
+  background: linear-gradient(135deg, #e3faf7, #eefdfb);
+  border: 1.5px solid #32bcad;
+  border-radius: 10px;
+  text-align: center;
+}
+
+.plano-pix-selo {
+  display: inline-flex;
   align-items: center;
-  gap: 4px;
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid #e3e8ee;
+  gap: 6px;
+  font-weight: 700;
+  color: #0e7c72;
+  font-size: 0.82rem;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.plano-pix-selo svg { width: 15px; height: 15px; }
+
+.btn-pix {
+  width: 100%;
+  background: #32bcad;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 11px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.btn-pix:hover { background: #269c8f; }
+
+.btn-pix-secundario {
+  width: auto;
+  background: #fff;
+  color: #0e7c72;
+  border: 1.5px solid #32bcad;
+  padding: 6px 12px;
+  font-size: 0.82rem;
+}
+
+.btn-pix-secundario:hover { background: #ddfaf6; }
+
+.plano-pix-anual {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 0.82rem;
+  color: #0e7c72;
+}
+
+.plano-pix-anual button { margin-top: 0; }
+
+.plano-pix-destaque .btn-teste-gratis-pix {
+  display: inline-block;
+  margin-top: 10px;
+  color: #0e7c72;
 }
 
 .btn-link {
@@ -2243,7 +2299,10 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
 }
 
 @media (prefers-color-scheme: dark) {
-  .plano-pix { border-top-color: #2a3341; }
+  .plano-pix-destaque { background: linear-gradient(135deg, #10302c, #0f2825); border-color: #2bb3a4; }
+  .plano-pix-selo, .plano-pix-anual, .plano-pix-destaque .btn-teste-gratis-pix { color: #5fe0d1; }
+  .btn-pix-secundario { background: transparent; color: #5fe0d1; border-color: #2bb3a4; }
+  .btn-pix-secundario:hover { background: #10302c; }
   .cartao-alerta { background: #1b2127; }
   .destaque-card { background: #1b2127; }
   .noticia-item { background: #1b2127; }
