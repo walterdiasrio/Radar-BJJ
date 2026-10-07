@@ -32,7 +32,7 @@ src="https://www.facebook.com/tr?id=28254694314126516&ev=PageView&noscript=1"
 <link rel="icon" type="image/png" href="/img/favicon.png?v=3">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Radar BJJ — Assinatura</title>
-<link rel="stylesheet" href="style.css?v=64">
+<link rel="stylesheet" href="style.css?v=65">
 </head>
 <body>
 <header>
@@ -133,6 +133,11 @@ src="https://www.facebook.com/tr?id=28254694314126516&ev=PageView&noscript=1"
           <span>ou R$ 99,90/ano</span>
           <button type="button" class="btn-secundario btn-assinar" data-plano="atleta" data-periodicidade="anual">Assinar anual</button>
         </div>
+        <div class="plano-pix">
+          <button type="button" class="btn-link btn-teste-gratis-pix" data-plano="atleta">Comece grátis sem cartão (PIX)</button>
+          <button type="button" class="btn-link btn-pagar-pix" data-plano="atleta" data-periodicidade="mensal">ou pague mensal no PIX</button>
+          <button type="button" class="btn-link btn-pagar-pix" data-plano="atleta" data-periodicidade="anual">ou pague anual no PIX</button>
+        </div>
       </div>
 
       <div class="plano-card plano-destaque" id="plano-card-mestre">
@@ -153,16 +158,38 @@ src="https://www.facebook.com/tr?id=28254694314126516&ev=PageView&noscript=1"
           <span>ou R$ 199,90/ano</span>
           <button type="button" class="btn-secundario btn-assinar" data-plano="mestre" data-periodicidade="anual">Assinar anual</button>
         </div>
+        <div class="plano-pix">
+          <button type="button" class="btn-link btn-teste-gratis-pix" data-plano="mestre">Comece grátis sem cartão (PIX)</button>
+          <button type="button" class="btn-link btn-pagar-pix" data-plano="mestre" data-periodicidade="mensal">ou pague mensal no PIX</button>
+          <button type="button" class="btn-link btn-pagar-pix" data-plano="mestre" data-periodicidade="anual">ou pague anual no PIX</button>
+        </div>
       </div>
     </div>
 
     <div id="status" class="status-importacao"></div>
   </div>
+
+  <div id="modal-pix" class="modal-overlay" style="display:none;">
+    <div class="modal-caixa">
+      <button type="button" class="modal-fechar" id="btn-fechar-pix" aria-label="Fechar">✕</button>
+      <h2 style="color: var(--azul); margin-top: 0;">Pagar com PIX</h2>
+      <p style="color: #55606b;">
+        O PIX não guarda cartão — por isso pedimos seu CPF pra gerar a cobrança.
+        Depois de pagar, seu acesso é liberado automaticamente.
+      </p>
+      <label for="pix-nome">Nome completo</label>
+      <input type="text" id="pix-nome" placeholder="Seu nome completo">
+      <label for="pix-cpf" style="margin-top: 10px; display: block;">CPF</label>
+      <input type="text" id="pix-cpf" placeholder="Somente números" inputmode="numeric" maxlength="14">
+      <button type="button" id="btn-gerar-pix" style="margin-top: 16px;">Gerar cobrança PIX</button>
+      <div id="status-pix" class="status-importacao"></div>
+    </div>
+  </div>
 </main>
 </div>
 
 <script src="auth-nav.js?v=21"></script>
-<script src="assinatura.js?v=3"></script>
+<script src="assinatura.js?v=4"></script>
 <nav class="menu-lateral menu-lateral-rodape" id="menu-rodape"></nav>
 </body>
 </html>

@@ -1,24 +1,30 @@
-"""Assinaturas pagas via Stripe Checkout (mode=subscription, cartão/boleto).
+"""Assinaturas pagas via Stripe Checkout (mode=subscription, cartão/boleto)
++ PIX via Asaas (cobrança avulsa, sem renovação automática — PIX não tem
+cartão salvo pra debitar sozinho depois).
 
 Dois planos (atleta/mestre), cada um mensal ou anual, com 7 dias de teste
-grátis. O Stripe é a fonte da verdade sobre cobrança — aqui a gente só
-guarda um espelho local (assinaturas.db) atualizado pelos webhooks, pra
-não precisar bater na API do Stripe a cada requisição só pra saber se o
-usuário tem acesso.
+grátis. O Stripe é a fonte da verdade pra cobrança de cartão — aqui a
+gente só guarda um espelho local (assinaturas.db) atualizado pelos
+webhooks, pra não precisar bater na API a cada requisição só pra saber se
+o usuário tem acesso. PIX via Asaas segue o mesmo espelho local, só que
+SEM subscription de verdade por trás: quem paga por PIX compra o
+PERÍODO (mês ou ano) de uma vez, e a gente mesmo controla quando isso
+vence (forma_pagamento="pix" + periodo_atual_fim calculado aqui) — sem
+renovação automática, com lembrete por e-mail perto do vencimento (ver
+listar_pix_a_lembrar/listar_assinaturas_sem_renovacao_vencidas, já
+usados há tempos pra "cortesia" e reaproveitados agora pro PIX de
+verdade, ver conceder_teste_gratis_pix/criar_cobranca_pix).
 
-PIX chegou a ser implementado (checkout avulso, sem renovação automática)
-mas nunca foi ativado de verdade — o Stripe exige 60 dias de conta antes
-de liberar PIX como forma de pagamento, e o botão ficou escondido até ser
-removido (pedido do usuário, 15/09/2026). Ainda sobra tratamento de
-forma_pagamento="pix" no webhook e no lembrete de renovação (ver
-_refletir_pagamento_pix/listar_pix_a_lembrar) — inofensivo hoje (não tem
-mais como criar um checkout PIX novo), mas pode ser removido também se um
-dia quiser limpar de vez."""
+PIX já tinha sido tentado antes via Stripe, mas o Stripe exige 60 dias de
+conta antes de liberar PIX como forma de pagamento — por isso a troca
+pro Asaas (pedido do usuário, 07/10/2026), que libera PIX na hora."""
 import os
 import sqlite3
 import time
+from datetime import date
 from pathlib import Path
 
+import requests
 import stripe
 
 DATA_DIR = Path(os.environ.get("DATA_DIR", Path(__file__).parent))
@@ -40,8 +46,8 @@ PRECOS = {
 }
 
 # Quantos dias um período pago por PIX dura, por periodicidade — usado
-# pra calcular periodo_atual_fim localmente (o Stripe não sabe disso,
-# porque pra ele é só um pagamento avulso, sem noção de "assinatura").
+# pra calcular periodo_atual_fim localmente (nem Stripe nem Asaas sabem
+# disso, porque pra eles é só um pagamento avulso, sem noção de "assinatura").
 DIAS_PIX = {"mensal": 30, "anual": 365}
 
 # Quantos dias antes do vencimento o lembrete de renovação por PIX é
@@ -51,6 +57,34 @@ DIAS_LEMBRETE_PIX = 3
 # Status do Stripe (ou, pro PIX, status que a gente mesmo controla) que
 # contam como "acesso liberado".
 STATUS_COM_ACESSO = {"trialing", "active"}
+
+# --- Asaas (PIX) --------------------------------------------------------
+# A chave de sandbox começa com $aact_hmlg_, a de produção com $aact_prod_
+# — detecta sozinho qual API usar a partir da própria chave, sem precisar
+# de uma variável de ambiente extra só pra isso (ver docs.asaas.com/docs/
+# sandbox-2). Sem chave configurada, criar_cobranca_pix já recusa antes
+# de tentar qualquer request (mesmo padrão do RESEND_API_KEY ausente em
+# alertas.py — não trava o site, só avisa que a função não está pronta).
+ASAAS_API_KEY = os.environ.get("ASAAS_API_KEY", "")
+ASAAS_BASE_URL = (
+    "https://api-sandbox.asaas.com/v3" if ASAAS_API_KEY.startswith("$aact_hmlg_")
+    else "https://api.asaas.com/v3"
+)
+# Token separado da API key (a própria Asaas recomenda não reaproveitar a
+# API key aqui) — configurado na hora de cadastrar o webhook no painel do
+# Asaas, e conferido em processar_webhook_asaas via header
+# "asaas-access-token" (ver docs.asaas.com/docs/sobre-os-webhooks).
+ASAAS_WEBHOOK_TOKEN = os.environ.get("ASAAS_WEBHOOK_TOKEN", "")
+
+# Preço avulso (R$) por plano/periodicidade — Asaas não tem um catálogo de
+# Prices pra referenciar por id como o Stripe; cada cobrança já leva o
+# valor direto. Mesmos valores mostrados em /planos.
+PRECOS_PIX = {
+    ("atleta", "mensal"): 9.90,
+    ("atleta", "anual"): 99.90,
+    ("mestre", "mensal"): 19.90,
+    ("mestre", "anual"): 199.90,
+}
 
 
 def _conn():
@@ -82,10 +116,16 @@ def init_db():
             conn.execute("ALTER TABLE assinaturas ADD COLUMN forma_pagamento TEXT NOT NULL DEFAULT 'stripe'")
         if "pix_lembrete_enviado_em" not in colunas:
             conn.execute("ALTER TABLE assinaturas ADD COLUMN pix_lembrete_enviado_em TEXT")
+        if "asaas_customer_id" not in colunas:
+            conn.execute("ALTER TABLE assinaturas ADD COLUMN asaas_customer_id TEXT")
 
 
 def plano_valido(plano, periodicidade):
     return (plano, periodicidade) in PRECOS and bool(PRECOS[(plano, periodicidade)])
+
+
+def plano_valido_pix(plano, periodicidade):
+    return (plano, periodicidade) in PRECOS_PIX
 
 
 def obter_assinatura(usuario_id):
@@ -188,6 +228,147 @@ def criar_sessao_portal(usuario):
     except stripe.error.StripeError as exc:
         return None, str(exc)
     return sessao.url, None
+
+
+def _asaas_request(metodo, caminho, **kwargs):
+    """POST/GET genérico pra API do Asaas — centraliza header de
+    autenticação e o erro de chave ausente (mesmo padrão do RESEND_API_KEY
+    em alertas.py: não derruba o site, só devolve um erro claro pra quem
+    chamou tratar)."""
+    if not ASAAS_API_KEY:
+        raise RuntimeError("ASAAS_API_KEY não configurada")
+    resposta = requests.request(
+        metodo, f"{ASAAS_BASE_URL}{caminho}",
+        headers={"access_token": ASAAS_API_KEY, "Content-Type": "application/json"},
+        timeout=20, **kwargs,
+    )
+    resposta.raise_for_status()
+    return resposta.json()
+
+
+def _asaas_obter_ou_criar_cliente(usuario, cpf, nome):
+    """Retorna (customer_id, erro). Reaproveita o cliente já criado no
+    Asaas pra esse usuário (guardado em assinaturas.asaas_customer_id) se
+    existir — senão cria um novo. cpfCnpj é obrigatório na API do Asaas
+    pra criar cliente (CPF/CNPJ não é um dado que o Radar BJJ coleta no
+    cadastro normal, então é pedido na hora de pagar por PIX, ver
+    api_checkout_pix em app.py)."""
+    assinatura = obter_assinatura(usuario["id"])
+    if assinatura and assinatura.get("asaas_customer_id"):
+        return assinatura["asaas_customer_id"], None
+
+    cpf = (cpf or "").strip()
+    if not cpf:
+        return None, "CPF é obrigatório pra gerar cobrança PIX"
+
+    try:
+        cliente = _asaas_request("POST", "/customers", json={
+            "name": nome or usuario["email"],
+            "cpfCnpj": cpf,
+            "email": usuario["email"],
+            "externalReference": str(usuario["id"]),
+        })
+    except (RuntimeError, requests.RequestException) as exc:
+        return None, f"erro ao criar cliente no Asaas: {exc}"
+    return cliente["id"], None
+
+
+def criar_cobranca_pix(usuario, plano, periodicidade, cpf, nome):
+    """Retorna (url, erro). Cria (ou reaproveita) o cliente no Asaas e gera
+    uma cobrança PIX avulsa — pagamento no cartão usa assinatura de
+    verdade (criar_sessao_checkout, renovação automática pelo Stripe);
+    PIX não tem cartão salvo, então é sempre um pagamento avulso por
+    período (ver DIAS_PIX) que a pessoa precisa repetir manualmente pra
+    continuar. O acesso só é liberado de verdade quando o webhook
+    confirma o pagamento (ver processar_webhook_asaas) — isso aqui só
+    gera o link de pagamento, igual ao Stripe Checkout fazia."""
+    if not plano_valido_pix(plano, periodicidade):
+        return None, "plano inválido"
+
+    customer_id, erro = _asaas_obter_ou_criar_cliente(usuario, cpf, nome)
+    if erro:
+        return None, erro
+
+    valor = PRECOS_PIX[(plano, periodicidade)]
+    try:
+        cobranca = _asaas_request("POST", "/payments", json={
+            "customer": customer_id,
+            "billingType": "PIX",
+            "value": valor,
+            "dueDate": date.today().isoformat(),
+            "description": f"Radar BJJ — Plano {plano.capitalize()} PRO ({periodicidade})",
+            "externalReference": f"{usuario['id']}:{plano}:{periodicidade}",
+        })
+    except (RuntimeError, requests.RequestException) as exc:
+        return None, f"erro ao criar cobrança no Asaas: {exc}"
+
+    # Guarda o cliente (pra reaproveitar na próxima cobrança, sem pedir
+    # CPF de novo) mesmo antes do pagamento confirmar — não mexe em
+    # status/plano/periodo_atual_fim, que só mudam de verdade com o
+    # webhook (ver processar_webhook_asaas).
+    _upsert(usuario["id"], asaas_customer_id=customer_id)
+    return cobranca.get("invoiceUrl"), None
+
+
+def conceder_teste_gratis_pix(usuario_id, plano):
+    """"Testar grátis" pra quem vai pagar por PIX — libera acesso imediato
+    por DIAS_TESTE_GRATIS dias SEM cobrar nada ainda (diferente do
+    cartão: aqui não tem como debitar sozinho depois do teste acabar, já
+    que PIX não guarda cartão — ver criar_cobranca_pix). A pessoa
+    continua tendo que voltar e pagar de verdade antes do teste vencer
+    (mesmo lembrete/corte automático que já existe hoje pra "cortesia",
+    ver listar_pix_a_lembrar/listar_assinaturas_sem_renovacao_vencidas —
+    forma_pagamento="pix" já é tratado igual lá). Só funciona uma vez por
+    conta (ninguém com assinatura/teste registrado ainda) — senão dava
+    pra repetir o teste grátis pra sempre só clicando de novo."""
+    if obter_assinatura(usuario_id):
+        return False, "você já usou o teste grátis (ou já tem uma assinatura)"
+    periodo_atual_fim = int(time.time()) + DIAS_TESTE_GRATIS * 86400
+    _upsert(
+        usuario_id,
+        stripe_customer_id=None, stripe_subscription_id=None,
+        plano=plano, periodicidade=None, status="active", trial_fim=None,
+        periodo_atual_fim=str(periodo_atual_fim),
+        forma_pagamento="pix", pix_lembrete_enviado_em=None,
+    )
+    return True, None
+
+
+def processar_webhook_asaas(payload, token_recebido):
+    """Confere o token do webhook (header asaas-access-token, configurado
+    na hora de cadastrar o webhook no painel do Asaas — NUNCA a API key,
+    ver docs.asaas.com/docs/sobre-os-webhooks) e aplica o evento. Levanta
+    ValueError se o token não bater (chamador deve responder 401/403).
+    Retorna o nome do evento processado, ou None se não era um evento que
+    a gente trata (ex: cobrança criada, mas ainda não paga)."""
+    if not ASAAS_WEBHOOK_TOKEN or token_recebido != ASAAS_WEBHOOK_TOKEN:
+        raise ValueError("token do webhook inválido")
+
+    evento = payload.get("event")
+    if evento not in ("PAYMENT_RECEIVED", "PAYMENT_CONFIRMED"):
+        return None
+
+    pagamento = payload.get("payment") or {}
+    referencia = pagamento.get("externalReference") or ""
+    partes = referencia.split(":")
+    if len(partes) != 3:
+        return evento
+    usuario_id_str, plano, periodicidade = partes
+    try:
+        usuario_id = int(usuario_id_str)
+    except ValueError:
+        return evento
+
+    periodo_atual_fim = int(time.time()) + DIAS_PIX.get(periodicidade, 30) * 86400
+    _upsert(
+        usuario_id,
+        stripe_customer_id=None, stripe_subscription_id=None,
+        asaas_customer_id=pagamento.get("customer"),
+        plano=plano, periodicidade=periodicidade, status="active", trial_fim=None,
+        periodo_atual_fim=str(periodo_atual_fim),
+        forma_pagamento="pix", pix_lembrete_enviado_em=None,
+    )
+    return evento
 
 
 def _refletir_subscription(subscription, usuario_id=None):

@@ -1615,7 +1615,14 @@ def api_atleta_publico(nome_usuario):
     # público sem exigir assinatura (ver acima), então o resumo desses
     # mesmos dados (lutas/vitórias/medalhas) também fica.
     estatisticas = carreira.calcular_estatisticas(usuario["id"])
-    return jsonify({"perfil": perfil, "competicoes": competicoes, "estatisticas": estatisticas})
+    # Próximas competições (Tenho Interesse/Inscrito) — pedido do usuário
+    # 15/09/2026: mesma lista de agenda.listar() já usada em Minha Agenda
+    # (só futuras, já ordenada), aqui exposta sem exigir login.
+    proximas = agenda.listar(usuario["id"])
+    return jsonify({
+        "perfil": perfil, "competicoes": competicoes, "estatisticas": estatisticas,
+        "proximas_competicoes": proximas,
+    })
 
 
 @app.get("/api/home/medalhas-recentes")
@@ -2269,6 +2276,50 @@ def webhook_stripe():
         pagamentos.processar_evento_webhook(payload, assinatura_header)
     except ValueError:
         return "assinatura inválida", 400
+    except Exception:
+        traceback.print_exc()
+        return "erro ao processar evento", 500
+    return jsonify({"ok": True})
+
+
+@app.post("/api/checkout-pix")
+@api_login_necessario
+def api_checkout_pix():
+    dados = request.get_json(silent=True) or {}
+    plano = dados.get("plano", "")
+    periodicidade = dados.get("periodicidade", "")
+    cpf = dados.get("cpf", "")
+    nome = dados.get("nome", "")
+
+    usuario = auth.buscar_por_id(session["usuario_id"])
+    url, erro = pagamentos.criar_cobranca_pix(usuario, plano, periodicidade, cpf, nome)
+    if erro:
+        return jsonify({"erro": erro}), 400
+    return jsonify({"ok": True, "url": url})
+
+
+@app.post("/api/teste-gratis-pix")
+@api_login_necessario
+def api_teste_gratis_pix():
+    dados = request.get_json(silent=True) or {}
+    plano = dados.get("plano", "")
+    if plano not in ("atleta", "mestre"):
+        return jsonify({"erro": "plano inválido"}), 400
+
+    ok, erro = pagamentos.conceder_teste_gratis_pix(session["usuario_id"], plano)
+    if not ok:
+        return jsonify({"erro": erro}), 400
+    return jsonify({"ok": True})
+
+
+@app.post("/webhook/asaas")
+def webhook_asaas():
+    payload = request.get_json(silent=True) or {}
+    token_recebido = request.headers.get("asaas-access-token", "")
+    try:
+        pagamentos.processar_webhook_asaas(payload, token_recebido)
+    except ValueError:
+        return "token inválido", 403
     except Exception:
         traceback.print_exc()
         return "erro ao processar evento", 500

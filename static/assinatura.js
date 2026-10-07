@@ -99,6 +99,80 @@ document.querySelectorAll(".btn-assinar").forEach(btn => {
   btn.addEventListener("click", () => iniciarCheckout(btn.dataset.plano, btn.dataset.periodicidade));
 });
 
+// --- PIX (Asaas) -----------------------------------------------------------
+const elModalPix = document.getElementById("modal-pix");
+const elStatusPix = document.getElementById("status-pix");
+const elPixNome = document.getElementById("pix-nome");
+const elPixCpf = document.getElementById("pix-cpf");
+const elBtnGerarPix = document.getElementById("btn-gerar-pix");
+let pixPlanoAtual = null;
+let pixPeriodicidadeAtual = null;
+
+function mostrarStatusPix(texto, ehErro = false) {
+  elStatusPix.textContent = texto;
+  elStatusPix.className = "status-importacao" + (ehErro ? " erro" : "");
+}
+
+function abrirModalPix(plano, periodicidade) {
+  pixPlanoAtual = plano;
+  pixPeriodicidadeAtual = periodicidade;
+  elPixNome.value = "";
+  elPixCpf.value = "";
+  mostrarStatusPix("");
+  elModalPix.style.display = "flex";
+}
+
+document.getElementById("btn-fechar-pix").addEventListener("click", () => {
+  elModalPix.style.display = "none";
+});
+elModalPix.addEventListener("click", (ev) => {
+  if (ev.target === elModalPix) elModalPix.style.display = "none";
+});
+
+document.querySelectorAll(".btn-pagar-pix").forEach(btn => {
+  btn.addEventListener("click", () => abrirModalPix(btn.dataset.plano, btn.dataset.periodicidade));
+});
+
+elBtnGerarPix.addEventListener("click", async () => {
+  const nome = elPixNome.value.trim();
+  const cpf = elPixCpf.value.replace(/\D/g, "");
+  if (!nome || !cpf) {
+    mostrarStatusPix("Preencha nome e CPF.", true);
+    return;
+  }
+  mostrarStatusPix("Gerando cobrança PIX...");
+  try {
+    const resp = await fetchAutenticado("/api/checkout-pix", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ plano: pixPlanoAtual, periodicidade: pixPeriodicidadeAtual, cpf, nome }),
+    });
+    const dados = await resp.json();
+    if (!resp.ok) throw new Error(dados.erro || "não consegui gerar a cobrança");
+    window.location.href = dados.url;
+  } catch (err) {
+    mostrarStatusPix(`Erro: ${err.message}`, true);
+  }
+});
+
+document.querySelectorAll(".btn-teste-gratis-pix").forEach(btn => {
+  btn.addEventListener("click", async () => {
+    mostrarStatus("Liberando teste grátis...");
+    try {
+      const resp = await fetchAutenticado("/api/teste-gratis-pix", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plano: btn.dataset.plano }),
+      });
+      const dados = await resp.json();
+      if (!resp.ok) throw new Error(dados.erro || "não consegui liberar o teste grátis");
+      window.location.reload();
+    } catch (err) {
+      mostrarStatus(`Erro: ${err.message}`, true);
+    }
+  });
+});
+
 async function autoIniciarCheckoutSeVeioDoCadastro() {
   const params = new URLSearchParams(window.location.search);
   if (params.get("auto") !== "1") return;

@@ -2209,7 +2209,41 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
 
 .plano-anual button { margin-top: 0; }
 
+.plano-pix {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e3e8ee;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--azul);
+  font-size: 0.82rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.btn-link:hover { opacity: 0.8; }
+
+#modal-pix label {
+  font-size: 0.85rem;
+  color: #55606b;
+}
+
+#modal-pix input {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 4px;
+}
+
 @media (prefers-color-scheme: dark) {
+  .plano-pix { border-top-color: #2a3341; }
   .cartao-alerta { background: #1b2127; }
   .destaque-card { background: #1b2127; }
   .noticia-item { background: #1b2127; }
