@@ -303,15 +303,23 @@ async function gerarImagemAgendaStory() {
 
   const alturaHero = padHero + 46 + 22 + alturaBlocoEvento + 24 + 92 + 22 + 44 + padHero;
 
-  cartaoComGlow(ctx, xHero, yHero, larguraHero, alturaHero, 28, "rgba(127, 212, 255, 0.6)");
+  // Fundo OPACO (não o "cartaoComGlow" padrão, que preenche quase
+  // transparente) — o cartão "estoura" por cima da borda da moldura (ver
+  // yHero acima), então precisa cobrir de verdade a linha da moldura por
+  // trás dele; com fundo quase transparente, a borda da moldura vazava
+  // através do cartão nos dois cantos de cima (bug visto num print real
+  // gerado pelo usuário, 07/10/2026).
   ctx.save();
-  ctx.shadowColor = "rgba(127, 212, 255, 0.35)";
-  ctx.shadowBlur = 24;
-  ctx.strokeStyle = "rgba(127, 212, 255, 0.6)";
-  ctx.lineWidth = 2;
+  ctx.shadowColor = "rgba(127, 212, 255, 0.45)";
+  ctx.shadowBlur = 30;
+  ctx.fillStyle = "#0a1830";
+  roundRect(ctx, xHero, yHero, larguraHero, alturaHero, 28);
+  ctx.fill();
+  ctx.restore();
+  ctx.strokeStyle = "rgba(127, 212, 255, 0.7)";
+  ctx.lineWidth = 2.5;
   roundRect(ctx, xHero, yHero, larguraHero, alturaHero, 28);
   ctx.stroke();
-  ctx.restore();
 
   let yHeroCursor = yHero + padHero;
 
