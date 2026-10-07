@@ -56,6 +56,11 @@ const ICONES_STORY = {
   calendario: ["M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z", "M16 2v4", "M8 2v4", "M3 10h18"],
   // Mesmo path do ícone "Meus Alertas" do menu (sino).
   sino: ["M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9", "M13.73 21a2 2 0 0 1-3.46 0"],
+  // Seta ">" — item de lista clicável (usado na moldura de celular do
+  // template de Minha Agenda), mesmo estilo "chevron" comum em listas de app.
+  seta: ["M9 6l6 6-6 6"],
+  // Hambúrguer — menu do mockup de celular (ver gerarImagemAgendaStory).
+  menu: ["M4 6h16M4 12h16M4 18h16"],
 };
 
 function desenharIconePath(ctx, nome, cx, cy, tamanho, cor, largura = 1.8) {
