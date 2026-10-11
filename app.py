@@ -20,7 +20,6 @@ import carreira
 import contato
 import drive_import
 import google_login
-import noticias
 import pagamentos
 import planner_pdf
 import turmas
@@ -50,13 +49,11 @@ app.secret_key = os.environ.get("SECRET_KEY") or _SECRET_KEY_PATH.read_text().st
 
 auth.init_db()
 alertas.init_db()
-noticias.init_db()
 pagamentos.init_db()
 carreira.init_db()
 contato.init_db()
 turmas.init_db()
 agenda.init_db()
-noticias.remover_noticias_expiradas()  # limpa logo na subida, não só no próximo ciclo
 
 
 def _cancelar_alertas_de_atleta_sem_assinatura():
@@ -121,10 +118,6 @@ def _iniciar_verificacao_periodica_de_alertas():
                 traceback.print_exc()
             try:
                 alertas.verificar_prazos_agenda()
-            except Exception:
-                traceback.print_exc()
-            try:
-                noticias.remover_noticias_expiradas()
             except Exception:
                 traceback.print_exc()
             try:
@@ -311,7 +304,7 @@ def api_import_key_ou_admin(view):
     X-Import-Key (uso automatizado, sem sessão — ver IMPORT_API_KEY).
     Decorator separado do api_admin_necessario de propósito: se essa chave
     algum dia vazar, o estrago fica limitado só à importação de eventos, não
-    abre as outras rotas de admin (usuários, notícias, mensagens...)."""
+    abre as outras rotas de admin (usuários, mensagens...)."""
     @wraps(view)
     def wrapper(*args, **kwargs):
         chave_esperada = os.environ.get("IMPORT_API_KEY")
@@ -344,7 +337,7 @@ def api_assinatura_necessaria(view):
 
 @app.get("/")
 def home():
-    # Pública — página inicial, com o BJJ News em destaque.
+    # Pública — página inicial.
     return send_from_directory("static", "home.html")
 
 
@@ -559,104 +552,6 @@ def api_reenviar_confirmacao():
 
     # Mesma resposta sempre — não revela se o e-mail existe ou já foi confirmado.
     return jsonify({"ok": True})
-
-
-def _serializar_noticia(n):
-    return {
-        "id": n["id"],
-        "manchete": n["manchete"],
-        "texto": n["texto"],
-        "data_limite": n["data_limite"],
-        "imagem_url": f"/noticias-imagens/{n['imagem_arquivo']}",
-        "criado_em": n["criado_em"],
-    }
-
-
-@app.get("/api/noticias")
-def api_listar_noticias():
-    return jsonify([_serializar_noticia(n) for n in noticias.listar_noticias()])
-
-
-@app.get("/api/noticias/admin")
-@api_admin_necessario
-def api_listar_todas_noticias():
-    # Sem o filtro de data_limite do endpoint público (ver
-    # listar_todas_noticias) — é o que alimenta /gerenciar-noticias, pra dar
-    # pra achar e corrigir uma notícia que sumiu do ar por causa de uma
-    # data limite errada.
-    return jsonify([_serializar_noticia(n) for n in noticias.listar_todas_noticias()])
-
-
-@app.get("/api/noticias/<int:noticia_id>")
-def api_obter_noticia(noticia_id):
-    n = noticias.obter_noticia(noticia_id)
-    if not n:
-        return jsonify({"erro": "notícia não encontrada"}), 404
-    return jsonify(_serializar_noticia(n))
-
-
-@app.get("/noticias-imagens/<path:nome_arquivo>")
-def servir_imagem_noticia(nome_arquivo):
-    return send_from_directory(noticias.DIR_IMAGENS, nome_arquivo)
-
-
-@app.post("/api/noticias")
-@api_admin_necessario
-def api_criar_noticia():
-    manchete = request.form.get("manchete", "")
-    texto = request.form.get("texto", "")
-    data_limite = request.form.get("data_limite", "")
-    arquivo = request.files.get("imagem")
-    if not arquivo or not arquivo.filename:
-        return jsonify({"erro": "selecione uma imagem"}), 400
-    noticia_id, erro = noticias.criar_noticia(manchete, texto, data_limite, arquivo, arquivo.filename)
-    if erro:
-        return jsonify({"erro": erro}), 400
-    return jsonify({"ok": True, "id": noticia_id})
-
-
-@app.put("/api/noticias/<int:noticia_id>")
-@api_admin_necessario
-def api_atualizar_noticia(noticia_id):
-    manchete = request.form.get("manchete", "")
-    texto = request.form.get("texto", "")
-    data_limite = request.form.get("data_limite", "")
-    arquivo = request.files.get("imagem")
-    ok, erro = noticias.atualizar_noticia(
-        noticia_id, manchete, texto, data_limite,
-        arquivo if arquivo and arquivo.filename else None,
-        arquivo.filename if arquivo else None,
-    )
-    if erro:
-        return jsonify({"erro": erro}), 400
-    return jsonify({"ok": True})
-
-
-@app.delete("/api/noticias/<int:noticia_id>")
-@api_admin_necessario
-def api_remover_noticia(noticia_id):
-    removida = noticias.remover_noticia(noticia_id)
-    if not removida:
-        return jsonify({"erro": "notícia não encontrada"}), 404
-    return jsonify({"ok": True})
-
-
-@app.get("/noticias")
-def pagina_noticias():
-    # Pública — igual Competições, aberta a todo mundo.
-    return send_from_directory("static", "noticias.html")
-
-
-@app.get("/noticias/<int:noticia_id>")
-def pagina_noticia_detalhe(noticia_id):
-    # Página própria da notícia (URL compartilhável), em vez do popup/modal.
-    return send_from_directory("static", "noticia-detalhe.html")
-
-
-@app.get("/gerenciar-noticias")
-@admin_necessario
-def pagina_gerenciar_noticias():
-    return send_from_directory("static", "gerenciar-noticias.html")
 
 
 @app.get("/fale-conosco")
@@ -1647,8 +1542,7 @@ def api_medalhas_recentes():
 
 def _com_foto_url(perfil):
     """Acrescenta foto_url (rota pública da foto) a um dict de perfil,
-    a partir do foto_arquivo salvo — mesmo padrão do imagem_url das
-    notícias (ver api_listar_noticias)."""
+    a partir do foto_arquivo salvo."""
     perfil = dict(perfil)
     perfil["foto_url"] = f"/perfil-fotos/{perfil['foto_arquivo']}" if perfil.get("foto_arquivo") else None
     return perfil

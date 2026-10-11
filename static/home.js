@@ -17,36 +17,6 @@
   }
 })();
 
-async function carregarDestaques() {
-  const elDestaques = document.getElementById("destaques");
-  if (!elDestaques) return;
-  try {
-    const resp = await fetch("/api/noticias");
-    const lista = await resp.json();
-    if (!lista.length) {
-      elDestaques.innerHTML = "";
-      return;
-    }
-    elDestaques.innerHTML = `
-      <img src="/img/banner-noticias.jpg" alt="BJJ News" class="destaques-titulo-banner">
-      <div class="destaques-grade">
-        ${lista.map((n, i) => `
-          <div class="destaque-card" data-indice="${i}">
-            <img src="${n.imagem_url}" alt="${n.manchete}">
-            <div class="destaque-manchete">${n.manchete}</div>
-          </div>
-        `).join("")}
-      </div>
-    `;
-    elDestaques.querySelectorAll(".destaque-card").forEach(card => {
-      const noticia = lista[Number(card.dataset.indice)];
-      card.addEventListener("click", () => { location.href = `/noticias/${noticia.id}`; });
-    });
-  } catch (err) {
-    elDestaques.innerHTML = "";
-  }
-}
-
 const MEDALHA_EMOJI = { ouro: "🥇", prata: "🥈", bronze: "🥉" };
 
 function formatarDataMedalhista(data) {
@@ -282,7 +252,7 @@ function renderizarMedalhasHome(medalhas) {
 }
 
 // Um popup por sessão de navegador é o bastante pra não incomodar quem
-// fica navegando o site sem logar (ex: olhando Competições, BJJ News).
+// fica navegando o site sem logar (ex: olhando Competições).
 function mostrarPopupTrial() {
   const elPopup = document.getElementById("home-popup-trial");
   const elFechar = document.getElementById("popup-trial-fechar");
@@ -398,7 +368,6 @@ async function carregarPlacarEstatisticas() {
   }
 }
 
-carregarDestaques();
 ajustarCartaoBoasVindas();
 carregarUltimosMedalhistas();
 carregarPlacarEstatisticas();
