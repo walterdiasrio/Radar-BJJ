@@ -47,6 +47,31 @@ async function carregarAssinaturaAtual() {
     marcarPlanoAtualNosBotoes(a);
     elAssinaturaAtiva.style.display = "";
 
+    // "Gerenciar assinatura" abre o portal do Stripe — só existe quando
+    // forma_pagamento é "stripe" (tem customer de verdade lá). PIX e
+    // cortesia não têm portal nenhum: PIX não renova sozinho (mostra
+    // quando vence e um botão pra pagar de novo), cortesia é liberação
+    // manual do admin (só um aviso, sem ação nenhuma pra pessoa tomar).
+    // Faltava esse tratamento — clicar em "Gerenciar assinatura" sem ser
+    // assinante Stripe sempre caía no erro "nenhuma assinatura encontrada"
+    // (reportado pelo usuário 13/10/2026, depois de assinar por PIX).
+    const vencimento = a.periodo_atual_fim
+      ? new Date(Number(a.periodo_atual_fim) * 1000).toLocaleDateString("pt-BR")
+      : null;
+    let blocoAcao;
+    if (a.forma_pagamento === "pix") {
+      blocoAcao = a.periodicidade
+        ? `
+          <p class="plano-desc">Pago por PIX${vencimento ? ` — vence em ${vencimento}` : ""}. Sem renovação automática.</p>
+          <button type="button" id="btn-renovar-pix">Renovar agora no PIX</button>
+        `
+        : `<p class="plano-desc">Teste grátis por PIX${vencimento ? ` — vence em ${vencimento}` : ""}. Escolha um plano abaixo pra continuar depois.</p>`;
+    } else if (a.forma_pagamento === "cortesia") {
+      blocoAcao = `<p class="plano-desc">Acesso liberado pela equipe Radar BJJ${vencimento ? ` até ${vencimento}` : ""}.</p>`;
+    } else {
+      blocoAcao = `<button type="button" id="btn-gerenciar">Gerenciar assinatura</button>`;
+    }
+
     elAssinaturaAtiva.innerHTML = `
       <div class="plano-card" style="max-width: 420px; margin-bottom: 24px;">
         <h3>Plano atual: ${NOMES_PLANO[a.plano] || a.plano}</h3>
@@ -54,10 +79,14 @@ async function carregarAssinaturaAtual() {
           Status: ${NOMES_STATUS[a.status] || a.status}
           ${a.periodicidade ? ` · cobrança ${a.periodicidade}` : ""}
         </p>
-        <button type="button" id="btn-gerenciar">Gerenciar assinatura</button>
+        ${blocoAcao}
       </div>
     `;
-    document.getElementById("btn-gerenciar").addEventListener("click", abrirPortal);
+    if (a.forma_pagamento === "pix" && a.periodicidade) {
+      document.getElementById("btn-renovar-pix").addEventListener("click", () => abrirModalPix(a.plano, a.periodicidade));
+    } else if (a.forma_pagamento !== "pix" && a.forma_pagamento !== "cortesia") {
+      document.getElementById("btn-gerenciar").addEventListener("click", abrirPortal);
+    }
 
     if (a.tem_acesso) {
       elPlanosContainer.querySelector("h2").textContent = "Trocar de plano";
