@@ -2068,28 +2068,44 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
 
 .plano-anual button { margin-top: 0; }
 
-.plano-pix-destaque {
+/* Bloco genérico "método de pagamento" — cartão e PIX usam o mesmo
+   formato (caixa + selo) pra deixar explícito qual botão é qual, em vez
+   dos botões de cartão ficarem soltos sem rótulo (reportado pelo
+   usuário, 13/10/2026: "não deixa explícito quando é cartão"). Cada
+   método só muda a cor (ver .plano-metodo-cartao / .plano-pix-destaque). */
+.plano-metodo-bloco {
   margin-top: 14px;
   padding: 14px;
-  background: linear-gradient(135deg, #e3faf7, #eefdfb);
-  border: 1.5px solid #32bcad;
   border-radius: 10px;
   text-align: center;
 }
 
-.plano-pix-selo {
+.plano-metodo-selo {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   font-weight: 700;
-  color: #0e7c72;
   font-size: 0.82rem;
   margin-bottom: 10px;
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
 
-.plano-pix-selo svg { width: 15px; height: 15px; }
+.plano-metodo-selo svg { width: 15px; height: 15px; }
+
+.plano-metodo-cartao {
+  background: linear-gradient(135deg, #eaf0fb, #f4f7fc);
+  border: 1.5px solid var(--azul);
+}
+
+.plano-metodo-cartao .plano-metodo-selo { color: var(--azul); }
+
+.plano-pix-destaque {
+  background: linear-gradient(135deg, #e3faf7, #eefdfb);
+  border: 1.5px solid #32bcad;
+}
+
+.plano-pix-selo { color: #0e7c72; }
 
 .btn-pix {
   width: 100%;
@@ -2158,6 +2174,8 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
 }
 
 @media (prefers-color-scheme: dark) {
+  .plano-metodo-cartao { background: linear-gradient(135deg, #1a2740, #16203a); border-color: var(--azul-claro); }
+  .plano-metodo-cartao .plano-metodo-selo { color: var(--azul-claro); }
   .plano-pix-destaque { background: linear-gradient(135deg, #10302c, #0f2825); border-color: #2bb3a4; }
   .plano-pix-selo, .plano-pix-anual, .plano-pix-destaque .btn-teste-gratis-pix { color: #5fe0d1; }
   .btn-pix-secundario { background: transparent; color: #5fe0d1; border-color: #2bb3a4; }
