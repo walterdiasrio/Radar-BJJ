@@ -21,7 +21,7 @@ pro Asaas (pedido do usuário, 07/10/2026), que libera PIX na hora."""
 import os
 import sqlite3
 import time
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 import requests
@@ -295,7 +295,13 @@ def criar_cobranca_pix(usuario, plano, periodicidade, cpf, nome):
             "customer": customer_id,
             "billingType": "PIX",
             "value": valor,
-            "dueDate": date.today().isoformat(),
+            # Vencimento daqui 2 dias, não hoje — cobrança PIX com dueDate no
+            # mesmo dia é incomum (a maioria dos exemplos/integrações usa uns
+            # dias de folga) e um dos pontos que investigamos quando um
+            # pagamento PIX real apareceu como indisponível na fatura
+            # hospedada da Asaas (usuário, 14/10/2026) sem causa documentada
+            # clara — não confirmado como a causa, mas elimina essa variável.
+            "dueDate": (date.today() + timedelta(days=2)).isoformat(),
             "description": f"Radar BJJ — Plano {plano.capitalize()} PRO ({periodicidade})",
             "externalReference": f"{usuario['id']}:{plano}:{periodicidade}",
         })
