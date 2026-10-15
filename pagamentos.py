@@ -267,6 +267,12 @@ def _asaas_obter_ou_criar_cliente(usuario, cpf, nome):
             "cpfCnpj": cpf,
             "email": usuario["email"],
             "externalReference": str(usuario["id"]),
+            # Sem isso, a Asaas manda SMS/e-mail/ligação/WhatsApp de lembrete
+            # pro cliente e cobra ~R$0,99 por cobrança por esse serviço — a
+            # gente já manda nosso próprio lembrete por e-mail (ver
+            # listar_pix_a_lembrar), então é redundante e só custa dinheiro à
+            # toa (usuário perguntou como desativar, 14/10/2026).
+            "notificationDisabled": True,
         })
     except (RuntimeError, requests.RequestException) as exc:
         return None, f"erro ao criar cliente no Asaas: {exc}"
