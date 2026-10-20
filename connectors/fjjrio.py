@@ -133,8 +133,15 @@ def buscar_atletas(evento_id, filtros):
     for linha in dados.get("data", []):
         if len(linha) < 7:
             continue
-        _id, nome, academia, categoria_html, sexo, peso, faixa = linha[:7]
-        status_pagamento = linha[7] if len(linha) > 7 else ""
+        # SEM coluna de id no início — a primeira posição já é o nome do
+        # atleta (a 8ª posição, quando existe, é um identificador interno
+        # de linha tipo "row_xxx", não o status de pagamento). Antes desse
+        # fix, tudo desalinhava uma posição (nome vinha com o nome da
+        # equipe, faixa vinha com "PAGO"/status...), fazendo qualquer busca
+        # por nome/faixa/peso/categoria praticamente nunca bater com nada
+        # (reportado pelo usuário, evento REI DO RIO, 20/10/2026 — bug
+        # preexistente no conector, não específico desse evento).
+        nome, academia, categoria_html, sexo, peso, faixa, status_pagamento = linha[:7]
         categoria_idade = re.sub(r"<[^>]+>", "", categoria_html or "").strip()
         categoria_idade = re.sub(r"\s+", " ", categoria_idade)
         resultados.append({
