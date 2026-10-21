@@ -108,6 +108,28 @@ async function abrirPortal() {
   }
 }
 
+const VALOR_PLANO = {
+  atleta: { mensal: 9.90, anual: 99.90 },
+  mestre: { mensal: 19.90, anual: 199.90 },
+};
+
+// Sinal de "começou a pagar" pro Meta Ads/Google Ads — dispara igual pro
+// cartão e pro PIX, no momento em que a cobrança é gerada (não espera
+// confirmar o pagamento, que pro PIX nem sempre volta pro nosso site, ver
+// abaixo). É INICIAÇÃO de checkout, não compra confirmada de verdade —
+// por isso usa os eventos padrão "InitiateCheckout"/"begin_checkout", não
+// "Subscribe"/"purchase" (esses continuam só em /assinatura/sucesso, que
+// só quem paga no cartão alcança).
+function rastrearInicioCheckout(plano, periodicidade, metodo) {
+  const valor = VALOR_PLANO[plano]?.[periodicidade];
+  if (typeof fbq === "function") {
+    fbq("track", "InitiateCheckout", valor ? { value: valor, currency: "BRL", content_name: metodo } : { content_name: metodo });
+  }
+  if (typeof gtag === "function") {
+    gtag("event", "begin_checkout", { value: valor, currency: "BRL", items: [{ item_name: `${plano}_${periodicidade}` }], payment_type: metodo });
+  }
+}
+
 async function iniciarCheckout(plano, periodicidade) {
   mostrarStatus("Preparando o pagamento...");
   try {
@@ -118,6 +140,7 @@ async function iniciarCheckout(plano, periodicidade) {
     });
     const dados = await resp.json();
     if (!resp.ok) throw new Error(dados.erro || "não consegui iniciar o pagamento");
+    rastrearInicioCheckout(plano, periodicidade, "cartao");
     window.location.href = dados.url;
   } catch (err) {
     mostrarStatus(`Erro: ${err.message}`, true);
@@ -178,6 +201,7 @@ elBtnGerarPix.addEventListener("click", async () => {
     });
     const dados = await resp.json();
     if (!resp.ok) throw new Error(dados.erro || "não consegui gerar a cobrança");
+    rastrearInicioCheckout(pixPlanoAtual, pixPeriodicidadeAtual, "pix");
     window.location.href = dados.url;
   } catch (err) {
     mostrarStatusPix(`Erro: ${err.message}`, true);

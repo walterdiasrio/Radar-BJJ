@@ -27,6 +27,9 @@ from pathlib import Path
 import requests
 import stripe
 
+import auth
+import rastreamento
+
 DATA_DIR = Path(os.environ.get("DATA_DIR", Path(__file__).parent))
 DB_PATH = DATA_DIR / "assinaturas.db"
 
@@ -279,7 +282,7 @@ def _asaas_obter_ou_criar_cliente(usuario, cpf, nome):
     return cliente["id"], None
 
 
-def criar_cobranca_pix(usuario, plano, periodicidade, cpf, nome):
+def criar_cobranca_pix(usuario, plano, periodicidade, cpf, nome, ga_client_id="", fbp=""):
     """Retorna (url, erro). Cria (ou reaproveita) o cliente no Asaas e gera
     uma cobrança PIX avulsa — pagamento no cartão usa assinatura de
     verdade (criar_sessao_checkout, renovação automática pelo Stripe);
@@ -287,7 +290,14 @@ def criar_cobranca_pix(usuario, plano, periodicidade, cpf, nome):
     período (ver DIAS_PIX) que a pessoa precisa repetir manualmente pra
     continuar. O acesso só é liberado de verdade quando o webhook
     confirma o pagamento (ver processar_webhook_asaas) — isso aqui só
-    gera o link de pagamento, igual ao Stripe Checkout fazia."""
+    gera o link de pagamento, igual ao Stripe Checkout fazia.
+
+    ga_client_id/fbp (cookies _ga/_fbp do navegador, lidos em
+    app.py::api_checkout_pix) viajam dentro do externalReference pra
+    poderem ser usados na hora de reportar a conversão pro GA4/Meta
+    quando o webhook confirmar — ver rastreamento.reportar_conversao_pix.
+    Quem paga por PIX nunca volta pro nosso site depois de pagar, então
+    esse é o único jeito de carregar esse contexto até lá."""
     if not plano_valido_pix(plano, periodicidade):
         return None, "plano inválido"
 
@@ -309,7 +319,7 @@ def criar_cobranca_pix(usuario, plano, periodicidade, cpf, nome):
             # clara — não confirmado como a causa, mas elimina essa variável.
             "dueDate": (date.today() + timedelta(days=2)).isoformat(),
             "description": f"Radar BJJ — Plano {plano.capitalize()} PRO ({periodicidade})",
-            "externalReference": f"{usuario['id']}:{plano}:{periodicidade}",
+            "externalReference": f"{usuario['id']}:{plano}:{periodicidade}:{ga_client_id}:{fbp}",
         })
     except (RuntimeError, requests.RequestException) as exc:
         return None, f"erro ao criar cobrança no Asaas: {exc}"
@@ -363,9 +373,11 @@ def processar_webhook_asaas(payload, token_recebido):
     pagamento = payload.get("payment") or {}
     referencia = pagamento.get("externalReference") or ""
     partes = referencia.split(":")
-    if len(partes) != 3:
+    if len(partes) < 3:
         return evento
-    usuario_id_str, plano, periodicidade = partes
+    usuario_id_str, plano, periodicidade = partes[0], partes[1], partes[2]
+    ga_client_id = partes[3] if len(partes) > 3 else ""
+    fbp = partes[4] if len(partes) > 4 else ""
     try:
         usuario_id = int(usuario_id_str)
     except ValueError:
@@ -380,6 +392,13 @@ def processar_webhook_asaas(payload, token_recebido):
         periodo_atual_fim=str(periodo_atual_fim),
         forma_pagamento="pix", pix_lembrete_enviado_em=None,
     )
+
+    usuario = auth.buscar_por_id(usuario_id)
+    if usuario:
+        rastreamento.reportar_conversao_pix(
+            usuario["email"], plano, periodicidade, pagamento.get("value") or PRECOS_PIX.get((plano, periodicidade), 0),
+            ga_client_id, fbp,
+        )
     return evento
 
 

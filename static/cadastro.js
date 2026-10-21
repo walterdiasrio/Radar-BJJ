@@ -63,6 +63,7 @@ elForm.addEventListener("submit", async (ev) => {
     if (!resp.ok) throw new Error(dados.erro || "erro ao cadastrar");
 
     if (typeof fbq === "function") fbq("track", "Lead");
+    if (typeof gtag === "function") gtag("event", "sign_up", { method: tipo_perfil });
 
     elForm.style.display = "none";
     if (dados.email_enviado === false) {

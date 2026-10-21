@@ -120,6 +120,18 @@ src="https://www.facebook.com/tr?id=28254694314126516&ev=PageView&noscript=1"
     } else {
       fbq("track", "Subscribe");
     }
+
+    // Mesmo evento pro GA4/Google Ads (formato "purchase" recomendado do
+    // Google) — antes só existia o fbq acima, então nenhuma conversão
+    // chegava no Google de jeito nenhum (usuário pediu pra rodar tráfego
+    // pago, 21/10/2026 — sem isso não dava nem pra medir Google Ads).
+    if (typeof gtag === "function" && valor) {
+      gtag("event", "purchase", {
+        value: valor,
+        currency: "BRL",
+        items: [{ item_name: `${plano}_${periodicidade}` }],
+      });
+    }
   }
 </script>
 <script src="/auth-nav.js?v=22"></script>

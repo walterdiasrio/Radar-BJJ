@@ -2185,8 +2185,19 @@ def api_checkout_pix():
     cpf = dados.get("cpf", "")
     nome = dados.get("nome", "")
 
+    # Quem paga por PIX nunca volta pro nosso site depois de pagar (vai
+    # direto pra fatura hospedada da Asaas) — esses dois ids viajam junto
+    # da cobrança só pra poder reportar a conversão de verdade pro GA4/
+    # Meta quando o webhook confirmar o pagamento, bem mais tarde (ver
+    # rastreamento.py e pagamentos.processar_webhook_asaas). O cookie _ga
+    # vem como "GA1.1.<client_id>" — o Measurement Protocol só quer a
+    # parte final.
+    ga_cookie = request.cookies.get("_ga", "")
+    ga_client_id = ".".join(ga_cookie.split(".")[-2:]) if ga_cookie else ""
+    fbp = request.cookies.get("_fbp", "")
+
     usuario = auth.buscar_por_id(session["usuario_id"])
-    url, erro = pagamentos.criar_cobranca_pix(usuario, plano, periodicidade, cpf, nome)
+    url, erro = pagamentos.criar_cobranca_pix(usuario, plano, periodicidade, cpf, nome, ga_client_id, fbp)
     if erro:
         return jsonify({"erro": erro}), 400
     return jsonify({"ok": True, "url": url})
