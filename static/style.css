@@ -1420,6 +1420,15 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
   animation: popup-trial-fade 0.25s ease;
 }
 
+/* A arte do popup (ver .popup-trial-caixa-arte) é paisagem (foto + texto
+   lado a lado) — com a folga de 20px de cada lado do overlay, no celular
+   o texto já nasce pequeno. Reduz a folga só no mobile pra imagem renderizar
+   bem maior (pedido do usuário 21/10/2026: "bem visível também pra quem
+   usa versão mobile"). */
+@media (max-width: 480px) {
+  .popup-trial-overlay { padding: 8px; }
+}
+
 @keyframes popup-trial-fade {
   from { opacity: 0; }
   to { opacity: 1; }
