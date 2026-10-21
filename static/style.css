@@ -2439,10 +2439,90 @@ tr:hover td { background: #f8fafc; }
 .tag-carreira.medalha-bronze { background: #f7e3d3; color: #9a5b1f; }
 .tag-carreira.pais { background: #e6f0fa; color: var(--azul-claro); }
 
-.secao-medalhas-publico { margin-bottom: 20px; }
+.cartao-alerta.cartao-alerta-internacional { border: 2px solid var(--azul-claro); box-shadow: 0 4px 16px rgba(0, 30, 120, 0.10); }
+
+/* Banner de destaque com a contagem de medalhas, logo abaixo do perfil —
+   pedido do usuário (21/10/2026): "quero que as medalhas tenham
+   destaque". Antes eram 3 caixinhas pequenas iguais às de qualquer outra
+   estatística, enterradas dentro do cartão de Estatísticas; agora é o
+   primeiro bloco visual da página, grande e colorido por medalha. */
+.medalhas-destaque {
+  display: flex;
+  gap: 16px;
+  max-width: 620px;
+  margin: 0 auto 20px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.medalha-destaque-item {
+  flex: 1;
+  min-width: 130px;
+  border-radius: 14px;
+  padding: 20px 16px;
+  text-align: center;
+  border: 2px solid;
+}
+
+.medalha-destaque-emoji { font-size: 2rem; line-height: 1; }
+.medalha-destaque-valor { font-size: 2.4rem; font-weight: 800; line-height: 1.25; }
+.medalha-destaque-label { font-size: 0.82rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+
+.medalha-destaque-ouro { background: linear-gradient(160deg, #fffbf0, #fff3cd); border-color: #e0b400; }
+.medalha-destaque-ouro .medalha-destaque-valor, .medalha-destaque-ouro .medalha-destaque-label { color: #8a6d00; }
+
+.medalha-destaque-prata { background: linear-gradient(160deg, #f9fafb, #eef2f6); border-color: #b9c2cc; }
+.medalha-destaque-prata .medalha-destaque-valor, .medalha-destaque-prata .medalha-destaque-label { color: #55606b; }
+
+.medalha-destaque-bronze { background: linear-gradient(160deg, #fcf1e8, #f7e3d3); border-color: #c98a4b; }
+.medalha-destaque-bronze .medalha-destaque-valor, .medalha-destaque-bronze .medalha-destaque-label { color: #9a5b1f; }
+
+@media (prefers-color-scheme: dark) {
+  .medalha-destaque-ouro { background: linear-gradient(160deg, #332b00, #241e00); }
+  .medalha-destaque-prata { background: linear-gradient(160deg, #262b30, #1b2127); }
+  .medalha-destaque-bronze { background: linear-gradient(160deg, #3a2615, #2b1b0f); }
+  .medalha-destaque-ouro .medalha-destaque-valor, .medalha-destaque-ouro .medalha-destaque-label { color: #f0d060; }
+  .medalha-destaque-prata .medalha-destaque-valor, .medalha-destaque-prata .medalha-destaque-label { color: #c5ced6; }
+  .medalha-destaque-bronze .medalha-destaque-valor, .medalha-destaque-bronze .medalha-destaque-label { color: #e0a15f; }
+}
+
+/* Quadro de medalhas abaixo — virou um grid de verdade (3 colunas, uma
+   por tipo de medalha) em vez de lista empilhada; cada coluna com a cor
+   da própria medalha no topo. Se faltar algum tipo (ex: sem bronze), a
+   coluna simplesmente não existe — por isso a cor vem de uma classe por
+   tipo (.secao-medalhas-ouro/prata/bronze, ver atleta-publico.js), nunca
+   de :nth-child, que dependeria da ordem de quem está presente. */
+.grade-medalhas-publico {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  max-width: 900px;
+  margin: 0 auto;
+  align-items: start;
+}
+
+.secao-medalhas-publico {
+  background: white;
+  border: 1px solid var(--borda);
+  border-top: 4px solid var(--borda);
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.secao-medalhas-ouro { border-top-color: #e0b400; }
+.secao-medalhas-prata { border-top-color: #b9c2cc; }
+.secao-medalhas-bronze { border-top-color: #c98a4b; }
+
 .titulo-secao-medalhas { color: var(--azul); font-size: 1rem; margin: 0 0 8px; }
 .contagem-medalhas { color: #55606b; font-weight: 400; font-size: 0.85rem; }
-.cartao-alerta.cartao-alerta-internacional { border: 2px solid var(--azul-claro); box-shadow: 0 4px 16px rgba(0, 30, 120, 0.10); }
+
+@media (max-width: 760px) {
+  .grade-medalhas-publico { grid-template-columns: 1fr; max-width: 480px; }
+}
+
+@media (prefers-color-scheme: dark) {
+  .secao-medalhas-publico { background: #1b2127; }
+}
 
 .lutas-list {
   margin-top: 10px;

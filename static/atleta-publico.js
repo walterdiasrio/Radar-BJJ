@@ -53,7 +53,7 @@ function renderCompeticoesPublicas(competicoes) {
     return false;
   }
   elListaCompeticoes.innerHTML = grupos.map(g => `
-    <div class="secao-medalhas-publico">
+    <div class="secao-medalhas-publico secao-medalhas-${g.chave}">
       <h4 class="titulo-secao-medalhas">${g.label} <span class="contagem-medalhas">(${g.itens.length})</span></h4>
       ${g.itens.map(cardCompeticaoPublico).join("")}
     </div>
@@ -105,14 +105,64 @@ function desenharPizzaLutas(stats) {
 }
 
 function mostrarEstatisticas(stats) {
-  if (!stats.competicoes) return; // sem nenhuma competição registrada — mantém o cartão escondido
+  if (!stats.competicoes) return; // sem nenhuma competição registrada — mantém os cartões escondidos
   document.getElementById("cartao-estatisticas").style.display = "";
   desenharPizzaLutas(stats);
-  document.getElementById("grade-medalhas-publico").innerHTML = `
-    <div class="stat-box"><div class="stat-value">🥇 ${stats.ouros || 0}</div><div class="stat-label">Ouros</div></div>
-    <div class="stat-box"><div class="stat-value">🥈 ${stats.pratas || 0}</div><div class="stat-label">Pratas</div></div>
-    <div class="stat-box"><div class="stat-value">🥉 ${stats.bronzes || 0}</div><div class="stat-label">Bronzes</div></div>
+}
+
+// Pedido do usuário (21/10/2026): "quero que as medalhas tenham
+// destaque" — vira o primeiro bloco visual da página, logo depois do
+// perfil, em vez de 3 caixinhas pequenas enterradas dentro do cartão de
+// Estatísticas (junto da pizza de lutas, que agora tem o próprio cartão,
+// menor, mais abaixo).
+function mostrarMedalhasDestaque(stats) {
+  const total = (stats.ouros || 0) + (stats.pratas || 0) + (stats.bronzes || 0);
+  if (!total) return;
+  const elDestaque = document.getElementById("medalhas-destaque");
+  elDestaque.style.display = "";
+  elDestaque.innerHTML = `
+    <div class="medalha-destaque-item medalha-destaque-ouro">
+      <div class="medalha-destaque-emoji">🥇</div>
+      <div class="medalha-destaque-valor">${stats.ouros || 0}</div>
+      <div class="medalha-destaque-label">Ouro</div>
+    </div>
+    <div class="medalha-destaque-item medalha-destaque-prata">
+      <div class="medalha-destaque-emoji">🥈</div>
+      <div class="medalha-destaque-valor">${stats.pratas || 0}</div>
+      <div class="medalha-destaque-label">Prata</div>
+    </div>
+    <div class="medalha-destaque-item medalha-destaque-bronze">
+      <div class="medalha-destaque-emoji">🥉</div>
+      <div class="medalha-destaque-valor">${stats.bronzes || 0}</div>
+      <div class="medalha-destaque-label">Bronze</div>
+    </div>
   `;
+}
+
+// "Próximas Competições" — mesma lista de Minha Agenda (Tenho Interesse/
+// Inscrito), mas pública e sem botão de remover (ver api_atleta_publico
+// em app.py). Markup já existia desde 15/09/2026 mas nunca tinha sido
+// ligado a dado nenhum — ficava sempre escondido.
+function badgeStatusPublico(status) {
+  return status === "inscrito"
+    ? '<span class="badge-inscricao badge-aberta">Inscrito</span>'
+    : '<span class="badge-inscricao badge-desconhecida">Tenho Interesse</span>';
+}
+
+function mostrarProximasCompeticoes(proximas) {
+  if (!proximas || !proximas.length) return;
+  document.getElementById("cartao-proximas").style.display = "";
+  document.getElementById("lista-proximas-publico").innerHTML = proximas.map(c => `
+    <div class="cartao-alerta">
+      <div class="cartao-alerta-topo">
+        <div>
+          <div class="cartao-alerta-federacao">${c.federacao} — ${c.nome}</div>
+          <div class="cartao-alerta-filtros">${c.data}${c.local ? " · " + c.local : ""}</div>
+        </div>
+        ${badgeStatusPublico(c.status)}
+      </div>
+    </div>
+  `).join("");
 }
 
 async function carregarAtletaPublico() {
@@ -135,7 +185,11 @@ async function carregarAtletaPublico() {
       `Faixa ${dados.perfil.faixa}${Number(dados.perfil.grau) > 0 ? " · " + dados.perfil.grau + "º grau" : ""}`;
     document.getElementById("perfil-academia").textContent = dados.perfil.academia || "";
 
-    if (dados.estatisticas) mostrarEstatisticas(dados.estatisticas);
+    if (dados.estatisticas) {
+      mostrarMedalhasDestaque(dados.estatisticas);
+      mostrarEstatisticas(dados.estatisticas);
+    }
+    mostrarProximasCompeticoes(dados.proximas_competicoes);
 
     const teveMedalhas = renderCompeticoesPublicas(dados.competicoes || []);
     document.getElementById("titulo-competicoes").style.display = teveMedalhas ? "" : "none";
