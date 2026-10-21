@@ -102,13 +102,16 @@ async function carregarSessaoNoMenu() {
   const elPlanos = document.getElementById("nav-planos");
 
   // Pra quem ainda não tem login, "Planos" é o link mais importante do menu
-  // (é o caminho pra virar assinante) — por isso fica antes do grupo "Menu
-  // Atleta" (Radar de Atletas/Competições/Agenda/Carreira, agrupados desde
-  // 14/09/2026 — ver #nav-menu-atleta), não escondido lá no fim da fila.
+  // (é o caminho pra virar assinante) — por isso fica antes do grupo
+  // Radar de Atletas/Competições/Agenda/Carreira (soltos no menu desktop
+  // desde 21/10/2026, ver .nav-menu-atleta-desktop-item — antes vinham
+  // agrupados dentro de um dropdown único #nav-menu-atleta), não escondido
+  // lá no fim da fila. Âncora é o primeiro item do grupo (Radar de
+  // Atletas), já que não existe mais um container único pra ele.
   const reordenarPlanosAntesDoRadar = () => {
     if (!elPlanos) return;
-    const elMenuAtleta = document.getElementById("nav-menu-atleta");
-    if (elMenuAtleta && elMenuAtleta.parentNode) elMenuAtleta.parentNode.insertBefore(elPlanos, elMenuAtleta);
+    const elPrimeiroDoGrupo = document.querySelector(".nav-menu-atleta-desktop-item");
+    if (elPrimeiroDoGrupo && elPrimeiroDoGrupo.parentNode) elPrimeiroDoGrupo.parentNode.insertBefore(elPlanos, elPrimeiroDoGrupo);
   };
 
   const ICONE_LOGOUT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>';

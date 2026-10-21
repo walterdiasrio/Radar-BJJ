@@ -111,6 +111,30 @@ header {
   border-bottom-color: #ffffff;
 }
 
+/* Selo colorido ao lado de Radar de Atletas/Competições/Minha Agenda/
+   Minha Carreira no menu desktop — pedido do usuário (21/10/2026): tirar
+   esses 4 itens de dentro do dropdown "Menu Atleta" (agora soltos direto
+   no menu, ver .nav-menu-atleta-desktop-item) e dar um selo temático a
+   cada um, no mesmo espírito do selo "PAGUE COM PIX" já usado em
+   Assinatura — círculo colorido com um emoji, não ícone de linha. */
+.nav-sticker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 11px;
+  line-height: 1;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.5);
+}
+
+.nav-sticker-radar { background: #2fb8e0; }
+.nav-sticker-competicoes { background: #e0a82f; }
+.nav-sticker-agenda { background: #2fbd8e; }
+.nav-sticker-carreira { background: #a855f7; }
+
 .nav-admin-dropdown {
   position: relative;
   display: flex;
@@ -456,7 +480,7 @@ header {
      (relatado ao vivo em celular real 11/09/2026, depois de virar visível
      no menu rolante do mobile também) — mesma correção: some aqui, vira
      .conta-toggle-mobile + #painel-nav-conta. */
-  #nav-menu-atleta, #nav-mestre, #nav-admin, #nav-usuario .nav-admin-dropdown { display: none !important; }
+  .nav-menu-atleta-desktop-item, #nav-mestre, #nav-admin, #nav-usuario .nav-admin-dropdown { display: none !important; }
 
   /* Painel do "Menu Atleta": ao contrário do .nav-admin-submenu (Admin/
      Turmas), aqui NÃO tem cálculo de posição via JS. position:fixed com
