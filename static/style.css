@@ -1935,6 +1935,22 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
 .home-lateral {
   flex: 1.3 1 420px;
   margin-bottom: 0;
+  /* A coluna principal (Próximas Aulas/Competições) costuma ficar bem
+     mais alta que o banner da Braus sozinho — sobrava uma área vazia
+     enorme do lado direito, abaixo do banner, até o fim da página
+     (reportado pelo usuário, 22/10/2026: "muito espaço em branco mal
+     aproveitado" na home de quem é Mestre). position:sticky faz o banner
+     + Quadro de Medalhas acompanharem o scroll em vez de ficarem parados
+     lá em cima com tudo vazio embaixo — mesmo truque de "sidebar fixa"
+     comum em blogs/portais. 64px ≈ altura da barra de menu (52px) + uma
+     folga pequena, pra não colar nela. */
+  position: sticky;
+  top: 64px;
+  align-self: flex-start;
+}
+
+.home-quadro-medalhas {
+  margin-top: 16px;
 }
 
 .banner-braus-link {
@@ -1952,6 +1968,11 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
 
 @media (max-width: 900px) {
   .home-cartao-boasvindas { margin: 0 auto; }
+  /* No mobile o .home-grid já empilha (flex-wrap) — a lateral vira só a
+     "segunda metade" da rolagem normal, não uma barra lateral de
+     verdade, então sticky aqui ficaria grudando no meio do conteúdo sem
+     sentido. */
+  .home-lateral { position: static; }
 }
 
 .grade-planos {
