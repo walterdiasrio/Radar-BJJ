@@ -424,6 +424,12 @@ header {
     flex-wrap: nowrap;
     justify-content: flex-start;
     overflow-x: auto;
+    /* Sem isso, o navegador calcula overflow-y como "auto" sozinho (regra
+       do CSS: definir só overflow-x já empurra o eixo oposto também pra
+       auto) — qualquer conteúdo um pixel mais alto que os 52px fixos
+       abaixo virava um scrollzinho vertical indesejado na faixa do menu
+       (reportado pelo usuário, 21/10/2026). */
+    overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     /* Altura fixa e explícita (em vez de intrínseca) pra o painel do "Menu
