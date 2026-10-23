@@ -92,7 +92,7 @@ function renderizarTabela(usuarios) {
   elCorpoTabela.innerHTML = usuarios.map(u => `
     <tr>
       <td><input type="checkbox" class="chk-usuario" data-id="${u.id}" ${idsSelecionados.has(u.id) ? "checked" : ""}></td>
-      <td>${u.email}</td>
+      <td><button type="button" class="link-detalhes-usuario btn-link" data-id="${u.id}" title="Ver detalhes">${u.email}</button></td>
       <td>${u.nome_usuario || "—"}</td>
       <td>${badgeTipo(u)}</td>
       <td>${badgePlano(u.plano)}</td>
@@ -269,10 +269,92 @@ async function apagarUsuario(usuario, botao) {
 
 elCorpoTabela.addEventListener("click", (ev) => {
   const botaoMenu = ev.target.closest(".btn-menu-acoes");
-  if (!botaoMenu) return;
-  ev.stopPropagation(); // não deixa o listener de "clicar fora" (abaixo) fechar na mesma hora
-  const usuario = usuariosCarregados.find(u => String(u.id) === botaoMenu.dataset.id);
-  if (usuario) abrirMenuAcoes(usuario, botaoMenu);
+  if (botaoMenu) {
+    ev.stopPropagation(); // não deixa o listener de "clicar fora" (abaixo) fechar na mesma hora
+    const usuario = usuariosCarregados.find(u => String(u.id) === botaoMenu.dataset.id);
+    if (usuario) abrirMenuAcoes(usuario, botaoMenu);
+    return;
+  }
+  const botaoDetalhes = ev.target.closest(".link-detalhes-usuario");
+  if (botaoDetalhes) abrirDetalhesUsuario(Number(botaoDetalhes.dataset.id));
+});
+
+// --- Modal "Ver detalhes" (pagamento + recursos já usados) -----------------
+const elModalDetalhes = document.getElementById("modal-detalhes-usuario");
+const elDetalhesTitulo = document.getElementById("detalhes-titulo");
+const elDetalhesConteudo = document.getElementById("detalhes-conteudo");
+
+const LABEL_RECURSOS = {
+  perfil_carreira: "Preencheu o perfil em Minha Carreira",
+  competicoes_registradas: "Competições registradas em Minha Carreira",
+  alertas_criados: "Alertas criados",
+  itens_agenda: "Itens já marcados em Minha Agenda",
+  turmas_criadas: "Turmas criadas (Mestre)",
+  filtro_padrao_salvo: "Salvou um filtro padrão no Radar de Atletas",
+};
+
+function formatarDataHora(timestampSegundos) {
+  if (!timestampSegundos) return null;
+  return new Date(Number(timestampSegundos) * 1000).toLocaleDateString("pt-BR");
+}
+
+function renderizarDetalhes(dados) {
+  const { usuario, pagamento, recursos } = dados;
+  elDetalhesTitulo.textContent = usuario.nome_usuario || usuario.email;
+
+  let blocoPagamento;
+  if (!pagamento) {
+    blocoPagamento = `<p style="color:#55606b;">Nunca teve nenhuma assinatura (continua no Plano Free).</p>`;
+  } else {
+    const vencimento = formatarDataHora(pagamento.periodo_atual_fim);
+    blocoPagamento = `
+      <ul style="margin:0 0 16px; padding-left:20px; color:var(--texto);">
+        <li><strong>Forma de pagamento:</strong> ${pagamento.forma_label}</li>
+        <li><strong>Situação:</strong> ${pagamento.eh_teste_gratis ? "Em teste grátis (ainda não pagou)" : LABEL_STATUS[pagamento.status] || pagamento.status}</li>
+        <li><strong>Plano:</strong> ${pagamento.plano === "mestre" ? "Mestre PRO" : "Atleta PRO"}${pagamento.periodicidade ? ` (${LABEL_PERIODICIDADE[pagamento.periodicidade] || pagamento.periodicidade})` : ""}</li>
+        ${vencimento ? `<li><strong>Vencimento do período atual:</strong> ${vencimento}</li>` : ""}
+      </ul>
+    `;
+  }
+
+  const itensRecursos = Object.entries(LABEL_RECURSOS).map(([chave, label]) => {
+    const valor = recursos[chave];
+    const usou = typeof valor === "boolean" ? valor : valor > 0;
+    const sufixo = typeof valor === "number" ? ` (${valor})` : "";
+    return `<li style="color:${usou ? "var(--texto)" : "#8a94a3"};">${usou ? "✅" : "⬜"} ${label}${usou ? sufixo : ""}</li>`;
+  }).join("");
+
+  elDetalhesConteudo.innerHTML = `
+    <p style="color:#55606b; font-size:0.85rem; margin-top:-8px;">${usuario.email} · cadastrado em ${formatarData(usuario.criado_em)}</p>
+    <h3 style="color:var(--azul); font-size:1rem; margin-bottom:6px;">Pagamento</h3>
+    ${blocoPagamento}
+    <h3 style="color:var(--azul); font-size:1rem; margin-bottom:6px;">Recursos já utilizados</h3>
+    <ul style="margin:0; padding-left:0; list-style:none; display:flex; flex-direction:column; gap:6px;">
+      ${itensRecursos}
+    </ul>
+  `;
+}
+
+async function abrirDetalhesUsuario(usuarioId) {
+  elModalDetalhes.style.display = "flex";
+  elDetalhesTitulo.textContent = "Carregando...";
+  elDetalhesConteudo.innerHTML = "";
+  try {
+    const resp = await fetchAutenticado(`/api/usuarios/${usuarioId}/detalhes`);
+    const dados = await resp.json();
+    if (!resp.ok) throw new Error(dados.erro || "erro ao carregar detalhes");
+    renderizarDetalhes(dados);
+  } catch (err) {
+    elDetalhesTitulo.textContent = "Erro";
+    elDetalhesConteudo.innerHTML = `<p style="color:#b3261e;">${err.message}</p>`;
+  }
+}
+
+document.getElementById("btn-fechar-detalhes").addEventListener("click", () => {
+  elModalDetalhes.style.display = "none";
+});
+elModalDetalhes.addEventListener("click", (ev) => {
+  if (ev.target === elModalDetalhes) elModalDetalhes.style.display = "none";
 });
 
 const elTextoSelecionados = document.getElementById("texto-selecionados");

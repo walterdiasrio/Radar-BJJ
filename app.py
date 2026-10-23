@@ -680,6 +680,63 @@ def api_listar_usuarios():
     return jsonify({"resumo": resumo, "usuarios": lista})
 
 
+_LABEL_FORMA_PAGAMENTO = {"stripe": "Cartão de crédito", "pix": "PIX", "cortesia": "Cortesia (liberado manualmente)"}
+
+
+@app.get("/api/usuarios/<int:usuario_id>/detalhes")
+@api_admin_necessario
+def api_detalhes_usuario(usuario_id):
+    """Tela de detalhe por trás do clique na linha, em Gerenciar Usuários —
+    como a pessoa está pagando (cartão/PIX/cortesia, teste grátis ou
+    cobrança de verdade) e quais recursos do site ela já usou de fato.
+    Não existe um log de eventos/analytics no site — "usou o recurso" aqui
+    é inferido pela presença de dado real em cada tabela (tem competição
+    registrada em Minha Carreira, tem alerta criado, etc.), não contagem
+    de cliques (pedido do usuário, 23/10/2026)."""
+    usuario = auth.buscar_por_id(usuario_id)
+    if not usuario:
+        return jsonify({"erro": "usuário não encontrado"}), 404
+    # buscar_por_id não traz criado_em/email_verificado (só é usado hoje
+    # pra checagens de sessão/auth, que não precisam disso) — listar_usuarios
+    # tem tudo, então busca ali só pra completar os dois campos que faltam.
+    linha_completa = next((u for u in auth.listar_usuarios() if u["id"] == usuario_id), None)
+
+    assinatura = pagamentos.obter_assinatura(usuario_id)
+    pagamento = None
+    if assinatura:
+        forma = assinatura["forma_pagamento"] or "stripe"
+        pagamento = {
+            "forma": forma,
+            "forma_label": _LABEL_FORMA_PAGAMENTO.get(forma, forma),
+            "status": assinatura["status"],
+            "eh_teste_gratis": assinatura["status"] == "trialing",
+            "plano": assinatura["plano"],
+            "periodicidade": assinatura["periodicidade"],
+            "periodo_atual_fim": assinatura["periodo_atual_fim"],
+        }
+
+    perfil = carreira.obter_perfil(usuario_id)
+    turmas_do_usuario = turmas.listar_turmas(usuario_id)
+    recursos = {
+        "perfil_carreira": bool(perfil and (perfil.get("faixa") or perfil.get("academia"))),
+        "competicoes_registradas": len(carreira.listar_competicoes(usuario_id)),
+        "alertas_criados": alertas.contar_alertas_por_usuario().get(usuario_id, 0),
+        "itens_agenda": agenda.contar(usuario_id),
+        "turmas_criadas": len(turmas_do_usuario),
+        "filtro_padrao_salvo": bool(auth.obter_filtro_padrao(usuario_id)),
+    }
+
+    return jsonify({
+        "usuario": {
+            "id": usuario["id"], "email": usuario["email"], "nome_usuario": usuario["nome_usuario"],
+            "criado_em": linha_completa["criado_em"] if linha_completa else None,
+            "email_verificado": bool(linha_completa["email_verificado"]) if linha_completa else None,
+        },
+        "pagamento": pagamento,
+        "recursos": recursos,
+    })
+
+
 @app.post("/api/usuarios/<int:usuario_id>/email")
 @api_admin_necessario
 def api_alterar_email_usuario(usuario_id):
@@ -1962,6 +2019,16 @@ def api_remover_plano_aula(turma_id, plano_id):
     return jsonify({"ok": True})
 
 
+@app.post("/api/turmas/<int:turma_id>/planos-aula/remover-varias")
+@api_assinatura_necessaria
+def api_remover_varios_planos_aula(turma_id):
+    if not _usuario_atual_eh_mestre():
+        return jsonify({"erro": "exclusivo do perfil Mestre"}), 403
+    dados = request.get_json(silent=True) or {}
+    removidas = turmas.remover_planos_aula(session["usuario_id"], turma_id, dados.get("ids"))
+    return jsonify({"ok": True, "removidas": removidas})
+
+
 @app.get("/api/turmas/<int:turma_id>/planos-aula/futuras")
 @api_assinatura_necessaria
 def api_aulas_futuras(turma_id):
@@ -2030,6 +2097,24 @@ def _turma_e_dias_planner(turma_id, mes, ano):
     if erro:
         return None, None, (erro, 400)
     return turma, dias, None
+
+
+@app.get("/api/turmas/<int:turma_id>/planner/aulas")
+@api_assinatura_necessaria
+def api_planner_aulas(turma_id):
+    """Prévia das aulas do mês escolhido, pro Mestre conferir na própria
+    aba Planner de Aulas antes de baixar/enviar o PDF — ao contrário de
+    /planner/pdf, não erra quando o mês está vazio (só devolve lista
+    vazia, pra a tela mostrar "nenhuma aula ainda")."""
+    if not _usuario_atual_eh_mestre():
+        return jsonify({"erro": "exclusivo do perfil Mestre"}), 403
+    mes, ano, erro = _mes_ano_da_query()
+    if erro:
+        return jsonify({"erro": erro}), 400
+    aulas, erro = turmas.listar_aulas_planner(session["usuario_id"], turma_id, mes, ano)
+    if erro:
+        return jsonify({"erro": erro}), 400
+    return jsonify(aulas)
 
 
 @app.get("/api/turmas/<int:turma_id>/planner/pdf")

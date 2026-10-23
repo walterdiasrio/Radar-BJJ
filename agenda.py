@@ -84,6 +84,16 @@ def desmarcar(usuario_id, federacao, nome, data):
         return cursor.rowcount > 0
 
 
+def contar(usuario_id):
+    """Total de itens já marcados na agenda (passados + futuros) — pra
+    saber se a pessoa já usou a função alguma vez, diferente de listar()
+    (só os futuros, pra exibir na tela normal da Agenda)."""
+    with _conn() as conn:
+        return conn.execute(
+            "SELECT COUNT(*) FROM agenda_competicoes WHERE usuario_id = ?", (usuario_id,)
+        ).fetchone()[0]
+
+
 def listar(usuario_id):
     """Só competições que ainda não aconteceram, ordenadas por data, cada
     item já com "mes" calculado (ex: "Setembro 2026") pro front agrupar, e
