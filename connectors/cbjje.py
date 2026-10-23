@@ -103,20 +103,21 @@ def listar_eventos():
         for item in dados.get("items", []):
             data_texto = ""
             epoch_ini = item.get("events_first_day")
-            epoch_fim = item.get("events_days_last_day") or epoch_ini
+            epoch_fim = item.get("events_last_day") or epoch_ini
             if epoch_ini:
                 ini = datetime.fromtimestamp(epoch_ini / 1000, tz=timezone.utc).strftime("%d/%m/%Y")
                 fim = datetime.fromtimestamp(epoch_fim / 1000, tz=timezone.utc).strftime("%d/%m/%Y")
                 data_texto = ini if fim == ini else f"{ini} a {fim}"
             local = ", ".join(p for p in (item.get("cities_name"), item.get("states_acronym")) if p)
-            nome = item.get("name", "")
+            nome = item.get("events_name", "")
             if local:
                 nome = f"{nome} — {local}"
-            prazo = _prazo_inscricao(item["id"])
+            evento_id = item["events_id"]
+            prazo = _prazo_inscricao(evento_id)
             eventos.append({
-                "id": str(item["id"]),
+                "id": str(evento_id),
                 "nome": nome,
-                "url": f"https://www.meucombate.com.br/cbjje/evento/{item['id']}/informacoes/",
+                "url": f"https://www.meucombate.com.br/cbjje/evento/{evento_id}/informacoes/",
                 "data": data_texto,
                 "local": local,
                 "inscricoes_abertas": bool(item.get("events_inscriptions_opened")),
