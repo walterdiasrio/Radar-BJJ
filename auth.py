@@ -67,6 +67,12 @@ def init_db():
         # (o pedido era "começar ativado pra todos", não só pra conta nova).
         if "alerta_prazo_inscricao_ativo" not in colunas:
             conn.execute("ALTER TABLE usuarios ADD COLUMN alerta_prazo_inscricao_ativo INTEGER NOT NULL DEFAULT 1")
+        # Migração pra bancos criados antes do descadastro de campanha
+        # existir (ver optou_fora_campanha/descadastrar_campanha) — e-mail
+        # avulso disparado em Gerenciar Usuários (ver api_enviar_email_avulso
+        # em app.py) passou a respeitar essa flag a partir de 23/10/2026.
+        if "campanha_email_opt_out" not in colunas:
+            conn.execute("ALTER TABLE usuarios ADD COLUMN campanha_email_opt_out INTEGER NOT NULL DEFAULT 0")
 
         conn.execute("""
             CREATE TABLE IF NOT EXISTS reset_senha (
@@ -416,4 +422,25 @@ def definir_alerta_prazo_inscricao(usuario_id, ativo):
         conn.execute(
             "UPDATE usuarios SET alerta_prazo_inscricao_ativo = ? WHERE id = ?",
             (1 if ativo else 0, usuario_id),
+        )
+
+
+def optou_fora_campanha(usuario_id):
+    """True se a pessoa já clicou em "descadastrar" num e-mail de campanha
+    (disparo avulso em Gerenciar Usuários — ver api_enviar_email_avulso em
+    app.py). Não afeta e-mail transacional (confirmação de cadastro,
+    redefinição de senha), só o de campanha."""
+    with _conn() as conn:
+        linha = conn.execute(
+            "SELECT campanha_email_opt_out FROM usuarios WHERE id = ?", (usuario_id,)
+        ).fetchone()
+    return bool(linha["campanha_email_opt_out"]) if linha else False
+
+
+def descadastrar_campanha(usuario_id):
+    """Idempotente — clicar de novo num link de descadastro antigo não
+    deve dar erro."""
+    with _conn() as conn:
+        conn.execute(
+            "UPDATE usuarios SET campanha_email_opt_out = 1 WHERE id = ?", (usuario_id,)
         )

@@ -12,6 +12,7 @@ from functools import wraps
 from pathlib import Path
 
 from flask import Flask, Response, jsonify, redirect, request, send_from_directory, session
+from itsdangerous import BadSignature, URLSafeSerializer
 
 import agenda
 import alertas
@@ -46,6 +47,24 @@ _SECRET_KEY_PATH = DATA_DIR / ".secret_key"
 if not _SECRET_KEY_PATH.exists():
     _SECRET_KEY_PATH.write_text(secrets.token_hex(32))
 app.secret_key = os.environ.get("SECRET_KEY") or _SECRET_KEY_PATH.read_text().strip()
+
+# Token de descadastro de campanha: assinado com o secret_key do site, sem
+# expiração e sem precisar guardar nada em tabela própria — o link de
+# descadastro no rodapé do e-mail avulso (ver api_enviar_email_avulso) vale
+# pra sempre, já que a pessoa pode querer sair da lista meses depois de
+# receber o e-mail.
+_serializer_descadastro = URLSafeSerializer(app.secret_key, salt="descadastrar-campanha")
+
+
+def _token_descadastro(usuario_id):
+    return _serializer_descadastro.dumps(usuario_id)
+
+
+def _usuario_id_do_token_descadastro(token):
+    try:
+        return _serializer_descadastro.loads(token)
+    except BadSignature:
+        return None
 
 auth.init_db()
 alertas.init_db()
@@ -541,6 +560,21 @@ def api_confirmar_email():
     return jsonify({"ok": True})
 
 
+@app.get("/descadastrar-campanha")
+def pagina_descadastrar_campanha():
+    return send_from_directory("static", "descadastrar-campanha.html")
+
+
+@app.post("/api/descadastrar-campanha")
+def api_descadastrar_campanha():
+    dados = request.get_json(silent=True) or {}
+    usuario_id = _usuario_id_do_token_descadastro(dados.get("token") or "")
+    if usuario_id is None:
+        return jsonify({"erro": "link inválido"}), 400
+    auth.descadastrar_campanha(usuario_id)
+    return jsonify({"ok": True})
+
+
 @app.post("/api/reenviar-confirmacao")
 def api_reenviar_confirmacao():
     dados = request.get_json(silent=True) or {}
@@ -812,7 +846,12 @@ def api_enviar_email_avulso():
     confirmado (senão a home), [LINK PRICING] = /planos). Sempre manda pelo
     REMETENTE_CAMPANHA (nunca o transacional) — essa é a ferramenta de
     disparo em massa do site, e mandar por aqui usando o remetente errado já
-    manchou a entrega da confirmação de cadastro uma vez (ver alertas.py)."""
+    manchou a entrega da confirmação de cadastro uma vez (ver alertas.py).
+    Pula quem já se descadastrou (ver auth.optou_fora_campanha) e sempre
+    anexa um link de descadastro no rodapé — pedido do usuário (23/10/2026):
+    sem opção de sair da lista, quem não quer mais receber tende a clicar
+    "denunciar spam" em vez de se descadastrar, o que machuca a reputação
+    do remetente bem mais do que um descadastro normal."""
     dados = request.get_json(silent=True) or {}
     usuario_ids = dados.get("usuario_ids") or []
     assunto = (dados.get("assunto") or "").strip()
@@ -829,6 +868,9 @@ def api_enviar_email_avulso():
         if not usuario:
             resultados.append({"usuario_id": usuario_id, "erro": "não encontrado"})
             continue
+        if auth.optou_fora_campanha(usuario_id):
+            resultados.append({"usuario_id": usuario_id, "email": usuario["email"], "descadastrado": True})
+            continue
         linha = auth.buscar_por_email(usuario["email"])
         verificado = bool(linha and linha["email_verificado"])
 
@@ -842,11 +884,14 @@ def api_enviar_email_avulso():
             link_principal = f"{alertas.URL_SITE}/confirmar-email?token={token}"
 
         assunto_pessoal = assunto.replace("[Nome]", nome_exibicao)
+        link_descadastro = f"{alertas.URL_SITE}/descadastrar-campanha?token={_token_descadastro(usuario_id)}"
         corpo_pessoal = (
             corpo_html_base
             .replace("[Nome]", html.escape(nome_exibicao))
             .replace("[LINK PRICING]", f'<a href="{link_planos}">{link_planos}</a>')
             .replace("[LINK]", f'<a href="{link_principal}">{link_principal}</a>')
+            + f'<p style="color:#8a94a0; font-size:0.78rem; margin-top:24px;">'
+            f'Não quer mais receber e-mails como este? <a href="{link_descadastro}" style="color:#8a94a0;">Descadastre-se aqui</a>.</p>'
         )
 
         ok = alertas.enviar_email(usuario["email"], assunto_pessoal, corpo_pessoal, remetente=alertas.REMETENTE_CAMPANHA)

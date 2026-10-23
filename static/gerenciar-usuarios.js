@@ -398,10 +398,13 @@ elBtnEnviarEmailAvulso.addEventListener("click", async () => {
     const dados = await resp.json();
     if (!resp.ok) throw new Error(dados.erro || "erro ao enviar e-mail");
 
-    const falhas = dados.resultados.filter(r => !r.enviado);
-    elStatusAvulso.textContent = falhas.length
-      ? `Enviado pra ${dados.resultados.length - falhas.length} de ${dados.resultados.length} — falhou pra: ${falhas.map(f => f.email || f.usuario_id).join(", ")}`
-      : `E-mail enviado pra ${dados.resultados.length} pessoa(s)!`;
+    const descadastrados = dados.resultados.filter(r => r.descadastrado);
+    const falhas = dados.resultados.filter(r => !r.enviado && !r.descadastrado);
+    const enviados = dados.resultados.length - falhas.length - descadastrados.length;
+    let texto = `E-mail enviado pra ${enviados} pessoa(s)!`;
+    if (descadastrados.length) texto += ` ${descadastrados.length} pulada(s) por já ter descadastrado.`;
+    if (falhas.length) texto += ` Falhou pra: ${falhas.map(f => f.email || f.usuario_id).join(", ")}`;
+    elStatusAvulso.textContent = texto;
     elStatusAvulso.className = "status-importacao" + (falhas.length ? " erro" : "");
   } catch (err) {
     elStatusAvulso.textContent = `Erro: ${err.message}`;
