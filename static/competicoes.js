@@ -109,6 +109,14 @@ function construirOpcoesFederacao(container, federacoes) {
   const todasCheckbox = checkboxes[0];
   const individuais = checkboxes.slice(1);
 
+  // Marcado por padrão — antes a tela carregava sem nada selecionado e
+  // exigia um clique manual antes de mostrar qualquer competição (motivo
+  // de uma competição vinda de um alerta por e-mail "não aparecer" na
+  // busca: o alerta não passa por esse filtro, mas a busca manual
+  // bloqueava sem federação + público marcados — pedido do usuário
+  // 23/10/2026).
+  todasCheckbox.checked = true;
+
   container.addEventListener("change", (ev) => {
     if (ev.target === todasCheckbox) {
       if (todasCheckbox.checked) individuais.forEach(c => { c.checked = false; });
