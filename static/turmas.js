@@ -52,6 +52,7 @@ const passadasPorTurma = {}; // turmaId -> { mesAno: "YYYY-MM", aulas: [...] } (
 const planoEditando = {}; // turmaId -> { id, data, posicoes } da aula em edição, ou undefined
 const planoIaEstado = {};
 const plannerEstado = {};
+const selecionadasFuturas = {}; // turmaId -> Set(planoId) marcados pra remoção em lote em Aulas Futuras
 const NOMES_DIA_SEMANA = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 
 function mostrarStatus(texto, ehErro = false) {
@@ -160,6 +161,8 @@ function blocoObservacao(observacao) {
 function renderizarAulasFuturas(turma) {
   const aulas = futurasPorTurma[turma.id] || [];
   const edicao = planoEditando[turma.id];
+  const selecionadas = selecionadasFuturas[turma.id] || new Set();
+  const todasSelecionadas = aulas.length > 0 && selecionadas.size === aulas.length;
 
   return `
     <div id="futuras-turma-${turma.id}">
@@ -186,12 +189,28 @@ function renderizarAulasFuturas(turma) {
       </form>
 
       <div style="margin-top:14px;">
-        <strong>Aulas futuras${aulas.length ? ` (${aulas.length})` : ""}:</strong>
+        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+          <strong>Aulas futuras${aulas.length ? ` (${aulas.length})` : ""}:</strong>
+          ${aulas.length ? `
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+              <label style="display:flex; align-items:center; gap:6px; font-size:0.85rem; font-weight:normal;">
+                <input type="checkbox" class="chk-selecionar-todas-futuras" data-turma-id="${turma.id}" ${todasSelecionadas ? "checked" : ""}>
+                Selecionar todas
+              </label>
+              <button type="button" class="btn-remover btn-remover-selecionadas-futuras" data-turma-id="${turma.id}" ${selecionadas.size ? "" : "disabled"}>
+                Remover selecionadas${selecionadas.size ? ` (${selecionadas.size})` : ""}
+              </button>
+            </div>
+          ` : ""}
+        </div>
         ${aulas.length ? "" : " nenhuma ainda — escreva o conteúdo acima, ou aceite uma sugestão do Plano de Aula IA."}
         ${aulas.map(p => `
           <div class="cartao-alerta" style="margin-top:8px; padding:12px 14px;">
             <div class="cartao-alerta-topo">
-              <div class="cartao-alerta-federacao" style="margin-top:0;">${formatarDataDiaSemana(p.data)}</div>
+              <label style="display:flex; align-items:center; gap:8px; margin-top:0;">
+                <input type="checkbox" class="chk-selecionar-aula-futura" data-turma-id="${turma.id}" data-plano-id="${p.id}" ${selecionadas.has(p.id) ? "checked" : ""}>
+                <span class="cartao-alerta-federacao" style="margin-top:0;">${formatarDataDiaSemana(p.data)}</span>
+              </label>
               <div style="display:flex; gap:8px;">
                 <button type="button" class="btn-secundario btn-editar-plano" data-turma-id="${turma.id}" data-plano-id="${p.id}">Editar</button>
                 <button type="button" class="btn-remover btn-remover-plano" data-turma-id="${turma.id}" data-plano-id="${p.id}">Remover</button>
@@ -348,6 +367,7 @@ function formatarDataDiaSemana(iso) {
 // pra esse PDF — não ficam salvos, é só preencher e baixar/enviar.
 function renderizarPlanner(turma) {
   const estado = plannerEstado[turma.id] || { mesAno: proximoMesAno() };
+  const aulas = estado.aulas || [];
 
   return `
     <div>
@@ -362,6 +382,24 @@ function renderizarPlanner(turma) {
             data-turma-id="${turma.id}" data-mes-ano="${mesAno}">
             ${rotuloBotaoMes(mesAno, mesAnoAtual())} (${rotuloMesAno(mesAno)})
           </button>
+        `).join("")}
+      </div>
+
+      <div style="margin-top:14px;">
+        <strong>Aulas cadastradas em ${rotuloMesAno(estado.mesAno)}${aulas.length ? ` (${aulas.length})` : ""}:</strong>
+        ${estado.carregandoAulas
+          ? " carregando..."
+          : (aulas.length ? "" : " nenhuma aula cadastrada nesse mês ainda — crie em Aulas Futuras ou Aulas Passadas.")}
+        ${aulas.map(a => `
+          <div class="cartao-alerta" style="margin-top:8px; padding:12px 14px;">
+            <div class="cartao-alerta-topo">
+              <div class="cartao-alerta-federacao" style="margin-top:0;">${formatarDataDiaSemana(a.data)}</div>
+            </div>
+            <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;">
+              ${pillsPosicoes(a.posicoes)}
+            </div>
+            ${blocoObservacao(a.observacao)}
+          </div>
         `).join("")}
       </div>
 
@@ -574,9 +612,24 @@ function renderizarTurmas(turmas) {
   elLista.querySelectorAll(".btn-escolher-mes-planner").forEach(btn => {
     btn.addEventListener("click", () => {
       const turmaId = Number(btn.dataset.turmaId);
-      atualizarEstadoPlanner(turmaId, { mesAno: btn.dataset.mesAno, erro: null, mensagem: null });
+      const mesAno = btn.dataset.mesAno;
+      atualizarEstadoPlanner(turmaId, { mesAno, erro: null, mensagem: null, carregandoAulas: true, aulas: [] });
       renderizarTurmas(turmasAtuais);
+      carregarAulasPlanner(turmaId, mesAno).then(() => renderizarTurmas(turmasAtuais));
     });
+  });
+  elLista.querySelectorAll(".chk-selecionar-aula-futura").forEach(chk => {
+    chk.addEventListener("change", () => {
+      alternarSelecaoAulaFutura(Number(chk.dataset.turmaId), Number(chk.dataset.planoId), chk.checked);
+    });
+  });
+  elLista.querySelectorAll(".chk-selecionar-todas-futuras").forEach(chk => {
+    chk.addEventListener("change", () => {
+      alternarSelecionarTodasFuturas(Number(chk.dataset.turmaId), chk.checked);
+    });
+  });
+  elLista.querySelectorAll(".btn-remover-selecionadas-futuras").forEach(btn => {
+    btn.addEventListener("click", () => removerPlanosSelecionados(Number(btn.dataset.turmaId)));
   });
   elLista.querySelectorAll(".planner_objetivo").forEach(textarea => {
     textarea.addEventListener("input", () => {
@@ -629,6 +682,23 @@ async function carregarFuturas(turmaId) {
   const aulas = await resp.json();
   if (!resp.ok) throw new Error(aulas.erro || "não consegui carregar as aulas futuras");
   futurasPorTurma[turmaId] = aulas;
+  delete selecionadasFuturas[turmaId];
+}
+
+// Prévia das aulas do mês escolhido no Planner — pra o Mestre conferir na
+// própria aba o que vai entrar no PDF antes de baixar/enviar (ver
+// turmas.listar_aulas_planner). Ao contrário de carregarFuturas/Passadas,
+// nunca lança erro: mês vazio só vira lista vazia na tela.
+async function carregarAulasPlanner(turmaId, mesAno) {
+  const [ano, mes] = mesAno.split("-").map(Number);
+  try {
+    const resp = await fetchAutenticado(`/api/turmas/${turmaId}/planner/aulas?mes=${mes}&ano=${ano}`);
+    const aulas = await resp.json();
+    if (!resp.ok) throw new Error(aulas.erro || "não consegui carregar as aulas desse mês");
+    atualizarEstadoPlanner(turmaId, { aulas, carregandoAulas: false });
+  } catch (err) {
+    atualizarEstadoPlanner(turmaId, { aulas: [], carregandoAulas: false });
+  }
 }
 
 async function carregarPassadas(turmaId, mesAno) {
@@ -651,6 +721,7 @@ async function atualizarListasAulas(turmaId) {
     tarefas.push(carregarFuturas(turmaId));
   } else {
     delete futurasPorTurma[turmaId];
+    delete selecionadasFuturas[turmaId];
   }
   if (aba === "passadas") {
     const mesAno = (passadasPorTurma[turmaId] || {}).mesAno || mesAnoAtual();
@@ -682,8 +753,9 @@ async function alternarAba(turmaId, aba) {
       await carregarPassadas(turmaId, mesAno);
     } else if (aba === "plano-ia") {
       await carregarPosicoes();
-    } else if (aba === "planner" && !plannerEstado[turmaId]) {
-      plannerEstado[turmaId] = { mesAno: proximoMesAno() };
+    } else if (aba === "planner") {
+      if (!plannerEstado[turmaId]) plannerEstado[turmaId] = { mesAno: proximoMesAno() };
+      await carregarAulasPlanner(turmaId, plannerEstado[turmaId].mesAno);
     }
     abaAtivaPorTurma[turmaId] = aba;
     renderizarTurmas(turmasAtuais);
@@ -778,6 +850,43 @@ async function removerPlanoAula(turmaId, planoId) {
     const resp = await fetchAutenticado(`/api/turmas/${turmaId}/planos-aula/${planoId}`, { method: "DELETE" });
     if (!resp.ok) throw new Error("não consegui remover");
     await atualizarListasAulas(turmaId);
+    renderizarTurmas(turmasAtuais);
+  } catch (err) {
+    mostrarStatus(`Erro: ${err.message}`, true);
+  }
+}
+
+function alternarSelecaoAulaFutura(turmaId, planoId, marcado) {
+  if (!selecionadasFuturas[turmaId]) selecionadasFuturas[turmaId] = new Set();
+  if (marcado) selecionadasFuturas[turmaId].add(planoId);
+  else selecionadasFuturas[turmaId].delete(planoId);
+  renderizarTurmas(turmasAtuais);
+}
+
+function alternarSelecionarTodasFuturas(turmaId, marcado) {
+  const aulas = futurasPorTurma[turmaId] || [];
+  selecionadasFuturas[turmaId] = marcado ? new Set(aulas.map(a => a.id)) : new Set();
+  renderizarTurmas(turmasAtuais);
+}
+
+// Remove de uma vez todas as aulas futuras marcadas (até todas, se
+// "Selecionar todas" tiver sido usado) — endpoint em lote (ver
+// turmas.remover_planos_aula) em vez de uma DELETE por aula.
+async function removerPlanosSelecionados(turmaId) {
+  const ids = Array.from(selecionadasFuturas[turmaId] || []);
+  if (!ids.length) return;
+  if (!confirm(`Remover ${ids.length} aula(s) selecionada(s)?`)) return;
+  try {
+    const resp = await fetchAutenticado(`/api/turmas/${turmaId}/planos-aula/remover-varias`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids }),
+    });
+    const dados = await resp.json();
+    if (!resp.ok) throw new Error(dados.erro || "não consegui remover as aulas selecionadas");
+    delete selecionadasFuturas[turmaId];
+    await atualizarListasAulas(turmaId);
+    mostrarStatus(`${dados.removidas} aula(s) removida(s).`);
     renderizarTurmas(turmasAtuais);
   } catch (err) {
     mostrarStatus(`Erro: ${err.message}`, true);

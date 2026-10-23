@@ -419,6 +419,27 @@ def remover_plano_aula(mestre_id, turma_id, plano_id):
         return cursor.rowcount > 0
 
 
+def remover_planos_aula(mestre_id, turma_id, plano_ids):
+    """Remove várias aulas de uma vez (ex: "remover todas as futuras") —
+    mesma regra de dono de remover_plano_aula, só que em lote. Retorna
+    quantas linhas foram de fato removidas."""
+    if not turma_pertence_ao_mestre(mestre_id, turma_id):
+        return 0
+    try:
+        plano_ids = [int(i) for i in (plano_ids or [])]
+    except (TypeError, ValueError):
+        return 0
+    if not plano_ids:
+        return 0
+    with _conn() as conn:
+        marcadores = ",".join("?" * len(plano_ids))
+        cursor = conn.execute(
+            f"DELETE FROM planos_aula WHERE turma_id = ? AND id IN ({marcadores})",
+            (turma_id, *plano_ids),
+        )
+        return cursor.rowcount
+
+
 def listar_aulas_futuras(mestre_id, turma_id):
     """Aulas registradas (escritas à mão ou aceitas do Plano de Aula IA) com
     data de hoje em diante, mais próxima primeiro — é só isso que decide se
@@ -755,9 +776,14 @@ def gerar_plano_ia(mestre_id, turma_id, foco, resumo, posicoes_por_aula=2):
 # futuro naturalmente; pro mês seguinte, é tudo futuro.
 # ---------------------------------------------------------------------------
 
-def montar_planner_mensal(mestre_id, turma_id, mes, ano):
-    """Retorna (dias, erro) — não salva nada, só lê o que já está
-    cadastrado em Aulas Futuras/Passadas pra esse mês."""
+def listar_aulas_planner(mestre_id, turma_id, mes, ano):
+    """Aulas (Passadas + Futuras misturadas) do mês pedido — pro Mestre
+    conferir na própria aba Planner de Aulas o que vai entrar no PDF ANTES
+    de baixar/enviar, sem precisar abrir o arquivo pra descobrir que
+    esqueceu de cadastrar alguma. Ao contrário de montar_planner_mensal,
+    não erra quando não tem nenhuma aula ainda — aqui é só pra exibir
+    "nenhuma aula ainda", não pra travar a geração do PDF. Retorna
+    (aulas, erro)."""
     try:
         mes = int(mes)
         ano = int(ano)
@@ -770,12 +796,27 @@ def montar_planner_mensal(mestre_id, turma_id, mes, ano):
         return None, "turma não encontrada"
 
     with _conn() as conn:
-        aulas = conn.execute(
+        linhas = conn.execute(
             """SELECT * FROM planos_aula
                WHERE turma_id = ? AND strftime('%m', data) = ? AND strftime('%Y', data) = ?
                ORDER BY data ASC, id ASC""",
             (turma_id, f"{mes:02d}", str(ano)),
         ).fetchall()
+
+    aulas = []
+    for linha in linhas:
+        aula = dict(linha)
+        aula["posicoes"] = json.loads(aula["posicoes"]) if aula["posicoes"] else []
+        aulas.append(aula)
+    return aulas, None
+
+
+def montar_planner_mensal(mestre_id, turma_id, mes, ano):
+    """Retorna (dias, erro) — não salva nada, só lê o que já está
+    cadastrado em Aulas Futuras/Passadas pra esse mês."""
+    aulas, erro = listar_aulas_planner(mestre_id, turma_id, mes, ano)
+    if erro:
+        return None, erro
 
     if not aulas:
         return None, "nenhuma aula cadastrada pra esse mês ainda — crie em Aulas Futuras ou Aulas Passadas primeiro"
@@ -783,7 +824,7 @@ def montar_planner_mensal(mestre_id, turma_id, mes, ano):
     dias = [
         {
             "data": aula["data"],
-            "posicoes": json.loads(aula["posicoes"]) if aula["posicoes"] else [],
+            "posicoes": aula["posicoes"],
             "observacao": aula["observacao"] or "",
         }
         for aula in aulas
