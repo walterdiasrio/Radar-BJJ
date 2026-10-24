@@ -162,6 +162,22 @@ def usuario_eh_mestre(usuario_id):
     return plano_atual(usuario_id) == "mestre"
 
 
+def eh_teste_gratis(assinatura):
+    """True se essa assinatura é um teste grátis em andamento (automático
+    no cadastro ou, antes de 23/10/2026, pedido na mão) — "trialing" é só
+    o trial nativo do Stripe (cartão, cobra sozinho no fim); o teste sem
+    cartão usa status "active" com periodicidade=None (só é preenchida
+    quando paga de verdade, ver conceder_teste_gratis_pix/
+    processar_webhook_asaas). Usado tanto no detalhe de um usuário quanto
+    nas estatísticas agregadas de Gerenciar Usuários, pra não dessincronizar
+    os dois (ver app.py::api_detalhes_usuario/api_listar_usuarios)."""
+    if not assinatura:
+        return False
+    return assinatura["status"] == "trialing" or (
+        assinatura["forma_pagamento"] == "pix" and not assinatura["periodicidade"]
+    )
+
+
 def _upsert(usuario_id, **campos):
     with _conn() as conn:
         existente = conn.execute(
@@ -196,7 +212,11 @@ def criar_sessao_checkout(usuario, plano, periodicidade):
         "mode": "subscription",
         "line_items": [{"price": price_id, "quantity": 1}],
         "subscription_data": {
-            "trial_period_days": DIAS_TESTE_GRATIS,
+            # Sem trial aqui de propósito (até 23/10/2026 tinha) — todo
+            # cadastro já nasce com DIAS_TESTE_GRATIS de teste automático
+            # (ver app.py::_conceder_teste_gratis_automatico), então dar
+            # outro trial na hora de colocar o cartão seria testar de
+            # novo/dobrar o período grátis.
             "metadata": {"usuario_id": str(usuario["id"]), "plano": plano, "periodicidade": periodicidade},
         },
         "client_reference_id": str(usuario["id"]),
@@ -333,16 +353,18 @@ def criar_cobranca_pix(usuario, plano, periodicidade, cpf, nome, ga_client_id=""
 
 
 def conceder_teste_gratis_pix(usuario_id, plano):
-    """"Testar grátis" pra quem vai pagar por PIX — libera acesso imediato
-    por DIAS_TESTE_GRATIS dias SEM cobrar nada ainda (diferente do
-    cartão: aqui não tem como debitar sozinho depois do teste acabar, já
-    que PIX não guarda cartão — ver criar_cobranca_pix). A pessoa
-    continua tendo que voltar e pagar de verdade antes do teste vencer
-    (mesmo lembrete/corte automático que já existe hoje pra "cortesia",
-    ver listar_pix_a_lembrar/listar_assinaturas_sem_renovacao_vencidas —
+    """Libera acesso imediato ao plano por DIAS_TESTE_GRATIS dias SEM
+    cobrar nada ainda — nome ficou de quando isso era só uma opção manual
+    pra quem ia pagar por PIX (botão "Testar grátis", removido em
+    23/10/2026); hoje é chamado automaticamente em todo cadastro novo (ver
+    app.py::_conceder_teste_gratis_automatico), mas o mecanismo é o
+    mesmo: sem cartão salvo, não tem como debitar sozinho depois que o
+    teste acaba (diferente do Stripe — ver criar_cobranca_pix). A pessoa
+    precisa voltar e pagar de verdade antes do teste vencer (mesmo
+    lembrete/corte automático que já existe hoje pra "cortesia", ver
+    listar_pix_a_lembrar/listar_assinaturas_sem_renovacao_vencidas —
     forma_pagamento="pix" já é tratado igual lá). Só funciona uma vez por
-    conta (ninguém com assinatura/teste registrado ainda) — senão dava
-    pra repetir o teste grátis pra sempre só clicando de novo."""
+    conta (ninguém com assinatura/teste registrado ainda)."""
     if obter_assinatura(usuario_id):
         return False, "você já usou o teste grátis (ou já tem uma assinatura)"
     periodo_atual_fim = int(time.time()) + DIAS_TESTE_GRATIS * 86400

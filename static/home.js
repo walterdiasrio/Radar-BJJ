@@ -87,6 +87,25 @@ function badgeStatusAgenda(status) {
     : '<span class="badge-inscricao badge-desconhecida">Tenho Interesse</span>';
 }
 
+// Avisa na Home quando faltam 3, 2 ou 1 dia pro teste grátis automático
+// (concedido a toda conta nova, ver app.py::_conceder_teste_gratis_automatico)
+// acabar — dias_restantes_teste_gratis já vem null do back quando não se
+// aplica (sem teste, ou faltando mais de 3 dias), então aqui é só exibir
+// ou esconder.
+function renderizarAvisoTesteGratis(diasRestantes) {
+  const elAviso = document.getElementById("home-aviso-teste-gratis");
+  if (!diasRestantes) {
+    elAviso.style.display = "none";
+    return;
+  }
+  const rotuloDias = diasRestantes === 1 ? "1 dia" : `${diasRestantes} dias`;
+  elAviso.innerHTML = `
+    <span>⏳ Seu teste grátis do Plano PRO acaba em <strong>${rotuloDias}</strong>.</span>
+    <a href="/assinatura"><button type="button">Assinar agora</button></a>
+  `;
+  elAviso.style.display = "flex";
+}
+
 function renderizarProximasHome(itens) {
   const elCard = document.getElementById("home-proximas-competicoes");
   const elLista = document.getElementById("lista-proximas-home");
@@ -312,6 +331,7 @@ async function ajustarCartaoBoasVindas() {
   elSubtituloNome.textContent = `Bem-vindo(a) de volta, ${resumo.nome}! 👋`;
   elSubtituloNome.style.display = "block";
 
+  renderizarAvisoTesteGratis(resumo.dias_restantes_teste_gratis);
   renderizarProximasHome(resumo.proximas_competicoes || []);
 
   if (resumo.proximas_aulas_turmas) {

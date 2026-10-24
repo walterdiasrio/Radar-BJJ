@@ -1739,6 +1739,33 @@ td.nao-pago { color: #b3261e; font-weight: 600; }
   margin: 0 0 20px;
 }
 
+.home-aviso-teste-gratis {
+  align-items: center;
+  background: #fdeceb;
+  border: 1px solid #f3c6c2;
+  border-radius: 10px;
+  color: #b3261e;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.9rem;
+  font-weight: 600;
+  gap: 10px 16px;
+  justify-content: space-between;
+  margin: 0 0 20px;
+  padding: 12px 16px;
+}
+
+.home-aviso-teste-gratis button {
+  background: #b3261e;
+  border: none;
+  border-radius: 20px;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 700;
+  padding: 8px 18px;
+  white-space: nowrap;
+}
+
 .home-hero-subheadline {
   color: var(--texto);
   font-size: 1rem;

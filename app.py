@@ -360,6 +360,21 @@ def home():
     return send_from_directory("static", "home.html")
 
 
+def _dias_restantes_teste_gratis(usuario_id):
+    """Quantos dias faltam pro teste grátis automático (ver
+    _conceder_teste_gratis_automatico) acabar — None se a pessoa não está
+    em teste ou se faltam mais de 3 dias (só queremos avisar na Home
+    quando o fim estiver próximo, ver renderizarAvisoTesteGratis em
+    home.js). Arredonda pra cima: faltando qualquer fração de um dia
+    ainda conta como esse dia inteiro."""
+    assinatura = pagamentos.obter_assinatura(usuario_id)
+    if not pagamentos.eh_teste_gratis(assinatura) or not assinatura.get("periodo_atual_fim"):
+        return None
+    segundos_restantes = int(assinatura["periodo_atual_fim"]) - int(time.time())
+    dias_restantes = (segundos_restantes + 86399) // 86400
+    return dias_restantes if 1 <= dias_restantes <= 3 else None
+
+
 @app.get("/api/home-resumo")
 @api_login_necessario
 def api_home_resumo():
@@ -373,6 +388,7 @@ def api_home_resumo():
         "nome": nome,
         "tem_assinatura": tem_assinatura,
         "proximas_competicoes": agenda.listar(usuario_id)[:5],
+        "dias_restantes_teste_gratis": _dias_restantes_teste_gratis(usuario_id),
     }
     # Próximas Aulas fica fora do "if tem_assinatura" de propósito, e agora
     # aparece pra todo mundo (não só quem já é Mestre) — não existe mais um
@@ -497,6 +513,21 @@ def _texto_para_html_email(texto):
         else:
             partes.append(f"<p>{'<br>'.join(html.escape(l) for l in linhas)}</p>")
     return "".join(partes)
+
+
+def _conceder_teste_gratis_automatico(usuario_id, tipo_perfil):
+    """Todo cadastro novo já nasce com DIAS_TESTE_GRATIS de teste do plano
+    PRO correspondente (Atleta ou Mestre), sem precisar de cartão nem de
+    pedir — reaproveita o mesmo mecanismo que antes só rodava quando a
+    pessoa clicava em "Testar grátis" na página de assinatura (removido,
+    ver api_teste_gratis_pix) pra pagamento por PIX: concede acesso e
+    cobra sozinho quando vencer, via o mesmo lembrete/corte automático que
+    já existia (ver pagamentos.listar_pix_a_lembrar/
+    listar_assinaturas_sem_renovacao_vencidas). Pedido do usuário
+    (24/10/2026): dar o teste pra todo mundo de cara, avisando na Home
+    quando faltarem 3/2/1 dias (ver api_home_resumo)."""
+    plano = tipo_perfil if tipo_perfil in ("atleta", "mestre") else "atleta"
+    pagamentos.conceder_teste_gratis_pix(usuario_id, plano)
 
 
 def _enviar_email_confirmacao(usuario_id, email):
@@ -694,7 +725,15 @@ def api_listar_usuarios():
         plano = _plano_do_usuario(usuario, assinatura, status)
 
         resumo["por_plano"][plano] = resumo["por_plano"].get(plano, 0) + 1
-        chave_status = status if status in resumo["por_status_assinatura"] else "sem_assinatura"
+        # Teste sem cartão (automático no cadastro, ver
+        # pagamentos.eh_teste_gratis) fica status="active" no banco, mas
+        # conta como "trialing" aqui pra não sumir dentro de "active" nas
+        # estatísticas — sem isso, praticamente todo mundo (o teste virou
+        # universal) ficaria junto dos que realmente já pagam.
+        if pagamentos.eh_teste_gratis(assinatura):
+            chave_status = "trialing"
+        else:
+            chave_status = status if status in resumo["por_status_assinatura"] else "sem_assinatura"
         resumo["por_status_assinatura"][chave_status] += 1
 
         lista.append({
@@ -739,11 +778,12 @@ def api_detalhes_usuario(usuario_id):
     pagamento = None
     if assinatura:
         forma = assinatura["forma_pagamento"] or "stripe"
+        eh_teste_gratis = pagamentos.eh_teste_gratis(assinatura)
         pagamento = {
             "forma": forma,
-            "forma_label": _LABEL_FORMA_PAGAMENTO.get(forma, forma),
+            "forma_label": "Teste grátis (sem pagamento ainda)" if eh_teste_gratis else _LABEL_FORMA_PAGAMENTO.get(forma, forma),
             "status": assinatura["status"],
-            "eh_teste_gratis": assinatura["status"] == "trialing",
+            "eh_teste_gratis": eh_teste_gratis,
             "plano": assinatura["plano"],
             "periodicidade": assinatura["periodicidade"],
             "periodo_atual_fim": assinatura["periodo_atual_fim"],
@@ -1080,6 +1120,7 @@ def api_cadastro():
     # conta em si (auth.py) — mesma separação já usada no resto do site
     # (ver salvar_perfil/obter_perfil).
     carreira.salvar_perfil(usuario_id, {"nome": nome_completo})
+    _conceder_teste_gratis_automatico(usuario_id, dados.get("tipo_perfil"))
 
     email = dados.get("email", "").strip().lower()
     email_enviado = _enviar_email_confirmacao(usuario_id, email)
@@ -1142,6 +1183,7 @@ def login_google_callback():
     if criado_agora:
         if nome:
             carreira.salvar_perfil(usuario_id, {"nome": nome})
+        _conceder_teste_gratis_automatico(usuario_id, tipo_perfil)
         _notificar_admin_novo_cadastro(email, tipo_perfil, via_google=True)
 
     session["usuario_id"] = usuario_id
@@ -2331,20 +2373,6 @@ def api_checkout_pix():
     if erro:
         return jsonify({"erro": erro}), 400
     return jsonify({"ok": True, "url": url})
-
-
-@app.post("/api/teste-gratis-pix")
-@api_login_necessario
-def api_teste_gratis_pix():
-    dados = request.get_json(silent=True) or {}
-    plano = dados.get("plano", "")
-    if plano not in ("atleta", "mestre"):
-        return jsonify({"erro": "plano inválido"}), 400
-
-    ok, erro = pagamentos.conceder_teste_gratis_pix(session["usuario_id"], plano)
-    if not ok:
-        return jsonify({"erro": erro}), 400
-    return jsonify({"ok": True})
 
 
 @app.post("/webhook/asaas")

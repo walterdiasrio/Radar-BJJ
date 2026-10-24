@@ -41,7 +41,7 @@ async function bloquearSePlanoFree(seletorConteudo, resumo, nivelExigido = "atle
   aviso.innerHTML = `
     <div class="aviso-plano-pro-selo">🔒 Exclusivo do ${nomePlano}</div>
     <p class="aviso-plano-pro-resumo">${resumo || `Essa ferramenta faz parte do ${nomePlano}.`}</p>
-    <a href="/assinatura" class="aviso-plano-pro-botao">Testar grátis por 7 dias</a>
+    <a href="/assinatura" class="aviso-plano-pro-botao">Assinar agora</a>
   `;
   elConteudo.parentNode.insertBefore(aviso, elConteudo);
   elConteudo.style.display = "none";

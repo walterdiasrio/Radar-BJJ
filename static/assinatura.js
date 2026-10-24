@@ -65,7 +65,7 @@ async function carregarAssinaturaAtual() {
           <p class="plano-desc">Pago por PIX${vencimento ? ` — vence em ${vencimento}` : ""}. Sem renovação automática.</p>
           <button type="button" id="btn-renovar-pix">Renovar agora no PIX</button>
         `
-        : `<p class="plano-desc">Teste grátis por PIX${vencimento ? ` — vence em ${vencimento}` : ""}. Escolha um plano abaixo pra continuar depois.</p>`;
+        : `<p class="plano-desc">Teste grátis${vencimento ? ` — vence em ${vencimento}` : ""}. Escolha um plano abaixo pra continuar depois.</p>`;
     } else if (a.forma_pagamento === "cortesia") {
       blocoAcao = `<p class="plano-desc">Acesso liberado pela equipe Radar BJJ${vencimento ? ` até ${vencimento}` : ""}.</p>`;
     } else {
@@ -206,24 +206,6 @@ elBtnGerarPix.addEventListener("click", async () => {
   } catch (err) {
     mostrarStatusPix(`Erro: ${err.message}`, true);
   }
-});
-
-document.querySelectorAll(".btn-teste-gratis-pix").forEach(btn => {
-  btn.addEventListener("click", async () => {
-    mostrarStatus("Liberando teste grátis...");
-    try {
-      const resp = await fetchAutenticado("/api/teste-gratis-pix", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plano: btn.dataset.plano }),
-      });
-      const dados = await resp.json();
-      if (!resp.ok) throw new Error(dados.erro || "não consegui liberar o teste grátis");
-      window.location.reload();
-    } catch (err) {
-      mostrarStatus(`Erro: ${err.message}`, true);
-    }
-  });
 });
 
 async function autoIniciarCheckoutSeVeioDoCadastro() {
