@@ -101,6 +101,12 @@ src="https://www.facebook.com/tr?id=28254694314126516&ev=PageView&noscript=1"
     <input type="text" id="filtro-busca" placeholder="ex: fulano@email.com">
   </div>
 
+  <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+    <button type="button" id="btn-selecionar-sem-campanha" class="btn-secundario">Selecionar quem nunca recebeu e-mail de campanha</button>
+    <button type="button" id="btn-conceder-teste-retroativo" class="btn-secundario">Conceder teste grátis aos Free sem assinatura</button>
+  </div>
+  <div id="status-acoes-usuarios" class="status-importacao"></div>
+
   <div style="overflow-x: auto;">
     <table>
       <thead>
@@ -113,6 +119,7 @@ src="https://www.facebook.com/tr?id=28254694314126516&ev=PageView&noscript=1"
           <th>Assinatura</th>
           <th>Cadastro</th>
           <th>Alertas</th>
+          <th>E-mail campanha</th>
           <th>Ações</th>
         </tr>
       </thead>
@@ -153,7 +160,7 @@ Placeholders disponíveis: [Nome], [LINK] (confirmar e-mail, se ainda não confi
 </div>
 
 <script src="auth-nav.js?v=23"></script>
-<script src="gerenciar-usuarios.js?v=6"></script>
+<script src="gerenciar-usuarios.js?v=7"></script>
 <nav class="menu-lateral menu-lateral-rodape" id="menu-rodape"></nav>
 </body>
 </html>

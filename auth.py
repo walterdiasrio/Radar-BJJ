@@ -73,6 +73,14 @@ def init_db():
         # em app.py) passou a respeitar essa flag a partir de 23/10/2026.
         if "campanha_email_opt_out" not in colunas:
             conn.execute("ALTER TABLE usuarios ADD COLUMN campanha_email_opt_out INTEGER NOT NULL DEFAULT 0")
+        # Quando foi a última vez que essa conta recebeu um e-mail de
+        # campanha (ver marcar_campanha_email_enviado) — antes não tinha
+        # nenhum jeito de saber, pelo site, quem já tinha recebido um
+        # disparo de "Enviar e-mail avulso" e quem não (pedido do usuário,
+        # 24/10/2026, depois de mandar 2 rodadas de e-mail sem esse
+        # registro e não conseguir saber quem sobrou).
+        if "campanha_email_enviado_em" not in colunas:
+            conn.execute("ALTER TABLE usuarios ADD COLUMN campanha_email_enviado_em TEXT")
 
         conn.execute("""
             CREATE TABLE IF NOT EXISTS reset_senha (
@@ -227,10 +235,18 @@ def listar_usuarios():
     painel administrativo de usuários."""
     with _conn() as conn:
         linhas = conn.execute(
-            """SELECT id, email, tipo_perfil, nome_usuario, criado_em, email_verificado
+            """SELECT id, email, tipo_perfil, nome_usuario, criado_em, email_verificado,
+                      campanha_email_enviado_em
                FROM usuarios ORDER BY criado_em DESC"""
         ).fetchall()
     return [dict(linha) for linha in linhas]
+
+
+def marcar_campanha_email_enviado(usuario_id):
+    with _conn() as conn:
+        conn.execute(
+            "UPDATE usuarios SET campanha_email_enviado_em = datetime('now') WHERE id = ?", (usuario_id,)
+        )
 
 
 def buscar_por_email(email):

@@ -748,6 +748,7 @@ def api_listar_usuarios():
             "assinatura_plano": assinatura["plano"] if assinatura else None,
             "assinatura_periodicidade": assinatura["periodicidade"] if assinatura else None,
             "alertas": contagem_alertas.get(usuario["id"], 0),
+            "campanha_email_enviado_em": usuario["campanha_email_enviado_em"],
         })
 
     return jsonify({"resumo": resumo, "usuarios": lista})
@@ -852,6 +853,29 @@ def api_admin_confirmar_email_manualmente(usuario_id):
     return jsonify({"ok": True})
 
 
+@app.post("/api/usuarios/conceder-teste-gratis-retroativo")
+@api_admin_necessario
+def api_conceder_teste_gratis_retroativo():
+    """Ação única (pedido do usuário, 24/10/2026): dá o mesmo teste grátis
+    automático de 7 dias (ver _conceder_teste_gratis_automatico) pra quem
+    já tinha conta Free ANTES desse recurso existir — sem isso, só quem se
+    cadastrasse dali pra frente ganhava. Pula quem já tem qualquer linha em
+    assinaturas (já testou, já pagou, cortesia, etc. — mesma trava de
+    conceder_teste_gratis_pix) e quem nunca confirmou o e-mail (não
+    consegue nem logar pra usar)."""
+    concedidos = 0
+    for usuario in auth.listar_usuarios():
+        if not usuario["email_verificado"]:
+            continue
+        if pagamentos.obter_assinatura(usuario["id"]):
+            continue
+        plano = usuario["tipo_perfil"] if usuario["tipo_perfil"] in ("atleta", "mestre") else "atleta"
+        ok, _ = pagamentos.conceder_teste_gratis_pix(usuario["id"], plano)
+        if ok:
+            concedidos += 1
+    return jsonify({"ok": True, "concedidos": concedidos})
+
+
 @app.post("/api/usuarios/<int:usuario_id>/liberar-plano-pro")
 @api_admin_necessario
 def api_admin_liberar_plano_pro(usuario_id):
@@ -935,6 +959,8 @@ def api_enviar_email_avulso():
         )
 
         ok = alertas.enviar_email(usuario["email"], assunto_pessoal, corpo_pessoal, remetente=alertas.REMETENTE_CAMPANHA)
+        if ok:
+            auth.marcar_campanha_email_enviado(usuario_id)
         resultados.append({"usuario_id": usuario_id, "email": usuario["email"], "enviado": ok})
 
     return jsonify({"resultados": resultados})

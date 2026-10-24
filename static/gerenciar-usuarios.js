@@ -86,7 +86,7 @@ function badgePlano(plano) {
 
 function renderizarTabela(usuarios) {
   if (!usuarios.length) {
-    elCorpoTabela.innerHTML = '<tr><td colspan="9">Nenhum usuário encontrado.</td></tr>';
+    elCorpoTabela.innerHTML = '<tr><td colspan="10">Nenhum usuário encontrado.</td></tr>';
     return;
   }
   elCorpoTabela.innerHTML = usuarios.map(u => `
@@ -99,6 +99,7 @@ function renderizarTabela(usuarios) {
       <td>${badgeAssinatura(u)}</td>
       <td>${formatarData(u.criado_em)}</td>
       <td style="text-align:center;">${u.alertas || 0}</td>
+      <td>${u.campanha_email_enviado_em ? formatarData(u.campanha_email_enviado_em) : "—"}</td>
       <td><button type="button" class="btn-secundario btn-menu-acoes" data-id="${u.id}" title="Ações">⋮</button></td>
     </tr>
   `).join("");
@@ -411,6 +412,41 @@ elBtnEnviarEmailAvulso.addEventListener("click", async () => {
     elStatusAvulso.className = "status-importacao erro";
   } finally {
     elBtnEnviarEmailAvulso.disabled = idsSelecionados.size === 0;
+  }
+});
+
+const elStatusAcoesUsuarios = document.getElementById("status-acoes-usuarios");
+
+// Marca pra seleção todo mundo que ainda não tem campanha_email_enviado_em
+// (nunca recebeu um disparo de "Enviar e-mail avulso") — sem isso não tinha
+// como saber quem já tinha sido mandado nas rodadas anteriores e quem
+// sobrou (pedido do usuário, 24/10/2026).
+document.getElementById("btn-selecionar-sem-campanha").addEventListener("click", () => {
+  const semCampanha = usuariosCarregados.filter(u => !u.campanha_email_enviado_em);
+  semCampanha.forEach(u => idsSelecionados.add(u.id));
+  atualizarSelecaoUI();
+  aplicarFiltro();
+  elStatusAcoesUsuarios.textContent = `${semCampanha.length} usuário(s) nunca receberam e-mail de campanha — selecionados.`;
+  elStatusAcoesUsuarios.className = "status-importacao";
+});
+
+document.getElementById("btn-conceder-teste-retroativo").addEventListener("click", async (ev) => {
+  if (!confirm("Conceder 7 dias de teste grátis do Plano PRO a TODOS os usuários Free sem nenhuma assinatura? A contagem começa agora mesmo pra cada um.")) return;
+  const botao = ev.target;
+  botao.disabled = true;
+  elStatusAcoesUsuarios.textContent = "Concedendo...";
+  elStatusAcoesUsuarios.className = "status-importacao";
+  try {
+    const resp = await fetchAutenticado("/api/usuarios/conceder-teste-gratis-retroativo", { method: "POST" });
+    const dados = await resp.json();
+    if (!resp.ok) throw new Error(dados.erro || "não consegui conceder o teste grátis");
+    elStatusAcoesUsuarios.textContent = `${dados.concedidos} conta(s) receberam o teste grátis agora.`;
+    await carregarUsuarios();
+  } catch (err) {
+    elStatusAcoesUsuarios.textContent = `Erro: ${err.message}`;
+    elStatusAcoesUsuarios.className = "status-importacao erro";
+  } finally {
+    botao.disabled = false;
   }
 });
 
