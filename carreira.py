@@ -485,17 +485,30 @@ def listar_competicoes(usuario_id, filtros=None):
         return _competicoes_com_lutas(conn, usuario_id, filtros)
 
 
+# Corte temporário (pedido do usuário, 26/10/2026): o quadro fictício de
+# medalhistas da home (ver MEDALHISTAS_FICTICIOS em home.js) só deve sumir
+# quando entrar uma medalha de verdade DAQUI PRA FRENTE — as já cadastradas
+# antes disso (inclusive de aluno real, não só do Vinícius) não devem mais
+# contar pra decidir se mostra o quadro fictício ou não. Sem esse corte,
+# medalha.py não tinha como diferenciar "já tinha antes" de "chegou agora".
+# Remover esse filtro (e a constante) quando não precisar mais congelar o
+# quadro fictício no ar.
+CORTE_MEDALHAS_RECENTES = "2026-10-26 00:00:00"
+
+
 def medalhas_recentes(limite=5):
     """As últimas inserções de medalha, de QUALQUER atleta (não só o usuário
-    logado) — ordenadas pela data DA COMPETIÇÃO (não de quando foi
-    registrada no site), mais recente primeiro. Usado no quadro "Últimos
-    Medalhistas" da home; o nome/link de cada atleta é resolvido depois,
-    em app.py (carreira.py não tem acesso à tabela de usuários)."""
+    logado), registradas a partir de CORTE_MEDALHAS_RECENTES — ordenadas
+    pela data DA COMPETIÇÃO (não de quando foi registrada no site), mais
+    recente primeiro. Usado no quadro "Últimos Medalhistas" da home; o
+    nome/link de cada atleta é resolvido depois, em app.py (carreira.py
+    não tem acesso à tabela de usuários)."""
     with _conn() as conn:
         linhas = conn.execute(
             """SELECT usuario_id, campeonato, data, medalha FROM competicoes
-               WHERE medalha IS NOT NULL ORDER BY data DESC, id DESC LIMIT ?""",
-            (limite,),
+               WHERE medalha IS NOT NULL AND criado_em >= ?
+               ORDER BY data DESC, id DESC LIMIT ?""",
+            (CORTE_MEDALHAS_RECENTES, limite),
         ).fetchall()
     return [dict(linha) for linha in linhas]
 
