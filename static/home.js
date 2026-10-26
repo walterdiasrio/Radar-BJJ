@@ -39,10 +39,10 @@ const NOME_USUARIO_IGNORADO_NA_CONTAGEM_REAL = "vinibulba";
 // sozinho (ver carregarUltimosMedalhistas) — remover esta lista (e a
 // constante acima) quando não precisar mais.
 const MEDALHISTAS_FICTICIOS = [
-  { nome: "Rafael Monteiro Duarte", medalha: "ouro", campeonato: "Saquarema Winter", data: "2026-08-23" },
-  { nome: "Camila Ferraz Nogueira", medalha: "prata", campeonato: "Saquarema Winter", data: "2026-08-16" },
-  { nome: "Bruno Cavalcanti Lima", medalha: "ouro", campeonato: "Saquarema Winter", data: "2026-08-10" },
-  { nome: "Juliana Prado Azevedo", medalha: "bronze", campeonato: "Saquarema Winter", data: "2026-08-02" },
+  { nome: "Lucas Andrade Ferreira", medalha: "ouro", campeonato: "Rei do Rio", data: "2026-10-24" },
+  { nome: "Mariana Castro Lima", medalha: "prata", campeonato: "Rei do Rio", data: "2026-10-24" },
+  { nome: "Thiago Barbosa Ramos", medalha: "ouro", campeonato: "Rei do Rio", data: "2026-10-24" },
+  { nome: "Gabriela Souza Martins", medalha: "bronze", campeonato: "Rei do Rio", data: "2026-10-24" },
 ];
 
 function itemMedalhista(m, comLink) {
