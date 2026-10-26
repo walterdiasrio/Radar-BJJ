@@ -300,8 +300,22 @@ function formatarDataHora(timestampSegundos) {
 }
 
 function renderizarDetalhes(dados) {
-  const { usuario, pagamento, recursos } = dados;
+  const { usuario, pagamento, recursos, origem_trafego } = dados;
   elDetalhesTitulo.textContent = usuario.nome_usuario || usuario.email;
+
+  let blocoOrigem = "";
+  if (origem_trafego) {
+    const partes = [];
+    if (origem_trafego.utm_source) partes.push(`<li><strong>Origem:</strong> ${origem_trafego.utm_source}</li>`);
+    if (origem_trafego.utm_medium) partes.push(`<li><strong>Mídia:</strong> ${origem_trafego.utm_medium}</li>`);
+    if (origem_trafego.utm_campaign) partes.push(`<li><strong>Campanha:</strong> ${origem_trafego.utm_campaign}</li>`);
+    if (origem_trafego.fbclid) partes.push(`<li><strong>Veio de um anúncio do Meta</strong> (clique rastreado)</li>`);
+    if (origem_trafego.gclid) partes.push(`<li><strong>Veio de um anúncio do Google</strong> (clique rastreado)</li>`);
+    blocoOrigem = `
+      <h3 style="color:var(--azul); font-size:1rem; margin-bottom:6px;">Origem do cadastro</h3>
+      <ul style="margin:0 0 16px; padding-left:20px; color:var(--texto);">${partes.join("")}</ul>
+    `;
+  }
 
   let blocoPagamento;
   if (!pagamento) {
@@ -329,6 +343,7 @@ function renderizarDetalhes(dados) {
     <p style="color:#55606b; font-size:0.85rem; margin-top:-8px;">${usuario.email} · cadastrado em ${formatarData(usuario.criado_em)}</p>
     <h3 style="color:var(--azul); font-size:1rem; margin-bottom:6px;">Pagamento</h3>
     ${blocoPagamento}
+    ${blocoOrigem}
     <h3 style="color:var(--azul); font-size:1rem; margin-bottom:6px;">Recursos já utilizados</h3>
     <ul style="margin:0; padding-left:0; list-style:none; display:flex; flex-direction:column; gap:6px;">
       ${itensRecursos}

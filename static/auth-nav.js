@@ -1,3 +1,28 @@
+// Guarda a primeira origem de tráfego pago que trouxe a pessoa ao site
+// (utm_source/utm_medium/utm_campaign, fbclid, gclid) — "primeiro
+// toque": só grava na primeira vez que aparece na URL, nunca sobrescreve,
+// senão perderíamos a campanha original se a pessoa voltasse depois por
+// um link direto/orgânico antes de se cadastrar. Lido só na hora do
+// cadastro (ver cadastro.js) pra saber de qual campanha cada conta nova
+// veio — pedido do usuário, 26/10/2026, pra calcular CAC de verdade em
+// vez de confiar só no que o Meta/Google relatam.
+(function capturarOrigemTrafego() {
+  try {
+    if (localStorage.getItem("radarbjj_origem_trafego")) return;
+    const params = new URLSearchParams(window.location.search);
+    const origem = {};
+    ["utm_source", "utm_medium", "utm_campaign", "fbclid", "gclid"].forEach(chave => {
+      const valor = params.get(chave);
+      if (valor) origem[chave] = valor;
+    });
+    if (Object.keys(origem).length) {
+      localStorage.setItem("radarbjj_origem_trafego", JSON.stringify(origem));
+    }
+  } catch (err) {
+    // localStorage indisponível (modo privado, etc.) — sem atribuição, sem problema
+  }
+})();
+
 // Páginas de ferramenta exclusiva do Plano PRO (Radar de Atletas, Meus
 // Alunos, Turmas, detalhe de aluno) não exigem mais assinatura só pra
 // ABRIR — a pessoa consegue ver a página, mas com esse aviso por cima do

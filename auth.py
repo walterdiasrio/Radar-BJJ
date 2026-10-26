@@ -81,6 +81,14 @@ def init_db():
         # registro e não conseguir saber quem sobrou).
         if "campanha_email_enviado_em" not in colunas:
             conn.execute("ALTER TABLE usuarios ADD COLUMN campanha_email_enviado_em TEXT")
+        # Origem de tráfego pago do PRIMEIRO toque antes do cadastro (ver
+        # definir_origem_trafego/auth-nav.js::capturarOrigemTrafego) — sem
+        # isso não tinha como saber de qual campanha cada conta nova veio,
+        # só confiando no que o Meta/Google relatam (pedido do usuário,
+        # 26/10/2026, pra poder calcular CAC de verdade).
+        for coluna in ("utm_source", "utm_medium", "utm_campaign", "fbclid", "gclid"):
+            if coluna not in colunas:
+                conn.execute(f"ALTER TABLE usuarios ADD COLUMN {coluna} TEXT")
 
         conn.execute("""
             CREATE TABLE IF NOT EXISTS reset_senha (
@@ -236,10 +244,27 @@ def listar_usuarios():
     with _conn() as conn:
         linhas = conn.execute(
             """SELECT id, email, tipo_perfil, nome_usuario, criado_em, email_verificado,
-                      campanha_email_enviado_em
+                      campanha_email_enviado_em, utm_source, utm_medium, utm_campaign, fbclid, gclid
                FROM usuarios ORDER BY criado_em DESC"""
         ).fetchall()
     return [dict(linha) for linha in linhas]
+
+
+def definir_origem_trafego(usuario_id, dados):
+    """Grava a origem de tráfego (utm_source/utm_medium/utm_campaign,
+    fbclid, gclid) de uma conta recém-criada — chamado uma única vez logo
+    depois do cadastro (ver api_cadastro/login_google_callback em app.py),
+    nunca depois. Campos ausentes em `dados` ficam None (não sobrescreve
+    com string vazia). Ignora silenciosamente se `usuario_id` não existir
+    mais (conta apagada entre o cadastro e essa chamada) — não é crítico
+    o bastante pra travar o fluxo de cadastro por causa disso."""
+    campos = ("utm_source", "utm_medium", "utm_campaign", "fbclid", "gclid")
+    valores = [(dados.get(c) or "").strip() or None for c in campos]
+    with _conn() as conn:
+        conn.execute(
+            f"UPDATE usuarios SET {', '.join(f'{c} = ?' for c in campos)} WHERE id = ?",
+            (*valores, usuario_id),
+        )
 
 
 def marcar_campanha_email_enviado(usuario_id):

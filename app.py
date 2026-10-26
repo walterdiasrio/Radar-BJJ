@@ -801,6 +801,16 @@ def api_detalhes_usuario(usuario_id):
         "filtro_padrao_salvo": bool(auth.obter_filtro_padrao(usuario_id)),
     }
 
+    origem_trafego = None
+    if linha_completa and any(linha_completa.get(c) for c in ("utm_source", "utm_medium", "utm_campaign", "fbclid", "gclid")):
+        origem_trafego = {
+            "utm_source": linha_completa.get("utm_source"),
+            "utm_medium": linha_completa.get("utm_medium"),
+            "utm_campaign": linha_completa.get("utm_campaign"),
+            "fbclid": bool(linha_completa.get("fbclid")),
+            "gclid": bool(linha_completa.get("gclid")),
+        }
+
     return jsonify({
         "usuario": {
             "id": usuario["id"], "email": usuario["email"], "nome_usuario": usuario["nome_usuario"],
@@ -809,6 +819,7 @@ def api_detalhes_usuario(usuario_id):
         },
         "pagamento": pagamento,
         "recursos": recursos,
+        "origem_trafego": origem_trafego,
     })
 
 
@@ -1147,6 +1158,7 @@ def api_cadastro():
     # (ver salvar_perfil/obter_perfil).
     carreira.salvar_perfil(usuario_id, {"nome": nome_completo})
     _conceder_teste_gratis_automatico(usuario_id, dados.get("tipo_perfil"))
+    auth.definir_origem_trafego(usuario_id, dados)
 
     email = dados.get("email", "").strip().lower()
     email_enviado = _enviar_email_confirmacao(usuario_id, email)
@@ -1182,6 +1194,16 @@ def login_google():
     estado = secrets.token_urlsafe(24)
     session["google_oauth_estado"] = estado
     session["google_oauth_tipo_perfil"] = tipo_perfil
+    # Origem de tráfego (ver auth.definir_origem_trafego) capturada em
+    # auth-nav.js antes de clicar em "Entrar com Google" — precisa passar
+    # pela session porque o fluxo some do nosso site (vai pro Google e
+    # volta) sem nenhum JS nosso rodando no meio pra carregar do
+    # localStorage de novo.
+    session["google_oauth_origem_trafego"] = {
+        campo: request.args.get(campo) for campo in
+        ("utm_source", "utm_medium", "utm_campaign", "fbclid", "gclid")
+        if request.args.get(campo)
+    }
     redirect_uri = f"{alertas.URL_SITE}/login/google/callback"
     return redirect(google_login.montar_url_autorizacao(redirect_uri, estado))
 
@@ -1190,6 +1212,7 @@ def login_google():
 def login_google_callback():
     estado_esperado = session.pop("google_oauth_estado", None)
     tipo_perfil = session.pop("google_oauth_tipo_perfil", "atleta")
+    origem_trafego = session.pop("google_oauth_origem_trafego", {})
     estado_recebido = request.args.get("state")
     codigo = request.args.get("code")
 
@@ -1210,6 +1233,7 @@ def login_google_callback():
         if nome:
             carreira.salvar_perfil(usuario_id, {"nome": nome})
         _conceder_teste_gratis_automatico(usuario_id, tipo_perfil)
+        auth.definir_origem_trafego(usuario_id, origem_trafego)
         _notificar_admin_novo_cadastro(email, tipo_perfil, via_google=True)
 
     session["usuario_id"] = usuario_id

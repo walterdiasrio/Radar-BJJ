@@ -37,6 +37,16 @@ function escapeHtml(texto) {
   return div.innerHTML;
 }
 
+// Lê a origem de tráfego capturada em auth-nav.js (primeiro toque) —
+// {} se nunca teve utm_source/fbclid/gclid nenhum na URL (acesso direto).
+function origemTrafegoCapturada() {
+  try {
+    return JSON.parse(localStorage.getItem("radarbjj_origem_trafego") || "{}");
+  } catch (err) {
+    return {};
+  }
+}
+
 elForm.addEventListener("submit", async (ev) => {
   ev.preventDefault();
   const nome = document.getElementById("nome").value;
@@ -57,7 +67,7 @@ elForm.addEventListener("submit", async (ev) => {
     const resp = await fetch("/api/cadastro", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nome, email, senha, nome_usuario, tipo_perfil }),
+      body: JSON.stringify({ nome, email, senha, nome_usuario, tipo_perfil, ...origemTrafegoCapturada() }),
     });
     const dados = await resp.json();
     if (!resp.ok) throw new Error(dados.erro || "erro ao cadastrar");
@@ -96,5 +106,6 @@ document.getElementById("btn-google").addEventListener("click", () => {
     return;
   }
   const tipo_perfil = document.querySelector('input[name="tipo_perfil"]:checked').value;
-  window.location.href = `/login/google?tipo_perfil=${tipo_perfil}`;
+  const params = new URLSearchParams({ tipo_perfil, ...origemTrafegoCapturada() });
+  window.location.href = `/login/google?${params}`;
 });
