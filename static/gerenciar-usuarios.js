@@ -60,6 +60,31 @@ function renderizarResumo(resumo) {
     </div>`).join("");
 }
 
+const elCardOrigemTrafego = document.getElementById("card-origem-trafego");
+const elListaOrigemTrafego = document.getElementById("lista-origem-trafego");
+
+// Agrupa client-side por utm_campaign (ou utm_source, se a campanha não
+// veio) — só conta quem tem ALGUMA origem capturada (ver
+// auth-nav.js::capturarOrigemTrafego); cadastros sem isso (a maioria, até
+// o anúncio estar configurado com "Parâmetros de URL") ficam de fora da
+// contagem, não aparecem como "Direto" nem nada parecido, pra não dar a
+// falsa impressão de que a origem é conhecida quando não é.
+function renderizarOrigemTrafego(usuarios) {
+  const comOrigem = usuarios.filter(u => u.utm_campaign || u.utm_source);
+  if (!comOrigem.length) {
+    elCardOrigemTrafego.style.display = "none";
+    return;
+  }
+  const contagem = new Map();
+  comOrigem.forEach(u => {
+    const chave = u.utm_campaign || u.utm_source;
+    contagem.set(chave, (contagem.get(chave) || 0) + 1);
+  });
+  const ordenado = [...contagem.entries()].sort((a, b) => b[1] - a[1]);
+  elListaOrigemTrafego.innerHTML = ordenado.map(([nome, qtd]) => `<li><strong>${qtd}</strong> — ${nome}</li>`).join("");
+  elCardOrigemTrafego.style.display = "block";
+}
+
 function contaEhFree(u) {
   return !["trialing", "active", "past_due"].includes(u.assinatura_status);
 }
@@ -486,6 +511,7 @@ async function carregarUsuarios() {
 
     usuariosCarregados = dados.usuarios;
     renderizarResumo(dados.resumo);
+    renderizarOrigemTrafego(usuariosCarregados);
     renderizarTabela(usuariosCarregados);
     mostrarStatus("");
   } catch (err) {

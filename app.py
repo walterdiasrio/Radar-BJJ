@@ -749,6 +749,8 @@ def api_listar_usuarios():
             "assinatura_periodicidade": assinatura["periodicidade"] if assinatura else None,
             "alertas": contagem_alertas.get(usuario["id"], 0),
             "campanha_email_enviado_em": usuario["campanha_email_enviado_em"],
+            "utm_source": usuario["utm_source"],
+            "utm_campaign": usuario["utm_campaign"],
         })
 
     return jsonify({"resumo": resumo, "usuarios": lista})
