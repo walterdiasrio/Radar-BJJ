@@ -8,6 +8,7 @@ const LABEL_STATUS = {
   active: "Ativa",
   past_due: "Pagamento pendente",
   canceled: "Cancelada",
+  vencida: "Teste vencido (não pagou)",
 };
 
 let usuariosCarregados = [];
@@ -52,6 +53,8 @@ function renderizarResumo(resumo) {
     { label: "Pagamento pendente", value: resumo.por_status_assinatura.past_due || 0 },
     { label: "Canceladas", value: resumo.por_status_assinatura.canceled || 0 },
     { label: "Sem assinatura", value: resumo.por_status_assinatura.sem_assinatura || 0 },
+    { label: "Teste grátis — converteu", value: resumo.teste_gratis.convertido || 0 },
+    { label: "Teste grátis — venceu sem pagar", value: resumo.teste_gratis.vencido_sem_pagar || 0 },
   ];
   elGradeResumo.innerHTML = cards.map(c => `
     <div class="stat-box">
@@ -467,6 +470,18 @@ document.getElementById("btn-selecionar-sem-campanha").addEventListener("click",
   atualizarSelecaoUI();
   aplicarFiltro();
   elStatusAcoesUsuarios.textContent = `${semCampanha.length} usuário(s) nunca receberam e-mail de campanha — selecionados.`;
+  elStatusAcoesUsuarios.className = "status-importacao";
+});
+
+// Marca pra seleção quem já teve o teste grátis vencido sem nunca ter
+// pago (ver teste_resultado em api_listar_usuarios/app.py) — pra mandar
+// um e-mail de conversão só pra esse grupo (pedido do usuário, 01/11/2026).
+document.getElementById("btn-selecionar-teste-vencido").addEventListener("click", () => {
+  const vencidos = usuariosCarregados.filter(u => u.teste_resultado === "vencido_sem_pagar");
+  vencidos.forEach(u => idsSelecionados.add(u.id));
+  atualizarSelecaoUI();
+  aplicarFiltro();
+  elStatusAcoesUsuarios.textContent = `${vencidos.length} usuário(s) com teste grátis vencido sem pagar — selecionados.`;
   elStatusAcoesUsuarios.className = "status-importacao";
 });
 

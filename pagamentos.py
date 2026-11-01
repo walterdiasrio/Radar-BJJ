@@ -163,18 +163,26 @@ def usuario_eh_mestre(usuario_id):
 
 
 def eh_teste_gratis(assinatura):
-    """True se essa assinatura é um teste grátis em andamento (automático
+    """True se essa assinatura é um teste grátis EM ANDAMENTO (automático
     no cadastro ou, antes de 23/10/2026, pedido na mão) — "trialing" é só
     o trial nativo do Stripe (cartão, cobra sozinho no fim); o teste sem
     cartão usa status "active" com periodicidade=None (só é preenchida
     quando paga de verdade, ver conceder_teste_gratis_pix/
-    processar_webhook_asaas). Usado tanto no detalhe de um usuário quanto
-    nas estatísticas agregadas de Gerenciar Usuários, pra não dessincronizar
-    os dois (ver app.py::api_detalhes_usuario/api_listar_usuarios)."""
+    processar_webhook_asaas). Exige status "active" (não só forma_pagamento
+    "pix" sem periodicidade) porque esse MESMO par também describe um teste
+    já VENCIDO sem pagar (status vira "vencida", mas periodicidade continua
+    None pra sempre, já que nunca houve pagamento) — sem checar o status,
+    conta vencida aparecia como "ainda em teste" (bug encontrado em
+    01/11/2026, testando a função que lista quem já venceu o teste).
+    Usado tanto no detalhe de um usuário quanto nas estatísticas agregadas
+    de Gerenciar Usuários, pra não dessincronizar os dois (ver
+    app.py::api_detalhes_usuario/api_listar_usuarios)."""
     if not assinatura:
         return False
     return assinatura["status"] == "trialing" or (
-        assinatura["forma_pagamento"] == "pix" and not assinatura["periodicidade"]
+        assinatura["status"] == "active"
+        and assinatura["forma_pagamento"] == "pix"
+        and not assinatura["periodicidade"]
     )
 
 

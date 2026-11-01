@@ -714,6 +714,11 @@ def api_listar_usuarios():
         "total": len(usuarios),
         "por_plano": {"Free": 0, "Atleta PRO": 0, "Mestre PRO": 0, "E-mail não confirmado": 0},
         "por_status_assinatura": {"trialing": 0, "active": 0, "past_due": 0, "canceled": 0, "sem_assinatura": 0},
+        # Resultado de quem já passou (ou está passando) pelo teste grátis
+        # automático do cadastro (ver pagamentos.conceder_teste_gratis_pix) —
+        # pedido do usuário (01/11/2026): "verificar a situação de todos que
+        # fizeram cadastro e já encerrou os 7 dias grátis".
+        "teste_gratis": {"em_teste": 0, "convertido": 0, "vencido_sem_pagar": 0},
     }
 
     contagem_alertas = alertas.contar_alertas_por_usuario()
@@ -730,11 +735,29 @@ def api_listar_usuarios():
         # conta como "trialing" aqui pra não sumir dentro de "active" nas
         # estatísticas — sem isso, praticamente todo mundo (o teste virou
         # universal) ficaria junto dos que realmente já pagam.
-        if pagamentos.eh_teste_gratis(assinatura):
+        eh_teste = pagamentos.eh_teste_gratis(assinatura)
+        if eh_teste:
             chave_status = "trialing"
         else:
             chave_status = status if status in resumo["por_status_assinatura"] else "sem_assinatura"
         resumo["por_status_assinatura"][chave_status] += 1
+
+        # "convertido" cobre tanto quem já paga de verdade (cartão/PIX) quanto
+        # cortesia liberada depois do teste — "vencido_sem_pagar" é só quem o
+        # teste expirou e a conta voltou pro Free sem nunca ter pago nada
+        # (ver pagamentos.listar_assinaturas_sem_renovacao_vencidas/
+        # marcar_assinatura_vencida: status vira "vencida", periodicidade
+        # continua None porque nunca existiu pagamento de verdade).
+        teste_resultado = None
+        periodo_fim = int(assinatura["periodo_atual_fim"]) if (assinatura and assinatura["periodo_atual_fim"]) else None
+        if eh_teste:
+            teste_resultado = "em_teste" if (periodo_fim and periodo_fim >= time.time()) else "vencido_sem_pagar"
+        elif assinatura and status == "active" and assinatura["periodicidade"]:
+            teste_resultado = "convertido"
+        elif assinatura and status == "vencida" and not assinatura["periodicidade"]:
+            teste_resultado = "vencido_sem_pagar"
+        if teste_resultado:
+            resumo["teste_gratis"][teste_resultado] += 1
 
         lista.append({
             "id": usuario["id"],
@@ -751,6 +774,7 @@ def api_listar_usuarios():
             "campanha_email_enviado_em": usuario["campanha_email_enviado_em"],
             "utm_source": usuario["utm_source"],
             "utm_campaign": usuario["utm_campaign"],
+            "teste_resultado": teste_resultado,
         })
 
     return jsonify({"resumo": resumo, "usuarios": lista})
@@ -782,9 +806,23 @@ def api_detalhes_usuario(usuario_id):
     if assinatura:
         forma = assinatura["forma_pagamento"] or "stripe"
         eh_teste_gratis = pagamentos.eh_teste_gratis(assinatura)
+        # "vencida" + pix + sem periodicidade é o mesmo par de campos do
+        # teste em andamento, só que já passou do prazo sem nunca ter
+        # pago de verdade (ver pagamentos.eh_teste_gratis) — sem esse
+        # caso à parte, aparecia "PIX" puro e dava a entender que a
+        # pessoa chegou a pagar, quando na verdade só testou e venceu.
+        teste_venceu_sem_pagar = (
+            assinatura["status"] == "vencida" and forma == "pix" and not assinatura["periodicidade"]
+        )
+        if eh_teste_gratis:
+            forma_label = "Teste grátis (sem pagamento ainda)"
+        elif teste_venceu_sem_pagar:
+            forma_label = "Teste grátis vencido (nunca pagou)"
+        else:
+            forma_label = _LABEL_FORMA_PAGAMENTO.get(forma, forma)
         pagamento = {
             "forma": forma,
-            "forma_label": "Teste grátis (sem pagamento ainda)" if eh_teste_gratis else _LABEL_FORMA_PAGAMENTO.get(forma, forma),
+            "forma_label": forma_label,
             "status": assinatura["status"],
             "eh_teste_gratis": eh_teste_gratis,
             "plano": assinatura["plano"],
