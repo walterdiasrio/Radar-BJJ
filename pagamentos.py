@@ -139,9 +139,29 @@ def obter_assinatura(usuario_id):
     return dict(linha) if linha else None
 
 
+def _periodo_ainda_valido(assinatura):
+    """False só quando periodo_atual_fim existe E já passou — cortesia
+    "sem validade" (dias=None em conceder_cortesia) tem periodo_atual_fim
+    None, que não vence nunca. Existe pra não depender SÓ do status
+    gravado no banco: pix/cortesia com prazo não renovam sozinhos, e quem
+    tira o acesso deles é a verificação periódica em app.py
+    (_verificar_assinaturas_pix, a cada INTERVALO_ALERTAS_SEGUNDOS, 30min
+    por padrão) — sem checar a data aqui também, alguém com o teste grátis
+    (ou PIX) vencido continuava com acesso completo até essa verificação
+    rodar de novo, uma janela de até ~30min por ciclo (achado respondendo
+    o usuário, 01/11/2026: "tem risco de alguém continuar com acesso a
+    tudo após vencer o teste?")."""
+    periodo_fim = assinatura["periodo_atual_fim"]
+    return not (periodo_fim and int(periodo_fim) < time.time())
+
+
 def usuario_tem_acesso(usuario_id):
     assinatura = obter_assinatura(usuario_id)
-    return bool(assinatura) and assinatura["status"] in STATUS_COM_ACESSO
+    return (
+        bool(assinatura)
+        and assinatura["status"] in STATUS_COM_ACESSO
+        and _periodo_ainda_valido(assinatura)
+    )
 
 
 def plano_atual(usuario_id):
@@ -154,6 +174,8 @@ def plano_atual(usuario_id):
     usuarios.tipo_perfil)."""
     assinatura = obter_assinatura(usuario_id)
     if not assinatura or assinatura["status"] not in STATUS_COM_ACESSO:
+        return None
+    if not _periodo_ainda_valido(assinatura):
         return None
     return assinatura["plano"]
 
